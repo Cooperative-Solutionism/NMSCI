@@ -20,7 +20,7 @@ comment on column central_pubkey_empower_msgs.central_pubkey is '中心公钥';
 
 comment on column central_pubkey_empower_msgs.flow_node_signature is '流转节点签名';
 
-comment on column central_pubkey_empower_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column central_pubkey_empower_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column central_pubkey_empower_msgs.central_signature is '中心签名';
 
@@ -43,7 +43,7 @@ comment on column central_pubkey_locked_msgs.msg_type is '信息类型';
 
 comment on column central_pubkey_locked_msgs.central_pubkey is '中心公钥';
 
-comment on column central_pubkey_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column central_pubkey_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column central_pubkey_locked_msgs.central_signature is '中心签名';
 
@@ -78,7 +78,7 @@ comment on column flow_node_register_msgs.central_pubkey is '中心公钥';
 
 comment on column flow_node_register_msgs.flow_node_signature is '流转节点签名';
 
-comment on column flow_node_register_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column flow_node_register_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column flow_node_register_msgs.central_signature is '中心签名';
 
@@ -107,7 +107,7 @@ comment on column flow_node_locked_msgs.central_pubkey is '中心公钥';
 
 comment on column flow_node_locked_msgs.flow_node_signature is '流转节点签名';
 
-comment on column flow_node_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column flow_node_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column flow_node_locked_msgs.central_signature is '中心签名';
 
@@ -154,7 +154,7 @@ comment on column transaction_record_msgs.consume_node_signature is '消费节�
 
 comment on column transaction_record_msgs.flow_node_signature is '流转节点签名';
 
-comment on column transaction_record_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column transaction_record_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column transaction_record_msgs.central_signature is '中心签名';
 
@@ -198,7 +198,7 @@ comment on column transaction_mount_msgs.consume_node_signature is '消费节点
 
 comment on column transaction_mount_msgs.flow_node_signature is '流转节点签名';
 
-comment on column transaction_mount_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+8';
+comment on column transaction_mount_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column transaction_mount_msgs.central_signature is '中心签名';
 

@@ -34,7 +34,7 @@ public class FlowNodeLockedMsg {
     @Column(name = "flow_node_signature", nullable = false)
     private byte[] flowNodeSignature;
 
-    @Comment("信息确认时间，单位微秒，时区UTC+8")
+    @Comment("信息确认时间，单位微秒，时区UTC+0")
     @Column(name = "confirm_timestamp", nullable = false)
     private Long confirmTimestamp;
 
