@@ -8,6 +8,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.util.Arrays;
+import java.util.Base64;
 
 class Secp256k1EncryptUtilTest {
 
@@ -20,10 +21,14 @@ class Secp256k1EncryptUtilTest {
             PrivateKey privateKey = keyPair.getPrivate();
             byte[] publicKeyBytes = Secp256k1EncryptUtil.publicKeyToCompressed(publicKey);
             byte[] privateKeyBytes = Secp256k1EncryptUtil.privateKeyToRaw(privateKey);
+            String publicKeyBase64 = Base64.getEncoder().encodeToString(publicKeyBytes);
+            String privateKeyBase64 = Base64.getEncoder().encodeToString(privateKeyBytes);
             System.out.println("Public Key: " + keyPair.getPublic().toString());
             System.out.println("Private Key: " + keyPair.getPrivate().toString());
             System.out.println("Public Key Bytes: " + Arrays.toString(publicKeyBytes));
             System.out.println("Private Key Bytes: " + Arrays.toString(privateKeyBytes));
+            System.out.println("Public Key Base64: " + publicKeyBase64);
+            System.out.println("Private Key Base64: " + privateKeyBase64);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

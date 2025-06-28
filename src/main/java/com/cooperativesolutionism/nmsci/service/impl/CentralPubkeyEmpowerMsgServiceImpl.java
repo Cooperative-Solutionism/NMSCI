@@ -6,28 +6,33 @@ import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
+import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Base64;
 
 @Service
 @Validated
 public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerMsgService {
 
+    @Value("${central-key-pair.pubkey}")
+    private String centralPubkeyBase64;
+
+    @Value("${central-key-pair.prikey}")
+    private String centralPrikeyBase64;
+
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Override
-    public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
-        if (centralPubkeyEmpowerMsg == null) {
-            throw new IllegalArgumentException("信息不能为空");
-        }
-
+    public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
         if (centralPubkeyEmpowerMsg.getMsgType() != 0) {
             throw new IllegalArgumentException("信息类型错误，必须为0");
         }
@@ -40,9 +45,8 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new IllegalArgumentException("该流转节点公钥已进行过授权");
         }
 
-        // 中心公钥是否正确
-        // TODO: 这里的中心公钥需要从配置文件或其他安全方式获取
-        if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), new byte[]{2, 121, -94, 55, -55, 94, -40, 74, 12, 106, 76, -92, 61, -25, 78, 62, 88, -94, -115, 101, -97, -47, -68, -64, 63, -118, 84, -70, -118, -92, 107, -21, -55})) {
+        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
 
@@ -69,7 +73,6 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
                 centralPubkeyEmpowerMsg.getCentralPubkey()
         );
 
-        // 验证流转节点签名
         try {
             boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
                     verifyData,
@@ -83,7 +86,6 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new RuntimeException(e);
         }
 
-        // 当前时间戳UTC
         long timestamp = DateUtil.getCurrentMicros();
 
         // 拼接中心签名数据 【信息类型2字节(0)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前4项数据)签名64字节】+【时间戳8字节】
@@ -98,10 +100,8 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         );
 
         try {
-            // TODO: 这里的中心私钥需要从配置文件或其他安全方式获取
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(new byte[]{
-                    -47, -48, 51, -79, 0, 100, -61, -74, 95, -110, 112, 118, -105, 41, 95, -88, -57, -108, -59, 21, 28, 37, -65, 108, -86, 18, 15, -61, -101, -54, 4, 97
-            }));
+            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
             centralPubkeyEmpowerMsg.setConfirmTimestamp(timestamp);
             centralPubkeyEmpowerMsg.setCentralSignature(centralSignature);
         } catch (Exception e) {
