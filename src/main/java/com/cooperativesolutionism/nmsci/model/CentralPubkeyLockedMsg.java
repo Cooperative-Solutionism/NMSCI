@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
@@ -25,6 +26,10 @@ public class CentralPubkeyLockedMsg {
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
     private byte[] centralPubkey;
+
+    @Comment("中心对前三项数据的预确认签名")
+    @Column(name = "central_signature_pre", nullable = false)
+    private byte[] centralSignaturePre;
 
     @Comment("信息确认时间，单位微秒，时区UTC+0")
     @Column(name = "confirm_timestamp", nullable = false)
@@ -56,6 +61,14 @@ public class CentralPubkeyLockedMsg {
 
     public void setCentralPubkey(byte[] centralPubkey) {
         this.centralPubkey = centralPubkey;
+    }
+
+    public byte[] getCentralSignaturePre() {
+        return centralSignaturePre;
+    }
+
+    public void setCentralSignaturePre(byte[] centralSignaturePre) {
+        this.centralSignaturePre = centralSignaturePre;
     }
 
     public Long getConfirmTimestamp() {

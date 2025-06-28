@@ -28,6 +28,9 @@ class NmsciApplicationTests {
     @Value("${central-key-pair.pubkey}")
     private String centralPubkeyBase64;
 
+    @Value("${central-key-pair.prikey}")
+    private String centralPrikeyBase64;
+
     @Test
     void contextLoads() {
     }
@@ -58,12 +61,53 @@ class NmsciApplicationTests {
             testData = ArrayUtils.addAll(verfyData, Secp256k1EncryptUtil.derToRs(flowNodeSign));
 
             mockMvc.perform(post("/central-pubkey-empower-msg/send")
-                    .contentType("application/octet-stream")
-                    .content(testData)
-            ).andExpect(status().isOk());
+                            .contentType("application/octet-stream")
+                            .content(testData)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(result -> {
+                        String response = result.getResponse().getContentAsString();
+                        System.out.println("Response: " + response);
+                    });
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    @Test
+    void flowNodeLockedMsgControllerTest() {
+        Security.addProvider(new BouncyCastleProvider());
+
+        byte[] testData;
+        byte[] verfyData;
+
+        short msgType = 1;
+        UUID uuid = UUID.randomUUID();
+        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
+
+        verfyData = ArrayUtils.addAll(ByteArrayUtil.shortToBytes(msgType),
+                ByteArrayUtil.uuidToBytes(uuid)
+        );
+        verfyData = ArrayUtils.addAll(verfyData, centralPubkey);
+
+        try {
+            byte[] centralSignPre = Secp256k1EncryptUtil.signData(verfyData,
+                    Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)
+            );
+            testData = ArrayUtils.addAll(verfyData, Secp256k1EncryptUtil.derToRs(centralSignPre));
+
+            mockMvc.perform(post("/central-pubkey-locked-msg/send")
+                            .contentType("application/octet-stream")
+                            .content(testData)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(result -> {
+                        String response = result.getResponse().getContentAsString();
+                        System.out.println("Response: " + response);
+                    });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 }

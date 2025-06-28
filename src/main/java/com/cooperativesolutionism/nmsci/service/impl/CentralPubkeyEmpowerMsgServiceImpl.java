@@ -45,7 +45,6 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new IllegalArgumentException("该流转节点公钥已进行过授权");
         }
 
-        // 中心公钥是否正确
         byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
@@ -74,7 +73,6 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
                 centralPubkeyEmpowerMsg.getCentralPubkey()
         );
 
-        // 验证流转节点签名
         try {
             boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
                     verifyData,
@@ -88,7 +86,6 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new RuntimeException(e);
         }
 
-        // 当前时间戳UTC
         long timestamp = DateUtil.getCurrentMicros();
 
         // 拼接中心签名数据 【信息类型2字节(0)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前4项数据)签名64字节】+【时间戳8字节】

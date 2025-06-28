@@ -29,12 +29,13 @@ alter table central_pubkey_empower_msgs
 
 create table central_pubkey_locked_msgs
 (
-    id                uuid               not null
+    id                    uuid               not null
         primary key,
-    msg_type          smallint default 1 not null,
-    central_pubkey    bytea              not null,
-    confirm_timestamp bigint             not null,
-    central_signature bytea              not null
+    msg_type              smallint default 1 not null,
+    central_pubkey        bytea              not null,
+    central_signature_pre bytea              not null,
+    confirm_timestamp     bigint             not null,
+    central_signature     bytea              not null
 );
 
 comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
@@ -42,6 +43,8 @@ comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
 comment on column central_pubkey_locked_msgs.msg_type is '信息类型';
 
 comment on column central_pubkey_locked_msgs.central_pubkey is '中心公钥';
+
+comment on column central_pubkey_locked_msgs.central_signature_pre is '中心对前三项数据的预确认签名';
 
 comment on column central_pubkey_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
