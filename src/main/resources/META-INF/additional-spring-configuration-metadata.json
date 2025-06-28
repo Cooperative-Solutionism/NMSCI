@@ -1,0 +1,13 @@
+{
+  "properties": [
+    {
+      "name": "central-key-pair.pubkey",
+      "type": "java.lang.String",
+      "description": "Description for central-key-pair.pubkey."
+    },
+    {
+      "name": "central-key-pair.prikey",
+      "type": "java.lang.String",
+      "description": "Description for central-key-pair.prikey."
+    }
+  ] }

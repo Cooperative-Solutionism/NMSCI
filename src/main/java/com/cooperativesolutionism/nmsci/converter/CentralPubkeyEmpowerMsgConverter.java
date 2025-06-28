@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 
 import java.util.Arrays;
-import java.util.UUID;
 
 public class CentralPubkeyEmpowerMsgConverter {
 
