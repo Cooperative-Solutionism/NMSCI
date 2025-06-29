@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -40,22 +41,27 @@ public class TransactionRecordMsg {
 
     @Comment("消费节点公钥")
     @Column(name = "consume_node_pubkey", nullable = false)
+    @ByteArraySize(33)
     private byte[] consumeNodePubkey;
 
     @Comment("流转节点公钥")
     @Column(name = "flow_node_pubkey", nullable = false)
+    @ByteArraySize(33)
     private byte[] flowNodePubkey;
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
+    @ByteArraySize(33)
     private byte[] centralPubkey;
 
     @Comment("消费节点签名")
     @Column(name = "consume_node_signature", nullable = false)
+    @ByteArraySize(64)
     private byte[] consumeNodeSignature;
 
     @Comment("流转节点签名")
     @Column(name = "flow_node_signature", nullable = false)
+    @ByteArraySize(64)
     private byte[] flowNodeSignature;
 
     @Comment("信息确认时间，单位微秒，时区UTC+0")

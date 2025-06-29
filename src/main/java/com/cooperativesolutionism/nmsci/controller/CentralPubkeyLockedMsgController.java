@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
+import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,8 +19,8 @@ public class CentralPubkeyLockedMsgController {
     private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
 
     @PostMapping("/send")
-    public CentralPubkeyLockedMsg saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
+    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
         CentralPubkeyLockedMsg centralPubkeyLockedMsg = CentralPubkeyLockedMsgConverter.fromByteArray(byteData);
-        return centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+        return ResponseResult.success(centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg));
     }
 }

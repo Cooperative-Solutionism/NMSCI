@@ -41,6 +41,29 @@ public class ByteArrayUtil {
     }
 
     /**
+     * int类型转换为字节数组
+     *
+     * @param value int值
+     * @return 字节数组
+     */
+    public static byte[] intToBytes(int value) {
+        return ByteBuffer.allocate(4).putInt(value).array();
+    }
+
+    /**
+     * 字节数组转换为int类型
+     *
+     * @param bytes 字节数组
+     * @return int值
+     */
+    public static int bytesToInt(byte[] bytes) {
+        if (bytes == null || bytes.length != 4) {
+            throw new IllegalArgumentException("字节数组必须为4字节长度");
+        }
+        return ByteBuffer.wrap(bytes).getInt();
+    }
+
+    /**
      * long类型转换为字节数组
      *
      * @param value long值

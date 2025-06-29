@@ -9,5 +9,10 @@
       "name": "central-key-pair.prikey",
       "type": "java.lang.String",
       "description": "Description for central-key-pair.prikey."
+    },
+    {
+      "name": "register-difficulty-target-nbits",
+      "type": "java.lang.String",
+      "description": "Description for register-difficulty-target-nbits."
     }
   ] }
