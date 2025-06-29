@@ -48,7 +48,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         }
 
         if (flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeRegisterMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥已被注册");
+            throw new IllegalArgumentException("该流转节点公钥(" + Base64.getEncoder().encodeToString(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
         }
 
         byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);

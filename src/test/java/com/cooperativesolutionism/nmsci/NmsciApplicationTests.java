@@ -80,7 +80,7 @@ class NmsciApplicationTests {
     }
 
     @Test
-    void flowNodeLockedMsgControllerTest() {
+    void centralPubkeyLockedMsgControllerTest() {
         Security.addProvider(new BouncyCastleProvider());
 
         byte[] testData;
@@ -160,6 +160,46 @@ class NmsciApplicationTests {
             testData = ArrayUtils.addAll(verfyData, Secp256k1EncryptUtil.derToRs(flowNodeSign));
 
             mockMvc.perform(post("/flow-node-register-msg/send")
+                            .contentType("application/octet-stream")
+                            .content(testData)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(200))
+                    .andExpect(result -> {
+                        String response = result.getResponse().getContentAsString();
+                        System.out.println("Response: " + response);
+                    });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Test
+    void flowNodeLockedMsgControllerTest() {
+        Security.addProvider(new BouncyCastleProvider());
+
+        byte[] testData;
+        byte[] verfyData;
+
+        short msgType = 3;
+        UUID uuid = UUID.randomUUID();
+        byte[] flowNodePubkey = Base64.getDecoder().decode("AjQ2H9M/OTpDs0caRjSe+cR5Ru4sUQSDP0Ime9PTwIGI");
+        byte[] flowNodePrikey = Base64.getDecoder().decode("qZaEg1hS+yR89ky9uNN2acpk0C7F9KeUpEBitso27Mw=");
+        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+
+        verfyData = ArrayUtils.addAll(ByteArrayUtil.shortToBytes(msgType),
+                ByteArrayUtil.uuidToBytes(uuid)
+        );
+        verfyData = ArrayUtils.addAll(verfyData, flowNodePubkey);
+        verfyData = ArrayUtils.addAll(verfyData, centralPubkey);
+
+        try {
+            byte[] flowNodeSign = Secp256k1EncryptUtil.signData(verfyData,
+                    Secp256k1EncryptUtil.rawToPrivateKey(flowNodePrikey)
+            );
+            testData = ArrayUtils.addAll(verfyData, Secp256k1EncryptUtil.derToRs(flowNodeSign));
+
+            mockMvc.perform(post("/flow-node-locked-msg/send")
                             .contentType("application/octet-stream")
                             .content(testData)
                     )
