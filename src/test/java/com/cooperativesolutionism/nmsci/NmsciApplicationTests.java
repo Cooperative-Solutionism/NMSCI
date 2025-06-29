@@ -227,7 +227,7 @@ class NmsciApplicationTests {
         short msgType = 4;
         UUID uuid = UUID.randomUUID();
         long amount = 1000000L;
-        short currencyType = 1;
+        short currencyType = 2;
         BigInteger transactionDifficultyTarget = PoWUtil.calculateTargetFromNBits(ByteArrayUtil.intToBytes(transactionDifficultyTargetNbits));
         byte[] consumeNodePubkey = Base64.getDecoder().decode("A7Cn5AqooeaoG59YPCCP7lG+wTggKf0/6wjc8LtaGFFz");
         byte[] consumeNodePrikey = Base64.getDecoder().decode("cvjs/qSKitGfNP+elnBRjJr9fSKn4iI1C5bsTH7t948=");

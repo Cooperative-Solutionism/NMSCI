@@ -56,7 +56,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
         }
 
         if (!CurrencyTypeEnum.containsValue(transactionRecordMsg.getCurrencyType())) {
-            throw new IllegalArgumentException("货币类型错误，必须为" + Arrays.toString(CurrencyTypeEnum.values()));
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
         if (!transactionRecordMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
