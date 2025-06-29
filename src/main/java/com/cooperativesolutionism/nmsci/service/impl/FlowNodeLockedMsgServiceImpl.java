@@ -1,7 +1,9 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
+import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
@@ -30,6 +32,12 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
     @Resource
     private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
 
+    @Resource
+    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+
+    @Resource
+    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+
     @Override
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
         if (flowNodeLockedMsg.getMsgType() != 3) {
@@ -40,8 +48,20 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
             throw new IllegalArgumentException("该流转节点公钥冻结信息id(" + flowNodeLockedMsg.getId() + ")已存在");
         }
 
+        // 验证流转节点公钥是否已注册
+        String flowNodePubkeyBase64 = Base64.getEncoder().encodeToString(flowNodeLockedMsg.getFlowNodePubkey());
+        if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeLockedMsg.getFlowNodePubkey())) {
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
+        }
+
+        // 验证流转节点公钥是否已授权
+        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(flowNodeLockedMsg.getFlowNodePubkey())) {
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
+        }
+
+        // 验证流转节点公钥是否已冻结
         if (flowNodeLockedMsgRepository.existsByFlowNodePubkey(flowNodeLockedMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + Base64.getEncoder().encodeToString(flowNodeLockedMsg.getFlowNodePubkey()) + ")已被冻结");
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
         byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);

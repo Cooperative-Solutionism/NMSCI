@@ -29,18 +29,6 @@ public class ByteArrayUtil {
     }
 
     /**
-     * 字节数组转换为short类型
-     *
-     * @param bytes  字节数组
-     * @param offset 偏移量
-     * @param length 长度
-     * @return short值
-     */
-    public static short bytesToShort(byte[] bytes, int offset, int length) {
-        return ByteBuffer.wrap(bytes, offset, length).getShort();
-    }
-
-    /**
      * int类型转换为字节数组
      *
      * @param value int值
@@ -71,6 +59,19 @@ public class ByteArrayUtil {
      */
     public static byte[] longToBytes(long value) {
         return ByteBuffer.allocate(8).putLong(value).array();
+    }
+
+    /**
+     * 字节数组转换为long类型
+     *
+     * @param bytes 字节数组
+     * @return long值
+     */
+    public static long bytesToLong(byte[] bytes) {
+        if (bytes == null || bytes.length != 8) {
+            throw new IllegalArgumentException("字节数组必须为8字节长度");
+        }
+        return ByteBuffer.wrap(bytes).getLong();
     }
 
     /**

@@ -14,5 +14,10 @@
       "name": "register-difficulty-target-nbits",
       "type": "java.lang.String",
       "description": "Description for register-difficulty-target-nbits."
+    },
+    {
+      "name": "transaction-difficulty-target-nbits",
+      "type": "java.lang.String",
+      "description": "Description for transaction-difficulty-target-nbits."
     }
   ] }
