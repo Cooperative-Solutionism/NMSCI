@@ -34,16 +34,16 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     private int transactionDifficultyTargetNbits;
 
     @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
+    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
-    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
 
     @Resource
-    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
+    private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
