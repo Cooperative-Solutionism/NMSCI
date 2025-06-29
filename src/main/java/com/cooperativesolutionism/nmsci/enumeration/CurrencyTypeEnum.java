@@ -28,4 +28,19 @@ public enum CurrencyTypeEnum {
         }
         return false;
     }
+
+    /**
+     * 拼接所有枚举与描述的对应关系
+     *
+     * @return 所有枚举与描述的字符串
+     */
+    public static String getAllEnumDescriptions() {
+        StringBuilder descriptions = new StringBuilder();
+        for (CurrencyTypeEnum type : CurrencyTypeEnum.values()) {
+            descriptions.append(type.getValue()).append(": ").append(type.getDescription()).append("\n");
+        }
+        return descriptions.toString();
+    }
+
+
 }

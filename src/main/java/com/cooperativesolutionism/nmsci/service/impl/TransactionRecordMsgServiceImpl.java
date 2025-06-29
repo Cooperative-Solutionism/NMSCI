@@ -34,16 +34,16 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     private int transactionDifficultyTargetNbits;
 
     @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
+    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
-    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
 
     @Resource
-    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
+    private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
@@ -56,7 +56,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
         }
 
         if (!CurrencyTypeEnum.containsValue(transactionRecordMsg.getCurrencyType())) {
-            throw new IllegalArgumentException("货币类型错误，必须为" + Arrays.toString(CurrencyTypeEnum.values()));
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
         if (!transactionRecordMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
