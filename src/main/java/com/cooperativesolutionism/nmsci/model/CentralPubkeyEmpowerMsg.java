@@ -46,6 +46,19 @@ public class CentralPubkeyEmpowerMsg {
     @Column(name = "central_signature", nullable = false)
     private byte[] centralSignature;
 
+    @Comment("是否已被装入区块")
+    @ColumnDefault("false")
+    @Column(name = "is_in_block", nullable = false)
+    private Boolean isInBlock = false;
+
+    public Boolean getIsInBlock() {
+        return isInBlock;
+    }
+
+    public void setIsInBlock(Boolean isInBlock) {
+        this.isInBlock = isInBlock;
+    }
+
     public UUID getId() {
         return id;
     }

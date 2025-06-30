@@ -5,7 +5,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
@@ -41,6 +40,19 @@ public class CentralPubkeyLockedMsg {
     @Comment("中心签名")
     @Column(name = "central_signature", nullable = false)
     private byte[] centralSignature;
+
+    @Comment("是否已被装入区块")
+    @ColumnDefault("false")
+    @Column(name = "is_in_block", nullable = false)
+    private Boolean isInBlock = false;
+
+    public Boolean getIsInBlock() {
+        return isInBlock;
+    }
+
+    public void setIsInBlock(Boolean isInBlock) {
+        this.isInBlock = isInBlock;
+    }
 
     public UUID getId() {
         return id;

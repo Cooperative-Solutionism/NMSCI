@@ -1,13 +1,14 @@
 create table central_pubkey_empower_msgs
 (
-    id                  uuid               not null
+    id                  uuid                   not null
         primary key,
-    msg_type            smallint default 0 not null,
-    flow_node_pubkey    bytea              not null,
-    central_pubkey      bytea              not null,
-    flow_node_signature bytea              not null,
-    confirm_timestamp   bigint             not null,
-    central_signature   bytea              not null
+    msg_type            smallint default 0     not null,
+    flow_node_pubkey    bytea                  not null,
+    central_pubkey      bytea                  not null,
+    flow_node_signature bytea                  not null,
+    confirm_timestamp   bigint                 not null,
+    central_signature   bytea                  not null,
+    is_in_block         boolean  default false not null
 );
 
 comment on table central_pubkey_empower_msgs is '中心公钥公证信息';
@@ -24,18 +25,21 @@ comment on column central_pubkey_empower_msgs.confirm_timestamp is '信息确认
 
 comment on column central_pubkey_empower_msgs.central_signature is '中心签名';
 
+comment on column central_pubkey_empower_msgs.is_in_block is '是否已被装入区块';
+
 alter table central_pubkey_empower_msgs
     owner to postgres;
 
 create table central_pubkey_locked_msgs
 (
-    id                    uuid               not null
+    id                    uuid                   not null
         primary key,
-    msg_type              smallint default 1 not null,
-    central_pubkey        bytea              not null,
-    central_signature_pre bytea              not null,
-    confirm_timestamp     bigint             not null,
-    central_signature     bytea              not null
+    msg_type              smallint default 1     not null,
+    central_pubkey        bytea                  not null,
+    central_signature_pre bytea                  not null,
+    confirm_timestamp     bigint                 not null,
+    central_signature     bytea                  not null,
+    is_in_block           boolean  default false not null
 );
 
 comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
@@ -50,21 +54,24 @@ comment on column central_pubkey_locked_msgs.confirm_timestamp is '信息确认�
 
 comment on column central_pubkey_locked_msgs.central_signature is '中心签名';
 
+comment on column central_pubkey_locked_msgs.is_in_block is '是否已被装入区块';
+
 alter table central_pubkey_locked_msgs
     owner to postgres;
 
 create table flow_node_register_msgs
 (
-    id                         uuid               not null
+    id                         uuid                   not null
         primary key,
-    msg_type                   smallint default 2 not null,
-    register_difficulty_target integer            not null,
-    nonce                      integer            not null,
-    flow_node_pubkey           bytea              not null,
-    central_pubkey             bytea              not null,
-    flow_node_signature        bytea              not null,
-    confirm_timestamp          bigint             not null,
-    central_signature          bytea              not null
+    msg_type                   smallint default 2     not null,
+    register_difficulty_target integer                not null,
+    nonce                      integer                not null,
+    flow_node_pubkey           bytea                  not null,
+    central_pubkey             bytea                  not null,
+    flow_node_signature        bytea                  not null,
+    confirm_timestamp          bigint                 not null,
+    central_signature          bytea                  not null,
+    is_in_block                boolean  default false not null
 );
 
 comment on table flow_node_register_msgs is '流转节点注册信息';
@@ -85,19 +92,22 @@ comment on column flow_node_register_msgs.confirm_timestamp is '信息确认时�
 
 comment on column flow_node_register_msgs.central_signature is '中心签名';
 
+comment on column flow_node_register_msgs.is_in_block is '是否已被装入区块';
+
 alter table flow_node_register_msgs
     owner to postgres;
 
 create table flow_node_locked_msgs
 (
-    id                  uuid               not null
+    id                  uuid                   not null
         primary key,
-    msg_type            smallint default 3 not null,
-    flow_node_pubkey    bytea              not null,
-    central_pubkey      bytea              not null,
-    flow_node_signature bytea              not null,
-    confirm_timestamp   bigint             not null,
-    central_signature   bytea              not null
+    msg_type            smallint default 3     not null,
+    flow_node_pubkey    bytea                  not null,
+    central_pubkey      bytea                  not null,
+    flow_node_signature bytea                  not null,
+    confirm_timestamp   bigint                 not null,
+    central_signature   bytea                  not null,
+    is_in_block         boolean  default false not null
 );
 
 comment on table flow_node_locked_msgs is '流转节点冻结信息';
@@ -114,25 +124,28 @@ comment on column flow_node_locked_msgs.confirm_timestamp is '信息确认时间
 
 comment on column flow_node_locked_msgs.central_signature is '中心签名';
 
+comment on column flow_node_locked_msgs.is_in_block is '是否已被装入区块';
+
 alter table flow_node_locked_msgs
     owner to postgres;
 
 create table transaction_record_msgs
 (
-    id                            uuid               not null
+    id                            uuid                   not null
         primary key,
-    msg_type                      smallint default 4 not null,
-    amount                        bigint             not null,
-    currency_type                 smallint           not null,
-    transaction_difficulty_target integer            not null,
-    nonce                         integer            not null,
-    consume_node_pubkey           bytea              not null,
-    flow_node_pubkey              bytea              not null,
-    central_pubkey                bytea              not null,
-    consume_node_signature        bytea              not null,
-    flow_node_signature           bytea              not null,
-    confirm_timestamp             bigint             not null,
-    central_signature             bytea              not null
+    msg_type                      smallint default 4     not null,
+    amount                        bigint                 not null,
+    currency_type                 smallint               not null,
+    transaction_difficulty_target integer                not null,
+    nonce                         integer                not null,
+    consume_node_pubkey           bytea                  not null,
+    flow_node_pubkey              bytea                  not null,
+    central_pubkey                bytea                  not null,
+    consume_node_signature        bytea                  not null,
+    flow_node_signature           bytea                  not null,
+    confirm_timestamp             bigint                 not null,
+    central_signature             bytea                  not null,
+    is_in_block                   boolean  default false not null
 );
 
 comment on table transaction_record_msgs is '交易记录信息';
@@ -161,24 +174,27 @@ comment on column transaction_record_msgs.confirm_timestamp is '信息确认时�
 
 comment on column transaction_record_msgs.central_signature is '中心签名';
 
+comment on column transaction_record_msgs.is_in_block is '是否已被装入区块';
+
 alter table transaction_record_msgs
     owner to postgres;
 
 create table transaction_mount_msgs
 (
-    id                            uuid               not null
+    id                            uuid                   not null
         primary key,
-    msg_type                      smallint default 5 not null,
-    mounted_transaction_record_id uuid               not null,
-    transaction_difficulty_target integer            not null,
-    nonce                         integer            not null,
-    consume_node_pubkey           bytea              not null,
-    flow_node_pubkey              bytea              not null,
-    central_pubkey                bytea              not null,
-    consume_node_signature        bytea              not null,
-    flow_node_signature           bytea              not null,
-    confirm_timestamp             bigint             not null,
-    central_signature             bytea              not null
+    msg_type                      smallint default 5     not null,
+    mounted_transaction_record_id uuid                   not null,
+    transaction_difficulty_target integer                not null,
+    nonce                         integer                not null,
+    consume_node_pubkey           bytea                  not null,
+    flow_node_pubkey              bytea                  not null,
+    central_pubkey                bytea                  not null,
+    consume_node_signature        bytea                  not null,
+    flow_node_signature           bytea                  not null,
+    confirm_timestamp             bigint                 not null,
+    central_signature             bytea                  not null,
+    is_in_block                   boolean  default false not null
 );
 
 comment on table transaction_mount_msgs is '交易挂载信息';
@@ -204,6 +220,8 @@ comment on column transaction_mount_msgs.flow_node_signature is '流转节点签
 comment on column transaction_mount_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column transaction_mount_msgs.central_signature is '中心签名';
+
+comment on column transaction_mount_msgs.is_in_block is '是否已被装入区块';
 
 alter table transaction_mount_msgs
     owner to postgres;
