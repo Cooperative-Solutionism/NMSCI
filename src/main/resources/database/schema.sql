@@ -226,27 +226,6 @@ comment on column transaction_mount_msgs.is_in_block is '是否已被装入区�
 alter table transaction_mount_msgs
     owner to postgres;
 
-create table central_configurable_params
-(
-    id                            integer not null
-        constraint central_manually_operated_params_pkey
-            primary key,
-    source_code_zip_hash          bytea   not null,
-    register_difficulty_target    integer not null,
-    transaction_difficulty_target integer not null
-);
-
-comment on table central_configurable_params is '中心可手动配置的参数';
-
-comment on column central_configurable_params.source_code_zip_hash is '相应版本全代码压缩包(包含协议内容)的dblsha256hash';
-
-comment on column central_configurable_params.register_difficulty_target is '注册难度目标';
-
-comment on column central_configurable_params.transaction_difficulty_target is '交易难度目标';
-
-alter table central_configurable_params
-    owner to postgres;
-
 create table block_infos
 (
     id                            bytea            not null
@@ -263,7 +242,8 @@ create table block_infos
     central_pubkey                bytea            not null,
     timestamp                     bigint           not null,
     central_signature             bytea            not null,
-    dat_filename                  text             not null
+    dat_filepath                  text             not null,
+    source_code_zip_filepath      text             not null
 );
 
 comment on table block_infos is '区块信息';
@@ -290,7 +270,9 @@ comment on column block_infos.timestamp is '区块固定时间，单位微秒，
 
 comment on column block_infos.central_signature is '中心签名';
 
-comment on column block_infos.dat_filename is '保存区块的dat文件的文件名';
+comment on column block_infos.dat_filepath is '保存区块的dat文件的文件路径';
+
+comment on column block_infos.source_code_zip_filepath is '相应版本全代码(包含协议文本)压缩包的文件路径';
 
 alter table block_infos
     owner to postgres;

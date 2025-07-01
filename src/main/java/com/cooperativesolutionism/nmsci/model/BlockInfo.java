@@ -60,16 +60,28 @@ public class BlockInfo {
     @Column(name = "central_signature", nullable = false)
     private byte[] centralSignature;
 
-    @Comment("保存区块的dat文件的文件名")
-    @Column(name = "dat_filename", nullable = false, length = Integer.MAX_VALUE)
-    private String datFilename;
+    @Comment("保存区块的dat文件的文件路径")
+    @Column(name = "dat_filepath", nullable = false, length = Integer.MAX_VALUE)
+    private String datFilepath;
 
-    public String getDatFilename() {
-        return datFilename;
+    @Comment("相应版本全代码(包含协议文本)压缩包的文件路径")
+    @Column(name = "source_code_zip_filepath", nullable = false, length = Integer.MAX_VALUE)
+    private String sourceCodeZipFilepath;
+
+    public String getSourceCodeZipFilepath() {
+        return sourceCodeZipFilepath;
     }
 
-    public void setDatFilename(String datFilename) {
-        this.datFilename = datFilename;
+    public void setSourceCodeZipFilepath(String sourceCodeZipFilepath) {
+        this.sourceCodeZipFilepath = sourceCodeZipFilepath;
+    }
+
+    public String getDatFilepath() {
+        return datFilepath;
+    }
+
+    public void setDatFilepath(String datFilepath) {
+        this.datFilepath = datFilepath;
     }
 
     public byte[] getId() {

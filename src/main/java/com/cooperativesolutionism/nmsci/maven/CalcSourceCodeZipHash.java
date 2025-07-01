@@ -19,30 +19,31 @@ public class CalcSourceCodeZipHash {
      * @throws IOException 如果压缩过程中发生错误
      */
     public static void zipDirectory(Path sourceDir, Path zipFilePath, String[] excludedDir) throws IOException {
-        FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
-        ZipOutputStream zos = new ZipOutputStream(fos);
-        try (Stream<Path> paths = Files.walk(sourceDir)) {
-            paths.forEach(path -> {
-                try {
-                    System.out.println("path = " + path);
-                    AtomicBoolean isExcluded = new AtomicBoolean(false);
-                    for (String dir : excludedDir) {
-                        if (path.toString().contains(dir)) {
-                            isExcluded.set(true);
-                            break;
+        try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
+             ZipOutputStream zos = new ZipOutputStream(fos)) {
+            try (Stream<Path> paths = Files.walk(sourceDir)) {
+                paths.forEach(path -> {
+                    try {
+                        AtomicBoolean isExcluded = new AtomicBoolean(false);
+                        for (String dir : excludedDir) {
+                            if (path.toString().contains(dir)) {
+                                isExcluded.set(true);
+                                break;
+                            }
                         }
-                    }
 
-                    if (!Files.isDirectory(path) && !isExcluded.get()) {
-                        ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString());
-                        zos.putNextEntry(zipEntry);
-                        Files.copy(path, zos);
-                        zos.closeEntry();
+                        if (!Files.isDirectory(path) && !isExcluded.get()) {
+                            ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString());
+                            zipEntry.setTime(1L); // 固定时间戳，避免每次打包时间不同导致哈希值不同
+                            zos.putNextEntry(zipEntry);
+                            Files.copy(path, zos);
+                            zos.closeEntry();
+                        }
+                    } catch (IOException e) {
+                        System.err.println("Error while zipping file: " + path + " - " + e.getMessage());
                     }
-                } catch (IOException e) {
-                    System.err.println("Error while zipping file: " + path + " - " + e.getMessage());
-                }
-            });
+                });
+            }
         }
     }
 
@@ -111,7 +112,7 @@ public class CalcSourceCodeZipHash {
             // 项目根目录
             String rootDir = System.getProperty("user.dir");
             Path sourceDir = Paths.get(rootDir);
-            Path zipFilePath = Paths.get(rootDir, "target", "source_code.zip");
+            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code.zip");
             Path propertiesFilePath = Paths.get(rootDir, "target", "classes", "application.properties");
 
             // 1. 压缩文件夹为 zip 文件
@@ -129,7 +130,6 @@ public class CalcSourceCodeZipHash {
 
             // 3. 将哈希值插入 application.properties 文件
             insertHashToProperties(hashValue, propertiesFilePath, "source-code-zip-hash");
-            System.out.println("哈希值已插入到 application.properties 文件");
 
         } catch (Exception e) {
             System.err.println("发生错误: " + e.getMessage());
