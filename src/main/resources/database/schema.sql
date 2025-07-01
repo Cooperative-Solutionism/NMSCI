@@ -226,3 +226,72 @@ comment on column transaction_mount_msgs.is_in_block is '是否已被装入区�
 alter table transaction_mount_msgs
     owner to postgres;
 
+create table central_configurable_params
+(
+    id                            integer not null
+        constraint central_manually_operated_params_pkey
+            primary key,
+    source_code_zip_hash          bytea   not null,
+    register_difficulty_target    integer not null,
+    transaction_difficulty_target integer not null
+);
+
+comment on table central_configurable_params is '中心可手动配置的参数';
+
+comment on column central_configurable_params.source_code_zip_hash is '相应版本全代码压缩包(包含协议内容)的dblsha256hash';
+
+comment on column central_configurable_params.register_difficulty_target is '注册难度目标';
+
+comment on column central_configurable_params.transaction_difficulty_target is '交易难度目标';
+
+alter table central_configurable_params
+    owner to postgres;
+
+create table block_infos
+(
+    id                            bytea            not null
+        constraint block_info_pkey
+            primary key,
+    version                       bigint default 1 not null,
+    height                        bigint           not null,
+    source_code_zip_hash          bytea            not null,
+    previous_block_ash            bytea            not null,
+    merkle_root                   bytea            not null,
+    max_msg_timestamp             bigint           not null,
+    register_difficulty_target    integer          not null,
+    transaction_difficulty_target integer          not null,
+    central_pubkey                bytea            not null,
+    timestamp                     bigint           not null,
+    central_signature             bytea            not null,
+    dat_filename                  text             not null
+);
+
+comment on table block_infos is '区块信息';
+
+comment on column block_infos.id is '本区块头的dblsha256hash';
+
+comment on column block_infos.height is '区块高度';
+
+comment on column block_infos.source_code_zip_hash is '相应版本全代码压缩包(包含协议内容)的dblsha256hash';
+
+comment on column block_infos.previous_block_ash is '前区块头的dblsha256hash';
+
+comment on column block_infos.merkle_root is '所有信息的默克尔根';
+
+comment on column block_infos.max_msg_timestamp is '信息内的最大时间戳，单位微秒，时区UTC+0';
+
+comment on column block_infos.register_difficulty_target is '注册难度目标';
+
+comment on column block_infos.transaction_difficulty_target is '交易难度目标';
+
+comment on column block_infos.central_pubkey is '中心公钥';
+
+comment on column block_infos.timestamp is '区块固定时间，单位微秒，时区UTC+0';
+
+comment on column block_infos.central_signature is '中心签名';
+
+comment on column block_infos.dat_filename is '保存区块的dat文件的文件名';
+
+alter table block_infos
+    owner to postgres;
+

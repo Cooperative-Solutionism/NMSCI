@@ -19,5 +19,30 @@
       "name": "transaction-difficulty-target-nbits",
       "type": "java.lang.String",
       "description": "Description for transaction-difficulty-target-nbits."
+    },
+    {
+      "name": "block-version",
+      "type": "java.lang.String",
+      "description": "区块版本."
+    },
+    {
+      "name": "block-magic-number",
+      "type": "java.lang.String",
+      "description": "魔数."
+    },
+    {
+      "name": "block-max-size",
+      "type": "java.lang.String",
+      "description": "区块最大字节数."
+    },
+    {
+      "name": "blcok-dat-max-size",
+      "type": "java.lang.String",
+      "description": "dat文件最大字节数."
+    },
+    {
+      "name": "source-code-zip-hash",
+      "type": "java.lang.String",
+      "description": "相应版本全代码压缩包(包含协议内容)的dblsha256hash."
     }
   ] }

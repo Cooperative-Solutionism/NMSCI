@@ -59,10 +59,35 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <!-- 固定文件时间戳 -->
                     <attach>true</attach>
                     <requiresUnpack/>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <!-- 在打包前执行代码 -->
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <java classname="com.cooperativesolutionism.nmsci.maven.CalcSourceCodeZipHash"
+                                      fork="true">
+                                    <classpath>
+                                        <pathelement path="${project.build.directory}/classes"/>
+                                        <pathelement path="${project.build.directory}/dependency"/>
+                                    </classpath>
+                                    <arg value="${project.build.outputTimestamp}"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
