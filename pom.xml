@@ -10,11 +10,12 @@
     </parent>
     <groupId>com.cooperativesolutionism</groupId>
     <artifactId>nmsci</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.1</version>
     <name>nmsci</name>
     <description>消费意愿数值化衡量系统（Numerical Measurement System for Consumption Intention）</description>
     <properties>
         <java.version>17</java.version>
+        <project.build.outputTimestamp>2025-07-01T00:00:00Z</project.build.outputTimestamp>
     </properties>
     <dependencies>
         <dependency>
@@ -32,12 +33,18 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78</version> <!-- 使用最新稳定版本 -->
+            <version>1.78</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
             <version>3.12.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.bitcoinj/bitcoinj-core -->
+        <dependency>
+            <groupId>org.bitcoinj</groupId>
+            <artifactId>bitcoinj-core</artifactId>
+            <version>0.17</version>
         </dependency>
 
         <dependency>
@@ -57,6 +64,36 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <attach>true</attach>
+                    <requiresUnpack/>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <!-- 在打包前执行代码 -->
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <java classname="com.cooperativesolutionism.nmsci.maven.CalcSourceCodeZipHash"
+                                      fork="true">
+                                    <classpath>
+                                        <pathelement path="${project.build.directory}/classes"/>
+                                        <pathelement path="${project.build.directory}/dependency"/>
+                                    </classpath>
+                                    <arg value="${project.build.outputTimestamp}"/>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

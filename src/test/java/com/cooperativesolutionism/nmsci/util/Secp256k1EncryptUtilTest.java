@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.util;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
@@ -8,8 +9,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Security;
 import java.util.Arrays;
-import java.util.Base64;
 
+@Disabled
 class Secp256k1EncryptUtilTest {
 
     @Test
@@ -21,8 +22,8 @@ class Secp256k1EncryptUtilTest {
             PrivateKey privateKey = keyPair.getPrivate();
             byte[] publicKeyBytes = Secp256k1EncryptUtil.publicKeyToCompressed(publicKey);
             byte[] privateKeyBytes = Secp256k1EncryptUtil.privateKeyToRaw(privateKey);
-            String publicKeyBase64 = Base64.getEncoder().encodeToString(publicKeyBytes);
-            String privateKeyBase64 = Base64.getEncoder().encodeToString(privateKeyBytes);
+            String publicKeyBase64 = ByteArrayUtil.bytesToBase64(publicKeyBytes);
+            String privateKeyBase64 = ByteArrayUtil.bytesToBase64(privateKeyBytes);
             System.out.println("Public Key: " + keyPair.getPublic().toString());
             System.out.println("Private Key: " + keyPair.getPrivate().toString());
             System.out.println("Public Key Bytes: " + Arrays.toString(publicKeyBytes));

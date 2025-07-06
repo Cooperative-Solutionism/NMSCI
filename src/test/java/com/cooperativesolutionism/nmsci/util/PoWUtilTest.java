@@ -1,24 +1,34 @@
 package com.cooperativesolutionism.nmsci.util;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
+@Disabled
 class PoWUtilTest {
 
     @Test
     void calculateTargetFromNBits() {
         // 基础难度0x1d00ffff
-        int nBits = 0x1f00ffff;
+        // 0.07倍基础难度 0x1d0e4916
+        // 0难度 0x20ffffff
+        int nBits = 0x1d0e4916;
         System.out.println("nBits = " + nBits);
         byte[] bytes = ByteArrayUtil.intToBytes(nBits);
         System.out.println("bytes = " + Arrays.toString(bytes));
         System.out.println("bytes.length = " + bytes.length);
-        String s = Base64.getEncoder().encodeToString(bytes);
-        System.out.println(s);
         BigInteger target = PoWUtil.calculateTargetFromNBits(bytes);
+        BigInteger target2 = target.divide(BigInteger.valueOf(7)).multiply(BigInteger.valueOf(100));
         System.out.println("Target: " + target);
+        System.out.println("Target in hex (padded): " + String.format("%064x", target));
+        System.out.println("Target2 in hex (padded): " + String.format("%064x", target2));
+        System.out.println("Target2 in nbits: " + ByteArrayUtil.bytesToHex(PoWUtil.calculateNBitsFromTarget(target2)));
+
+        byte[] ff = ByteArrayUtil.hexToBytes("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        BigInteger target3 = new BigInteger(1, ff);
+        System.out.println("Target3 in hex (padded): " + String.format("%064x", target3));
+        System.out.println("Target3 in nbits: " + ByteArrayUtil.bytesToHex(PoWUtil.calculateNBitsFromTarget(target3)));
     }
 }

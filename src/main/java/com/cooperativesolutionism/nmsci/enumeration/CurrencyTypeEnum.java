@@ -41,6 +41,4 @@ public enum CurrencyTypeEnum {
         }
         return descriptions.toString();
     }
-
-
 }

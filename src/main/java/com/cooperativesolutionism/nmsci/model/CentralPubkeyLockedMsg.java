@@ -5,7 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.validation.constraints.NotNull;
+
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
@@ -14,7 +14,7 @@ import java.util.UUID;
 @Comment("中心公钥冻结信息")
 @Entity
 @Table(name = "central_pubkey_locked_msgs")
-public class CentralPubkeyLockedMsg {
+public class CentralPubkeyLockedMsg implements Message {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -41,6 +41,14 @@ public class CentralPubkeyLockedMsg {
     @Comment("中心签名")
     @Column(name = "central_signature", nullable = false)
     private byte[] centralSignature;
+
+    @Comment("原始字节格式")
+    @Column(name = "raw_bytes", nullable = false)
+    private byte[] rawBytes;
+
+    @Comment("信息的dblsha256hash_reverse")
+    @Column(name = "txid", nullable = false)
+    private byte[] txid;
 
     public UUID getId() {
         return id;
@@ -88,6 +96,22 @@ public class CentralPubkeyLockedMsg {
 
     public void setCentralSignature(byte[] centralSignature) {
         this.centralSignature = centralSignature;
+    }
+
+    public byte[] getRawBytes() {
+        return rawBytes;
+    }
+
+    public void setRawBytes(byte[] rawBytes) {
+        this.rawBytes = rawBytes;
+    }
+
+    public byte[] getTxid() {
+        return txid;
+    }
+
+    public void setTxid(byte[] txid) {
+        this.txid = txid;
     }
 
 }

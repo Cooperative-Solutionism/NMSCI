@@ -45,6 +45,9 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     @Resource
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
         if (transactionRecordMsg.getMsgType() != 4) {
@@ -64,7 +67,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
         }
 
         // 验证流转节点公钥是否已注册
-        String flowNodePubkeyBase64 = Base64.getEncoder().encodeToString(transactionRecordMsg.getFlowNodePubkey());
+        String flowNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(transactionRecordMsg.getFlowNodePubkey());
         if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey())) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
@@ -79,7 +82,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(transactionRecordMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -177,13 +180,21 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             transactionRecordMsg.setConfirmTimestamp(timestamp);
             transactionRecordMsg.setCentralSignature(centralSignature);
+            transactionRecordMsg.setRawBytes(rawBytes);
+            transactionRecordMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(transactionRecordMsg);
 
         return transactionRecordMsgRepository.save(transactionRecordMsg);
     }

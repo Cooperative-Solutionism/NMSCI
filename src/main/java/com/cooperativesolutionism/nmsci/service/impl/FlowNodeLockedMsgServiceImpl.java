@@ -7,6 +7,7 @@ import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
+import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -38,6 +39,9 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
         if (flowNodeLockedMsg.getMsgType() != 3) {
@@ -49,7 +53,7 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
         }
 
         // 验证流转节点公钥是否已注册
-        String flowNodePubkeyBase64 = Base64.getEncoder().encodeToString(flowNodeLockedMsg.getFlowNodePubkey());
+        String flowNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(flowNodeLockedMsg.getFlowNodePubkey());
         if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeLockedMsg.getFlowNodePubkey())) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
@@ -64,7 +68,7 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(flowNodeLockedMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -119,13 +123,21 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             flowNodeLockedMsg.setConfirmTimestamp(timestamp);
             flowNodeLockedMsg.setCentralSignature(centralSignature);
+            flowNodeLockedMsg.setRawBytes(rawBytes);
+            flowNodeLockedMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(flowNodeLockedMsg);
 
         return flowNodeLockedMsgRepository.save(flowNodeLockedMsg);
     }

@@ -6,6 +6,7 @@ import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
+import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -17,7 +18,6 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -35,6 +35,9 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
         if (centralPubkeyEmpowerMsg.getMsgType() != 0) {
@@ -46,14 +49,14 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         }
 
         if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + Base64.getEncoder().encodeToString(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")未注册");
+            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")未注册");
         }
 
         if (centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + Base64.getEncoder().encodeToString(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
+            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -108,13 +111,21 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             centralPubkeyEmpowerMsg.setConfirmTimestamp(timestamp);
             centralPubkeyEmpowerMsg.setCentralSignature(centralSignature);
+            centralPubkeyEmpowerMsg.setRawBytes(rawBytes);
+            centralPubkeyEmpowerMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(centralPubkeyEmpowerMsg);
 
         return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
     }

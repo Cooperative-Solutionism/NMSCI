@@ -7,7 +7,9 @@ create table central_pubkey_empower_msgs
     central_pubkey      bytea              not null,
     flow_node_signature bytea              not null,
     confirm_timestamp   bigint             not null,
-    central_signature   bytea              not null
+    central_signature   bytea              not null,
+    raw_bytes           bytea              not null,
+    txid                bytea              not null
 );
 
 comment on table central_pubkey_empower_msgs is '中心公钥公证信息';
@@ -24,6 +26,10 @@ comment on column central_pubkey_empower_msgs.confirm_timestamp is '信息确认
 
 comment on column central_pubkey_empower_msgs.central_signature is '中心签名';
 
+comment on column central_pubkey_empower_msgs.raw_bytes is '原始字节格式';
+
+comment on column central_pubkey_empower_msgs.txid is '信息的dblsha256hash_reverse';
+
 alter table central_pubkey_empower_msgs
     owner to postgres;
 
@@ -35,7 +41,9 @@ create table central_pubkey_locked_msgs
     central_pubkey        bytea              not null,
     central_signature_pre bytea              not null,
     confirm_timestamp     bigint             not null,
-    central_signature     bytea              not null
+    central_signature     bytea              not null,
+    raw_bytes             bytea              not null,
+    txid                  bytea              not null
 );
 
 comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
@@ -49,6 +57,10 @@ comment on column central_pubkey_locked_msgs.central_signature_pre is '中心对
 comment on column central_pubkey_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column central_pubkey_locked_msgs.central_signature is '中心签名';
+
+comment on column central_pubkey_locked_msgs.raw_bytes is '原始字节格式';
+
+comment on column central_pubkey_locked_msgs.txid is '信息的dblsha256hash_reverse';
 
 alter table central_pubkey_locked_msgs
     owner to postgres;
@@ -64,7 +76,9 @@ create table flow_node_register_msgs
     central_pubkey             bytea              not null,
     flow_node_signature        bytea              not null,
     confirm_timestamp          bigint             not null,
-    central_signature          bytea              not null
+    central_signature          bytea              not null,
+    raw_bytes                  bytea              not null,
+    txid                       bytea              not null
 );
 
 comment on table flow_node_register_msgs is '流转节点注册信息';
@@ -85,6 +99,10 @@ comment on column flow_node_register_msgs.confirm_timestamp is '信息确认时�
 
 comment on column flow_node_register_msgs.central_signature is '中心签名';
 
+comment on column flow_node_register_msgs.raw_bytes is '原始字节格式';
+
+comment on column flow_node_register_msgs.txid is '信息的dblsha256hash_reverse';
+
 alter table flow_node_register_msgs
     owner to postgres;
 
@@ -97,7 +115,9 @@ create table flow_node_locked_msgs
     central_pubkey      bytea              not null,
     flow_node_signature bytea              not null,
     confirm_timestamp   bigint             not null,
-    central_signature   bytea              not null
+    central_signature   bytea              not null,
+    raw_bytes           bytea              not null,
+    txid                bytea              not null
 );
 
 comment on table flow_node_locked_msgs is '流转节点冻结信息';
@@ -113,6 +133,10 @@ comment on column flow_node_locked_msgs.flow_node_signature is '流转节点签�
 comment on column flow_node_locked_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
 
 comment on column flow_node_locked_msgs.central_signature is '中心签名';
+
+comment on column flow_node_locked_msgs.raw_bytes is '原始字节格式';
+
+comment on column flow_node_locked_msgs.txid is '信息的dblsha256hash_reverse';
 
 alter table flow_node_locked_msgs
     owner to postgres;
@@ -132,7 +156,9 @@ create table transaction_record_msgs
     consume_node_signature        bytea              not null,
     flow_node_signature           bytea              not null,
     confirm_timestamp             bigint             not null,
-    central_signature             bytea              not null
+    central_signature             bytea              not null,
+    raw_bytes                     bytea              not null,
+    txid                          bytea              not null
 );
 
 comment on table transaction_record_msgs is '交易记录信息';
@@ -161,6 +187,10 @@ comment on column transaction_record_msgs.confirm_timestamp is '信息确认时�
 
 comment on column transaction_record_msgs.central_signature is '中心签名';
 
+comment on column transaction_record_msgs.raw_bytes is '原始字节格式';
+
+comment on column transaction_record_msgs.txid is '信息的dblsha256hash_reverse';
+
 alter table transaction_record_msgs
     owner to postgres;
 
@@ -178,7 +208,9 @@ create table transaction_mount_msgs
     consume_node_signature        bytea              not null,
     flow_node_signature           bytea              not null,
     confirm_timestamp             bigint             not null,
-    central_signature             bytea              not null
+    central_signature             bytea              not null,
+    raw_bytes                     bytea              not null,
+    txid                          bytea              not null
 );
 
 comment on table transaction_mount_msgs is '交易挂载信息';
@@ -205,6 +237,87 @@ comment on column transaction_mount_msgs.confirm_timestamp is '信息确认时�
 
 comment on column transaction_mount_msgs.central_signature is '中心签名';
 
+comment on column transaction_mount_msgs.raw_bytes is '原始字节格式';
+
+comment on column transaction_mount_msgs.txid is '信息的dblsha256hash_reverse';
+
 alter table transaction_mount_msgs
+    owner to postgres;
+
+create table block_infos
+(
+    id                            bytea             not null
+        constraint block_info_pkey
+            primary key,
+    version                       integer default 1 not null,
+    height                        bigint            not null,
+    source_code_zip_hash          bytea             not null,
+    previous_block_hash           bytea             not null,
+    merkle_root                   bytea             not null,
+    max_msg_timestamp             bigint            not null,
+    register_difficulty_target    integer           not null,
+    transaction_difficulty_target integer           not null,
+    central_pubkey                bytea             not null,
+    timestamp                     bigint            not null,
+    central_signature             bytea             not null,
+    dat_filepath                  text              not null,
+    source_code_zip_filepath      text              not null
+);
+
+comment on table block_infos is '区块信息';
+
+comment on column block_infos.id is '本区块头的dblsha256hash';
+
+comment on column block_infos.height is '区块高度';
+
+comment on column block_infos.source_code_zip_hash is '相应版本全代码压缩包(包含协议内容)的sha256hash';
+
+comment on column block_infos.previous_block_hash is '前区块头的dblsha256hash';
+
+comment on column block_infos.merkle_root is '所有信息的默克尔根';
+
+comment on column block_infos.max_msg_timestamp is '信息内的最大时间戳，单位微秒，时区UTC+0';
+
+comment on column block_infos.register_difficulty_target is '注册难度目标';
+
+comment on column block_infos.transaction_difficulty_target is '交易难度目标';
+
+comment on column block_infos.central_pubkey is '中心公钥';
+
+comment on column block_infos.timestamp is '区块固定时间，单位微秒，时区UTC+0';
+
+comment on column block_infos.central_signature is '中心签名';
+
+comment on column block_infos.dat_filepath is '保存区块的dat文件的文件路径';
+
+comment on column block_infos.source_code_zip_filepath is '相应版本全代码(包含协议文本)压缩包的文件路径';
+
+alter table block_infos
+    owner to postgres;
+
+create table msg_abstracts
+(
+    id                bytea                 not null
+        constraint all_type_msg_abstracts_pkey
+            primary key,
+    msg_type          smallint              not null,
+    msg_id            uuid                  not null,
+    confirm_timestamp bigint                not null,
+    is_in_block       boolean default false not null
+);
+
+comment on table msg_abstracts is '所有类型的msg的部分字段摘要';
+
+comment on column msg_abstracts.id is 'msg的msg_type与id的拼接';
+
+comment on column msg_abstracts.msg_type is '信息类型';
+
+comment on column msg_abstracts.msg_id is '信息id';
+
+comment on column msg_abstracts.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
+
+comment on column msg_abstracts.is_in_block is '是否已被装入区块';
+
+alter table msg_abstracts
     owner to postgres;
 

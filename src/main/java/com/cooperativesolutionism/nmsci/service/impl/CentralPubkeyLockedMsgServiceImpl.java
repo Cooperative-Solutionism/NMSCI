@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgReposit
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
+import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -31,6 +32,9 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
     @Resource
     private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public CentralPubkeyLockedMsg saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
         if (centralPubkeyLockedMsg.getMsgType() != 1) {
@@ -42,10 +46,10 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
         }
 
         if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyLockedMsg.getCentralPubkey())) {
-            throw new IllegalArgumentException("该中心公钥(" + Base64.getEncoder().encodeToString(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyLockedMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -96,13 +100,21 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             centralPubkeyLockedMsg.setConfirmTimestamp(timestamp);
             centralPubkeyLockedMsg.setCentralSignature(centralSignature);
+            centralPubkeyLockedMsg.setRawBytes(rawBytes);
+            centralPubkeyLockedMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(centralPubkeyLockedMsg);
 
         return centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
     }

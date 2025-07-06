@@ -10,4 +10,5 @@ import java.util.UUID;
 public interface CentralPubkeyEmpowerMsgRepository extends JpaRepository<CentralPubkeyEmpowerMsg, UUID> {
 
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
+
 }

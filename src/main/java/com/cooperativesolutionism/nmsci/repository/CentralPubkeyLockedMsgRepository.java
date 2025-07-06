@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface CentralPubkeyLockedMsgRepository extends JpaRepository<CentralPubkeyLockedMsg, UUID> {
 
     boolean existsByCentralPubkey(byte[] centralPubkey);
+
 }

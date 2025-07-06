@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface FlowNodeLockedMsgRepository extends JpaRepository<FlowNodeLockedMsg, UUID> {
 
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
+
 }
