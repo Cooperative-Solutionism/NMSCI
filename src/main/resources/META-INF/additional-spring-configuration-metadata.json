@@ -12,37 +12,52 @@
     },
     {
       "name": "register-difficulty-target-nbits",
-      "type": "java.lang.String",
+      "type": "java.lang.Integer",
       "description": "Description for register-difficulty-target-nbits."
     },
     {
       "name": "transaction-difficulty-target-nbits",
-      "type": "java.lang.String",
+      "type": "java.lang.Integer",
       "description": "Description for transaction-difficulty-target-nbits."
     },
     {
       "name": "block-version",
-      "type": "java.lang.String",
+      "type": "java.lang.Integer",
       "description": "区块版本."
     },
     {
-      "name": "block-magic-number",
-      "type": "java.lang.String",
-      "description": "魔数."
+      "name": "block-header-size",
+      "type": "java.lang.Integer",
+      "description": "区块头字节数."
     },
     {
       "name": "block-max-size",
-      "type": "java.lang.String",
+      "type": "java.lang.Long",
       "description": "区块最大字节数."
     },
     {
       "name": "blcok-dat-max-size",
-      "type": "java.lang.String",
+      "type": "java.lang.Long",
       "description": "dat文件最大字节数."
     },
     {
       "name": "source-code-zip-hash",
       "type": "java.lang.String",
-      "description": "相应版本全代码压缩包(包含协议内容)的dblsha256hash."
+      "description": "相应版本全代码压缩包(包含协议内容)的sha256hash的hex字符串."
+    },
+    {
+      "name": "file-root-dir",
+      "type": "java.lang.String",
+      "description": "文件储存根目录."
+    },
+    {
+      "name": "file-dat-dir",
+      "type": "java.lang.String",
+      "description": "区块.dat文件目录."
+    },
+    {
+      "name": "file-source-code-dir",
+      "type": "java.lang.String",
+      "description": "相应版本全代码压缩包(包含协议内容)目录."
     }
   ] }

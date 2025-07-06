@@ -18,19 +18,19 @@ public class BlockInfo {
 
     @ColumnDefault("1")
     @Column(name = "version", nullable = false)
-    private Long version;
+    private int version;
 
     @Comment("区块高度")
     @Column(name = "height", nullable = false)
     private Long height;
 
-    @Comment("相应版本全代码压缩包(包含协议内容)的dblsha256hash")
+    @Comment("相应版本全代码压缩包(包含协议内容)的sha256hash")
     @Column(name = "source_code_zip_hash", nullable = false)
     private byte[] sourceCodeZipHash;
 
     @Comment("前区块头的dblsha256hash")
-    @Column(name = "previous_block_ash", nullable = false)
-    private byte[] previousBlockAsh;
+    @Column(name = "previous_block_hash", nullable = false)
+    private byte[] previousBlockHash;
 
     @Comment("所有信息的默克尔根")
     @Column(name = "merkle_root", nullable = false)
@@ -92,11 +92,11 @@ public class BlockInfo {
         this.id = id;
     }
 
-    public Long getVersion() {
+    public int getVersion() {
         return version;
     }
 
-    public void setVersion(Long version) {
+    public void setVersion(int version) {
         this.version = version;
     }
 
@@ -116,12 +116,12 @@ public class BlockInfo {
         this.sourceCodeZipHash = sourceCodeZipHash;
     }
 
-    public byte[] getPreviousBlockAsh() {
-        return previousBlockAsh;
+    public byte[] getPreviousBlockHash() {
+        return previousBlockHash;
     }
 
-    public void setPreviousBlockAsh(byte[] previousBlockAsh) {
-        this.previousBlockAsh = previousBlockAsh;
+    public void setPreviousBlockHash(byte[] previousBlockHash) {
+        this.previousBlockHash = previousBlockHash;
     }
 
     public byte[] getMerkleRoot() {

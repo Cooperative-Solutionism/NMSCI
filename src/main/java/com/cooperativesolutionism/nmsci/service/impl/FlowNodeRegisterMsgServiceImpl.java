@@ -33,6 +33,9 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
         if (flowNodeRegisterMsg.getMsgType() != 2) {
@@ -48,10 +51,10 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         }
 
         if (flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeRegisterMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + Base64.getEncoder().encodeToString(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
+            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(flowNodeRegisterMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -120,13 +123,21 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             flowNodeRegisterMsg.setConfirmTimestamp(timestamp);
             flowNodeRegisterMsg.setCentralSignature(centralSignature);
+            flowNodeRegisterMsg.setRawBytes(rawBytes);
+            flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(flowNodeRegisterMsg);
 
         return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
     }

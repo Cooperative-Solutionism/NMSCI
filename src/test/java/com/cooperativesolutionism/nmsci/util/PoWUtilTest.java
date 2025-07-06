@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
 class PoWUtilTest {
 
@@ -16,7 +15,7 @@ class PoWUtilTest {
         byte[] bytes = ByteArrayUtil.intToBytes(nBits);
         System.out.println("bytes = " + Arrays.toString(bytes));
         System.out.println("bytes.length = " + bytes.length);
-        String s = Base64.getEncoder().encodeToString(bytes);
+        String s = ByteArrayUtil.bytesToBase64(bytes);
         System.out.println(s);
         BigInteger target = PoWUtil.calculateTargetFromNBits(bytes);
         System.out.println("Target: " + target);

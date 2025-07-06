@@ -11,6 +11,28 @@ import java.util.*;
 public class CalcSourceCodeZipHash {
 
     /**
+     * 删除指定目录下的某些文件
+     *
+     * @param dir   目标目录
+     * @param regex 正则表达式，用于匹配要删除的文件
+     */
+    public static void deleteFiles(Path dir, String regex) {
+        try (Stream<Path> files = Files.walk(dir)) {
+            files.filter(path -> path.toString().matches(regex))
+                    .forEach(path -> {
+                        try {
+                            Files.delete(path);
+                            System.out.println("Deleted file: " + path);
+                        } catch (IOException e) {
+                            System.err.println("Failed to delete file: " + path + " - " + e.getMessage());
+                        }
+                    });
+        } catch (IOException e) {
+            System.err.println("Traversing directory failed: " + dir + " - " + e.getMessage());
+        }
+    }
+
+    /**
      * 将指定目录压缩为 ZIP 文件
      *
      * @param sourceDir   源目录
@@ -81,6 +103,19 @@ public class CalcSourceCodeZipHash {
     }
 
     /**
+     * 读取 application.properties 文件
+     */
+    public static Properties readProperties(Path propertiesFilePath) throws IOException {
+        Properties properties = new Properties();
+        if (Files.exists(propertiesFilePath)) {
+            try (InputStream input = Files.newInputStream(propertiesFilePath)) {
+                properties.load(input);
+            }
+        }
+        return properties;
+    }
+
+    /**
      * 将哈希值插入或更新 application.properties 文件
      *
      * @param hashValue          要插入的哈希值
@@ -89,14 +124,7 @@ public class CalcSourceCodeZipHash {
      * @throws IOException 如果文件操作过程中发生错误
      */
     public static void insertHashToProperties(String hashValue, Path propertiesFilePath, String propertyKey) throws IOException {
-        Properties properties = new Properties();
-
-        // 如果文件存在，加载已有的 properties
-        if (Files.exists(propertiesFilePath)) {
-            try (InputStream input = Files.newInputStream(propertiesFilePath)) {
-                properties.load(input);
-            }
-        }
+        Properties properties = readProperties(propertiesFilePath);
 
         // 将哈希值插入或更新 properties 文件
         properties.setProperty(propertyKey, hashValue);
@@ -112,27 +140,34 @@ public class CalcSourceCodeZipHash {
             // 项目根目录
             String rootDir = System.getProperty("user.dir");
             Path sourceDir = Paths.get(rootDir);
-            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code.zip");
             Path propertiesFilePath = Paths.get(rootDir, "target", "classes", "application.properties");
 
-            // 1. 压缩文件夹为 zip 文件
+            // 删除已存在的 zip 文件
+            Path staticDir = Paths.get(rootDir, "target", "classes", "static");
+            deleteFiles(staticDir, ".*source_code_v.*\\.zip");
+
+            Properties properties = readProperties(propertiesFilePath);
+            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code_v" + properties.getProperty("block-version") + ".zip");
+
+            // 压缩文件夹为 zip 文件
             String[] excludedDirs = new String[]{
                     "\\.git\\",
                     "\\.idea\\",
+                    "\\temp\\",
                     "\\target\\"
             };
             zipDirectory(sourceDir, zipFilePath, excludedDirs);
-            System.out.println("文件已压缩为: " + zipFilePath);
+            System.out.println("The file has been compressed to: " + zipFilePath);
 
-            // 2. 计算哈希值
+            // 计算哈希值
             String hashValue = calcFileHash(zipFilePath);
-            System.out.println("计算出的文件哈希值: " + hashValue);
+            System.out.println("Calculated file hash value: " + hashValue);
 
-            // 3. 将哈希值插入 application.properties 文件
+            // 将哈希值插入 application.properties 文件
             insertHashToProperties(hashValue, propertiesFilePath, "source-code-zip-hash");
 
         } catch (Exception e) {
-            System.err.println("发生错误: " + e.getMessage());
+            System.err.println("An error occurred: " + e.getMessage());
         }
     }
 }

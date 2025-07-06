@@ -45,6 +45,9 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     @Resource
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
+    @Resource
+    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+
     @Override
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
         if (transactionMountMsg.getMsgType() != 5) {
@@ -68,12 +71,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
                 .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
         byte[] consumeNodePubkey = transactionRecordMsg.getConsumeNodePubkey();
         if (!Arrays.equals(transactionMountMsg.getConsumeNodePubkey(), consumeNodePubkey)) {
-            String consumeNodePubkeyBase64 = Base64.getEncoder().encodeToString(consumeNodePubkey);
+            String consumeNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(consumeNodePubkey);
             throw new IllegalArgumentException("挂载的交易记录信息中的消费节点公钥(" + consumeNodePubkeyBase64 + ")与当前交易挂载信息中的消费节点公钥不一致");
         }
 
         // 验证流转节点公钥是否已注册
-        String flowNodePubkeyBase64 = Base64.getEncoder().encodeToString(transactionMountMsg.getFlowNodePubkey());
+        String flowNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(transactionMountMsg.getFlowNodePubkey());
         if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(transactionMountMsg.getFlowNodePubkey())) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
@@ -88,7 +91,7 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = Base64.getDecoder().decode(centralPubkeyBase64);
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(transactionMountMsg.getCentralPubkey(), centralPubkey)) {
             throw new IllegalArgumentException("中心公钥设置错误");
         }
@@ -182,13 +185,21 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         );
 
         try {
-            byte[] centralPrikey = Base64.getDecoder().decode(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey));
+            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
+            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
+            byte[] rawBytes = ArrayUtils.addAll(
+                    centralSignData,
+                    centralSignature
+            );
             transactionMountMsg.setConfirmTimestamp(timestamp);
             transactionMountMsg.setCentralSignature(centralSignature);
+            transactionMountMsg.setRawBytes(rawBytes);
+            transactionMountMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+
+        msgAbstractServiceImpl.saveMsgAbstract(transactionMountMsg);
 
         return transactionMountMsgRepository.save(transactionMountMsg);
     }
