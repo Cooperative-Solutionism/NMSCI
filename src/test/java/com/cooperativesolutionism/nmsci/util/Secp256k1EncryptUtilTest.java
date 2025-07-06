@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.util;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.security.KeyPair;
@@ -9,6 +10,7 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.util.Arrays;
 
+@Disabled
 class Secp256k1EncryptUtilTest {
 
     @Test

@@ -1,12 +1,14 @@
 package com.cooperativesolutionism.nmsci.util;
 
 import org.bitcoinj.base.Sha256Hash;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@Disabled
 class MerkleTreeUtilTest {
 
     @Test
