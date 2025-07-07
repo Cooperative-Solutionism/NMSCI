@@ -40,28 +40,29 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果解析DER签名失败
      */
     public static byte[] derToRs(byte[] derSignature) throws IOException {
-//        直接从derSignature字节中解析出r和s
-        ASN1Primitive asn1Primitive = ASN1Primitive.fromByteArray(derSignature);
-        if (!(asn1Primitive instanceof ASN1Sequence sequence)) {
+        ASN1Sequence seq = (ASN1Sequence) ASN1Primitive.fromByteArray(derSignature);
+        if (seq.size() != 2) {
             throw new IOException("Invalid DER signature format");
         }
+        BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getValue();
+        BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getValue();
 
-        if (sequence.size() != 2) {
-            throw new IOException("DER signature must contain exactly two elements");
-        }
+        byte[] rBytes = r.toByteArray();
+        byte[] sBytes = s.toByteArray();
 
-        ASN1Integer r = ASN1Integer.getInstance(sequence.getObjectAt(0));
-        ASN1Integer s = ASN1Integer.getInstance(sequence.getObjectAt(1));
+        byte[] rs = new byte[64];
 
-        byte[] rBytes = r.getValue().toByteArray();
-        byte[] sBytes = s.getValue().toByteArray();
+        // r填充到32字节
+        int rOffset = Math.max(0, rBytes.length - 32);
+        int rLen = Math.min(rBytes.length, 32);
+        System.arraycopy(rBytes, rOffset, rs, 32 - rLen, rLen);
 
-        // 确保r和s都是32字节长，不足时前面补0
-        byte[] rsSignature = new byte[64];
-        System.arraycopy(rBytes, Math.max(0, rBytes.length - 32), rsSignature, 0, 32);
-        System.arraycopy(sBytes, Math.max(0, sBytes.length - 32), rsSignature, 32, 32);
+        // s填充到32字节
+        int sOffset = Math.max(0, sBytes.length - 32);
+        int sLen = Math.min(sBytes.length, 32);
+        System.arraycopy(sBytes, sOffset, rs, 32 + (32 - sLen), sLen);
 
-        return rsSignature;
+        return rs;
     }
 
     /**
@@ -204,10 +205,10 @@ public class Secp256k1EncryptUtil {
             BigInteger r = new BigInteger(1, Arrays.copyOfRange(rsSignature, 0, 32));
             BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
             s = CURVE_ORDER.subtract(s);
-            byte[] adjustedSignature = new byte[64];
-            System.arraycopy(r.toByteArray(), Math.max(0, r.toByteArray().length - 32), adjustedSignature, 0, 32);
-            System.arraycopy(s.toByteArray(), Math.max(0, s.toByteArray().length - 32), adjustedSignature, 32, 32);
-            return rsToDer(adjustedSignature);
+            ASN1Integer rAsn1 = new ASN1Integer(r);
+            ASN1Integer sAsn1 = new ASN1Integer(s);
+            DERSequence sequence = new DERSequence(new ASN1Primitive[]{rAsn1, sAsn1});
+            derSignature = sequence.getEncoded();
         }
         return derSignature;
     }

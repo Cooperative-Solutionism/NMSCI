@@ -261,7 +261,8 @@ create table block_infos
     timestamp                     bigint            not null,
     central_signature             bytea             not null,
     dat_filepath                  text              not null,
-    source_code_zip_filepath      text              not null
+    source_code_zip_filepath      text              not null,
+    raw_bytes                     bytea             not null
 );
 
 comment on table block_infos is '区块信息';
@@ -292,6 +293,8 @@ comment on column block_infos.dat_filepath is '保存区块的dat文件的文件
 
 comment on column block_infos.source_code_zip_filepath is '相应版本全代码(包含协议文本)压缩包的文件路径';
 
+comment on column block_infos.raw_bytes is '原始字节格式';
+
 alter table block_infos
     owner to postgres;
 
@@ -319,5 +322,64 @@ comment on column msg_abstracts.confirm_timestamp is '信息确认时间，单�
 comment on column msg_abstracts.is_in_block is '是否已被装入区块';
 
 alter table msg_abstracts
+    owner to postgres;
+
+create table consume_chains
+(
+    id            uuid     not null
+        primary key,
+    start         uuid     not null
+        constraint fk_start_flow_node
+            references flow_node_register_msgs,
+    "end"         uuid     not null
+        constraint fk_end_flow_node
+            references flow_node_register_msgs,
+    amount        bigint   not null,
+    currency_type smallint not null
+);
+
+comment on table consume_chains is '消费链';
+
+comment on column consume_chains.start is '消费链起点';
+
+comment on column consume_chains."end" is '消费链终点';
+
+comment on column consume_chains.amount is '金额';
+
+comment on column consume_chains.currency_type is '货币类型';
+
+alter table consume_chains
+    owner to postgres;
+
+create table consume_chain_edges
+(
+    id            uuid     not null
+        primary key,
+    source        uuid     not null
+        constraint fk_source_flow_node
+            references flow_node_register_msgs,
+    target        uuid     not null
+        constraint fk_target_flow_node
+            references flow_node_register_msgs,
+    amount        bigint   not null,
+    currency_type smallint not null,
+    chain         uuid     not null
+        constraint fk_chain_consume_chain
+            references consume_chains
+);
+
+comment on table consume_chain_edges is '消费链的边';
+
+comment on column consume_chain_edges.source is '边的起点';
+
+comment on column consume_chain_edges.target is '边的终点';
+
+comment on column consume_chain_edges.amount is '金额';
+
+comment on column consume_chain_edges.currency_type is '货币类型';
+
+comment on column consume_chain_edges.chain is '边所属的消费链';
+
+alter table consume_chain_edges
     owner to postgres;
 
