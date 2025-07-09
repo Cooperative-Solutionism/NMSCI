@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
 import java.util.UUID;
@@ -36,6 +37,17 @@ public class ConsumeChain {
     @Comment("货币类型")
     @Column(name = "currency_type", nullable = false)
     private Short currencyType;
+
+    @NotNull
+    @Comment("消费链是否已成环")
+    @ColumnDefault("false")
+    @Column(name = "is_loop", nullable = false)
+    private Boolean isLoop = false;
+
+    @NotNull
+    @Comment("链尾挂载时间，单位微秒，时区UTC+0")
+    @Column(name = "tail_mount_timestamp", nullable = false)
+    private Long tailMountTimestamp;
 
     public UUID getId() {
         return id;
@@ -75,6 +87,22 @@ public class ConsumeChain {
 
     public void setCurrencyType(Short currencyType) {
         this.currencyType = currencyType;
+    }
+
+    public Boolean getIsLoop() {
+        return isLoop;
+    }
+
+    public void setIsLoop(Boolean isLoop) {
+        this.isLoop = isLoop;
+    }
+
+    public Long getTailMountTimestamp() {
+        return tailMountTimestamp;
+    }
+
+    public void setTailMountTimestamp(Long tailMountTimestamp) {
+        this.tailMountTimestamp = tailMountTimestamp;
     }
 
 }

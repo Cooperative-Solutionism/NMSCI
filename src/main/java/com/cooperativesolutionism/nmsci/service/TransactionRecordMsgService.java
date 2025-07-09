@@ -7,4 +7,5 @@ import jakarta.validation.Valid;
 public interface TransactionRecordMsgService {
 
     TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg);
+
 }

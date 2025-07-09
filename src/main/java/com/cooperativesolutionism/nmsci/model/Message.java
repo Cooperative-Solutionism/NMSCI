@@ -22,4 +22,5 @@ public interface Message {
     byte[] getTxid();
 
     void setTxid(byte[] msgType);
+
 }

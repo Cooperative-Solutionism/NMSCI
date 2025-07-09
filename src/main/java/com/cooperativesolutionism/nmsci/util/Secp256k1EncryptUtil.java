@@ -200,7 +200,7 @@ public class Secp256k1EncryptUtil {
         signature.update(data);
         byte[] derSignature = signature.sign();
         byte[] rsSignature = derToRs(derSignature);
-        if (!isLowS(rsSignature)) {
+        if (isNotLowS(rsSignature)) {
             // 如果签名的s值不小于等于曲线阶的一半，则需要调整s值
             BigInteger r = new BigInteger(1, Arrays.copyOfRange(rsSignature, 0, 32));
             BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
@@ -237,8 +237,8 @@ public class Secp256k1EncryptUtil {
      * @return 如果签名的s值小于等于曲线阶的一半，则返回 true，否则返回 false
      * @throws IOException 如果解析签名失败
      */
-    public static boolean isLowS(byte[] rsSignature) throws IOException {
+    public static boolean isNotLowS(byte[] rsSignature) throws IOException {
         BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
-        return s.compareTo(HALF_CURVE_ORDER) <= 0;
+        return s.compareTo(HALF_CURVE_ORDER) > 0;
     }
 }

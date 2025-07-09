@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -17,7 +18,6 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -33,7 +33,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
     private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
 
     @Override
     public CentralPubkeyLockedMsg saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
@@ -55,7 +55,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(centralPubkeyLockedMsg.getCentralSignaturePre())) {
+            if (Secp256k1EncryptUtil.isNotLowS(centralPubkeyLockedMsg.getCentralSignaturePre())) {
                 throw new IllegalArgumentException("中心预签名不符合低S标准");
             }
         } catch (IOException e) {
@@ -114,7 +114,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(centralPubkeyLockedMsg);
+        msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
 
         return centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
     }

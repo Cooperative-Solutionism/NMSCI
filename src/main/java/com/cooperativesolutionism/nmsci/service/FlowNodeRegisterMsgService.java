@@ -7,4 +7,5 @@ import jakarta.validation.Valid;
 public interface FlowNodeRegisterMsgService {
 
     FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg);
+
 }

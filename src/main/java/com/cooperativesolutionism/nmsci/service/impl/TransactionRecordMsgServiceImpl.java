@@ -6,6 +6,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgReposi
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
@@ -19,7 +20,6 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -46,7 +46,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
 
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
@@ -88,10 +88,10 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(transactionRecordMsg.getConsumeNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(transactionRecordMsg.getConsumeNodeSignature())) {
                 throw new IllegalArgumentException("消费节点签名不符合低S值要求");
             }
-            if (!Secp256k1EncryptUtil.isLowS(transactionRecordMsg.getFlowNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(transactionRecordMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S值要求");
             }
         } catch (IOException e) {
@@ -194,7 +194,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(transactionRecordMsg);
+        msgAbstractService.saveMsgAbstract(transactionRecordMsg);
 
         return transactionRecordMsgRepository.save(transactionRecordMsg);
     }

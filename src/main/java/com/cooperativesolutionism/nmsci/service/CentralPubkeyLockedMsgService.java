@@ -7,4 +7,5 @@ import jakarta.validation.Valid;
 public interface CentralPubkeyLockedMsgService {
 
     CentralPubkeyLockedMsg saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg);
+
 }

@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -36,7 +37,7 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
 
     @Override
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
@@ -62,7 +63,7 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S标准");
             }
         } catch (IOException e) {
@@ -125,7 +126,7 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(centralPubkeyEmpowerMsg);
+        msgAbstractService.saveMsgAbstract(centralPubkeyEmpowerMsg);
 
         return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
     }

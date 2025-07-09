@@ -326,16 +326,18 @@ alter table msg_abstracts
 
 create table consume_chains
 (
-    id            uuid     not null
+    id                   uuid                  not null
         primary key,
-    start         uuid     not null
+    start                uuid                  not null
         constraint fk_start_flow_node
             references flow_node_register_msgs,
-    "end"         uuid     not null
+    "end"                uuid                  not null
         constraint fk_end_flow_node
             references flow_node_register_msgs,
-    amount        bigint   not null,
-    currency_type smallint not null
+    amount               bigint                not null,
+    currency_type        smallint              not null,
+    is_loop              boolean default false not null,
+    tail_mount_timestamp bigint                not null
 );
 
 comment on table consume_chains is '消费链';
@@ -348,24 +350,36 @@ comment on column consume_chains.amount is '金额';
 
 comment on column consume_chains.currency_type is '货币类型';
 
+comment on column consume_chains.is_loop is '消费链是否已成环';
+
+comment on column consume_chains.tail_mount_timestamp is '链尾挂载时间，单位微秒，时区UTC+0';
+
 alter table consume_chains
     owner to postgres;
 
 create table consume_chain_edges
 (
-    id            uuid     not null
+    id                                  uuid                  not null
         primary key,
-    source        uuid     not null
+    source                              uuid                  not null
         constraint fk_source_flow_node
             references flow_node_register_msgs,
-    target        uuid     not null
+    target                              uuid                  not null
         constraint fk_target_flow_node
             references flow_node_register_msgs,
-    amount        bigint   not null,
-    currency_type smallint not null,
-    chain         uuid     not null
+    amount                              bigint                not null,
+    currency_type                       smallint              not null,
+    chain                               uuid                  not null
         constraint fk_chain_consume_chain
-            references consume_chains
+            references consume_chains,
+    related_transaction_record          uuid                  not null
+        constraint fk_related_transaction_record
+            references transaction_record_msgs,
+    related_transaction_mount           uuid                  not null
+        constraint fk_related_transaction_mount
+            references transaction_mount_msgs,
+    related_transaction_mount_timestamp bigint                not null,
+    is_loop                             boolean default false not null
 );
 
 comment on table consume_chain_edges is '消费链的边';
@@ -379,6 +393,14 @@ comment on column consume_chain_edges.amount is '金额';
 comment on column consume_chain_edges.currency_type is '货币类型';
 
 comment on column consume_chain_edges.chain is '边所属的消费链';
+
+comment on column consume_chain_edges.related_transaction_record is '关联的交易记录';
+
+comment on column consume_chain_edges.related_transaction_mount is '关联的交易挂载';
+
+comment on column consume_chain_edges.related_transaction_mount_timestamp is '关联的交易挂载的确认时间，单位微秒，时区UTC+0';
+
+comment on column consume_chain_edges.is_loop is '所属的消费链是否已成环';
 
 alter table consume_chain_edges
     owner to postgres;

@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgReposi
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -19,7 +20,6 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -40,7 +40,7 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
 
     @Override
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
@@ -74,7 +74,7 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(flowNodeLockedMsg.getFlowNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(flowNodeLockedMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S标准");
             }
         } catch (IOException e) {
@@ -137,7 +137,7 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(flowNodeLockedMsg);
+        msgAbstractService.saveMsgAbstract(flowNodeLockedMsg);
 
         return flowNodeLockedMsgRepository.save(flowNodeLockedMsg);
     }
