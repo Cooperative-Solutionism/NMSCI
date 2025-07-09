@@ -20,6 +20,21 @@ public enum CurrencyTypeEnum {
         return description;
     }
 
+    /**
+     * 根据枚举值获取枚举
+     *
+     * @param value 枚举值
+     * @return 对应的枚举
+     */
+    public static CurrencyTypeEnum fromValue(short value) {
+        for (CurrencyTypeEnum type : CurrencyTypeEnum.values()) {
+            if (type.getValue() == value) {
+                return type;
+            }
+        }
+        throw new IllegalArgumentException("No enum constant with value: " + value);
+    }
+
     public static boolean containsValue(short value) {
         for (CurrencyTypeEnum type : CurrencyTypeEnum.values()) {
             if (type.getValue() == value) {

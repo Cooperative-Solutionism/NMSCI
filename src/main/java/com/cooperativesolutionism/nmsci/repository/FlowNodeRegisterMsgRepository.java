@@ -9,4 +9,6 @@ public interface FlowNodeRegisterMsgRepository extends JpaRepository<FlowNodeReg
 
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
 
+    FlowNodeRegisterMsg findFirstByFlowNodePubkey(byte[] flowNodePubkey);
+
 }

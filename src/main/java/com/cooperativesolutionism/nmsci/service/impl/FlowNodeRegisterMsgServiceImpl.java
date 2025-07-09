@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -15,7 +16,6 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -34,7 +34,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
 
     @Override
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
@@ -60,7 +60,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(flowNodeRegisterMsg.getFlowNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(flowNodeRegisterMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S值要求");
             }
         } catch (IOException e) {
@@ -137,7 +137,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(flowNodeRegisterMsg);
+        msgAbstractService.saveMsgAbstract(flowNodeRegisterMsg);
 
         return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
     }

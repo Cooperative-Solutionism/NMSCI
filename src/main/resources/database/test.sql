@@ -7,3 +7,5 @@ TRUNCATE TABLE transaction_mount_msgs CASCADE;
 TRUNCATE TABLE transaction_record_msgs CASCADE;
 TRUNCATE TABLE block_infos CASCADE;
 TRUNCATE TABLE msg_abstracts CASCADE;
+TRUNCATE TABLE consume_chains CASCADE;
+TRUNCATE TABLE consume_chain_edges CASCADE;

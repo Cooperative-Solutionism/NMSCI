@@ -3,6 +3,8 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.*;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
 import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
@@ -11,12 +13,12 @@ import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.Base64;
 
 @Service
 @Validated
@@ -46,9 +48,13 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
     @Resource
-    private MsgAbstractServiceImpl msgAbstractServiceImpl;
+    private MsgAbstractService msgAbstractService;
+
+    @Resource
+    private ConsumeChainService consumeChainService;
 
     @Override
+    @Transactional
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
         if (transactionMountMsg.getMsgType() != 5) {
             throw new IllegalArgumentException("信息类型错误，必须为5");
@@ -60,6 +66,10 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
 
         if (!transactionRecordMsgRepository.existsById(transactionMountMsg.getMountedTransactionRecordId())) {
             throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在");
+        }
+
+        if (transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(transactionMountMsg.getMountedTransactionRecordId())) {
+            throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
         }
 
         if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
@@ -97,10 +107,10 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         }
 
         try {
-            if (!Secp256k1EncryptUtil.isLowS(transactionMountMsg.getConsumeNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(transactionMountMsg.getConsumeNodeSignature())) {
                 throw new IllegalArgumentException("消费节点签名不符合低S值要求");
             }
-            if (!Secp256k1EncryptUtil.isLowS(transactionMountMsg.getFlowNodeSignature())) {
+            if (Secp256k1EncryptUtil.isNotLowS(transactionMountMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S值要求");
             }
         } catch (IOException e) {
@@ -199,8 +209,10 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new RuntimeException(e);
         }
 
-        msgAbstractServiceImpl.saveMsgAbstract(transactionMountMsg);
+        TransactionMountMsg transactionMountMsgInDb = transactionMountMsgRepository.save(transactionMountMsg);
+        msgAbstractService.saveMsgAbstract(transactionMountMsg);
+        consumeChainService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
 
-        return transactionMountMsgRepository.save(transactionMountMsg);
+        return transactionMountMsgInDb;
     }
 }

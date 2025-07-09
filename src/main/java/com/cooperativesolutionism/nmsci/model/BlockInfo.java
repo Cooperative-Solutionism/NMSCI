@@ -68,6 +68,18 @@ public class BlockInfo {
     @Column(name = "source_code_zip_filepath", nullable = false, length = Integer.MAX_VALUE)
     private String sourceCodeZipFilepath;
 
+    @Comment("原始字节格式")
+    @Column(name = "raw_bytes", nullable = false)
+    private byte[] rawBytes;
+
+    public byte[] getRawBytes() {
+        return rawBytes;
+    }
+
+    public void setRawBytes(byte[] rawBytes) {
+        this.rawBytes = rawBytes;
+    }
+
     public String getSourceCodeZipFilepath() {
         return sourceCodeZipFilepath;
     }

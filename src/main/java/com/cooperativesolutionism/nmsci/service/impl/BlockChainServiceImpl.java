@@ -267,6 +267,8 @@ public class BlockChainServiceImpl implements BlockChainService {
                 blockBody
         );
 
+        blockInfo.setRawBytes(block);
+
         // 拼接魔数
         byte[] blockLeading = ArrayUtils.addAll(
                 ByteArrayUtil.intToBytes(BlockConstants.MAGIC_NUMBER),
@@ -279,7 +281,8 @@ public class BlockChainServiceImpl implements BlockChainService {
 
         // 将block字节数据保存至.dat文件
         if (datFilepathStr == null || datFilepathStr.isEmpty()) {
-            datFilepathStr = fileRootDir + "/" + fileDatDir + "/blk" + String.format("%08d", 0) + ".dat";
+            Path path = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", 0) + ".dat");
+            datFilepathStr = path.toString();
         }
 
         String rootDir = System.getProperty("user.dir");
@@ -296,11 +299,12 @@ public class BlockChainServiceImpl implements BlockChainService {
         try {
             // 查看文件大小是否超过限制
             if (Files.exists(datFilepath) && Files.size(datFilepath) + block.length > blockDatMaxSize) {
-                String[] parts = datFilepathStr.split("/");
+                String[] parts = datFilepathStr.split("\\\\");
                 String lastPart = parts[parts.length - 1];
                 String indexStr = lastPart.replace("blk", "").replace(".dat", "");
                 int index = Integer.parseInt(indexStr);
                 datFilepath = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", index + 1) + ".dat");
+                datFilepathStr = datFilepath.toString();
             }
 
             // 追加写入.dat文件
