@@ -2,7 +2,6 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
-import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;

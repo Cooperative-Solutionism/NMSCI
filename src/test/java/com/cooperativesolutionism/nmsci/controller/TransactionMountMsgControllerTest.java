@@ -17,7 +17,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigInteger;
 import java.security.Security;
-import java.util.Arrays;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
