@@ -12,7 +12,7 @@ public class CentralPubkeyEmpowerMsgConverter {
             throw new IllegalArgumentException("Invalid byte array size, expected 220 bytes.");
         }
 
-        // 【信息类型2字节(0)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前4项数据)签名64字节】
+        // 【信息类型2字节(1)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前4项数据)签名64字节】
         CentralPubkeyEmpowerMsg msg = new CentralPubkeyEmpowerMsg();
         msg.setMsgType(ByteArrayUtil.bytesToShort(Arrays.copyOfRange(byteData, 0, 2)));
         msg.setId(ByteArrayUtil.bytesToUUID(Arrays.copyOfRange(byteData, 2, 18)));

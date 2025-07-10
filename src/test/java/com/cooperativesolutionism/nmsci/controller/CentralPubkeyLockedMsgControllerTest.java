@@ -42,7 +42,7 @@ class CentralPubkeyLockedMsgControllerTest {
         byte[] testData;
         byte[] verfyData;
 
-        short msgType = 1;
+        short msgType = 2;
         UUID uuid = UUID.randomUUID();
         byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);

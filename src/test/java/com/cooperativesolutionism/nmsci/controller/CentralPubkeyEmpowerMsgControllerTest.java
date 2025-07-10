@@ -39,7 +39,7 @@ class CentralPubkeyEmpowerMsgControllerTest {
         byte[] testData;
         byte[] verfyData;
 
-        short msgType = 0;
+        short msgType = 1;
         UUID uuid = UUID.randomUUID();
         byte[] flowNodePubkey = ByteArrayUtil.base64ToBytes("AjQ2H9M/OTpDs0caRjSe+cR5Ru4sUQSDP0Ime9PTwIGI");
         byte[] flowNodePrikey = ByteArrayUtil.base64ToBytes("qZaEg1hS+yR89ky9uNN2acpk0C7F9KeUpEBitso27Mw=");

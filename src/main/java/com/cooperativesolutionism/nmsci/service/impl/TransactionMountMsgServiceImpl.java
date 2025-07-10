@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.*;
@@ -56,8 +57,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     @Override
     @Transactional
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
-        if (transactionMountMsg.getMsgType() != 5) {
-            throw new IllegalArgumentException("信息类型错误，必须为5");
+        if (transactionMountMsg.getMsgType() != MsgTypeEnum.TransactionMountMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionMountMsg.getValue());
         }
 
         if (transactionMountMsgRepository.existsById(transactionMountMsg.getId())) {

@@ -19,7 +19,7 @@ public class CentralPubkeyEmpowerMsg implements Message {
     private UUID id;
 
     @Comment("信息类型")
-    @ColumnDefault("0")
+    @ColumnDefault("1")
     @Column(name = "msg_type", nullable = false)
     private Short msgType;
 

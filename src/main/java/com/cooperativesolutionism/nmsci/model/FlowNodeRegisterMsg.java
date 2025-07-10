@@ -20,7 +20,7 @@ public class FlowNodeRegisterMsg implements Message {
     private UUID id;
 
     @Comment("信息类型")
-    @ColumnDefault("2")
+    @ColumnDefault("0")
     @Column(name = "msg_type", nullable = false)
     private Short msgType;
 
@@ -37,23 +37,10 @@ public class FlowNodeRegisterMsg implements Message {
     @ByteArraySize(33)
     private byte[] flowNodePubkey;
 
-    @Comment("中心公钥")
-    @Column(name = "central_pubkey", nullable = false)
-    @ByteArraySize(33)
-    private byte[] centralPubkey;
-
     @Comment("流转节点签名")
     @Column(name = "flow_node_signature", nullable = false)
     @ByteArraySize(64)
     private byte[] flowNodeSignature;
-
-    @Comment("信息确认时间，单位微秒，时区UTC+0")
-    @Column(name = "confirm_timestamp", nullable = false)
-    private Long confirmTimestamp;
-
-    @Comment("中心签名")
-    @Column(name = "central_signature", nullable = false)
-    private byte[] centralSignature;
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
@@ -103,14 +90,6 @@ public class FlowNodeRegisterMsg implements Message {
         this.flowNodePubkey = flowNodePubkey;
     }
 
-    public byte[] getCentralPubkey() {
-        return centralPubkey;
-    }
-
-    public void setCentralPubkey(byte[] centralPubkey) {
-        this.centralPubkey = centralPubkey;
-    }
-
     public byte[] getFlowNodeSignature() {
         return flowNodeSignature;
     }
@@ -120,19 +99,10 @@ public class FlowNodeRegisterMsg implements Message {
     }
 
     public Long getConfirmTimestamp() {
-        return confirmTimestamp;
+        return 0L;
     }
 
     public void setConfirmTimestamp(Long confirmTimestamp) {
-        this.confirmTimestamp = confirmTimestamp;
-    }
-
-    public byte[] getCentralSignature() {
-        return centralSignature;
-    }
-
-    public void setCentralSignature(byte[] centralSignature) {
-        this.centralSignature = centralSignature;
     }
 
     public byte[] getRawBytes() {

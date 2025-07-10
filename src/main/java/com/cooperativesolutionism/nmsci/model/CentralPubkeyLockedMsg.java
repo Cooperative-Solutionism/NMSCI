@@ -20,7 +20,7 @@ public class CentralPubkeyLockedMsg implements Message {
     private UUID id;
 
     @Comment("信息类型")
-    @ColumnDefault("1")
+    @ColumnDefault("2")
     @Column(name = "msg_type", nullable = false)
     private Short msgType;
 

@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
@@ -50,8 +51,8 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
 
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        if (transactionRecordMsg.getMsgType() != 4) {
-            throw new IllegalArgumentException("信息类型错误，必须为4");
+        if (transactionRecordMsg.getMsgType() != MsgTypeEnum.TransactionRecordMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionRecordMsg.getValue());
         }
 
         if (transactionRecordMsgRepository.existsById(transactionRecordMsg.getId())) {

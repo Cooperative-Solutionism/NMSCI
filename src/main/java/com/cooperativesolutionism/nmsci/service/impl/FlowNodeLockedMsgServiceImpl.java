@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
@@ -44,8 +45,8 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
 
     @Override
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
-        if (flowNodeLockedMsg.getMsgType() != 3) {
-            throw new IllegalArgumentException("信息类型错误，必须为3");
+        if (flowNodeLockedMsg.getMsgType() != MsgTypeEnum.FlowNodeLockedMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeLockedMsg.getValue());
         }
 
         if (flowNodeLockedMsgRepository.existsById(flowNodeLockedMsg.getId())) {

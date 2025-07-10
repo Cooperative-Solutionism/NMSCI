@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
@@ -38,8 +39,8 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
 
     @Override
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
-        if (flowNodeRegisterMsg.getMsgType() != 2) {
-            throw new IllegalArgumentException("信息类型错误，必须为2");
+        if (flowNodeRegisterMsg.getMsgType() != MsgTypeEnum.FlowNodeRegisterMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeRegisterMsg.getValue());
         }
 
         if (flowNodeRegisterMsgRepository.existsById(flowNodeRegisterMsg.getId())) {
@@ -54,11 +55,6 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
             throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
         }
 
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
-        if (!Arrays.equals(flowNodeRegisterMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
-        }
-
         try {
             if (Secp256k1EncryptUtil.isNotLowS(flowNodeRegisterMsg.getFlowNodeSignature())) {
                 throw new IllegalArgumentException("流转节点签名不符合低S值要求");
@@ -67,7 +63,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
             throw new RuntimeException(e);
         }
 
-        // 拼接验证数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【中心公钥33字节】
+        // 拼接验证数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】
         byte[] verifyData;
         verifyData = ArrayUtils.addAll(
                 ByteArrayUtil.shortToBytes(flowNodeRegisterMsg.getMsgType()),
@@ -85,15 +81,11 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
                 verifyData,
                 flowNodeRegisterMsg.getFlowNodePubkey()
         );
-        verifyData = ArrayUtils.addAll(
-                verifyData,
-                flowNodeRegisterMsg.getCentralPubkey()
-        );
 
         BigInteger registerDifficultyTarget = PoWUtil.calculateTargetFromNBits(ByteArrayUtil.intToBytes(registerDifficultyTargetNbits));
         BigInteger verifyDataHash = new BigInteger(1, Sha256Util.doubleDigest(verifyData));
         if (verifyDataHash.compareTo(registerDifficultyTarget) > 0) {
-            throw new IllegalArgumentException("前6项数据的hash值不符合注册难度目标要求");
+            throw new IllegalArgumentException("前5项数据的hash值不符合注册难度目标要求");
         }
 
         try {
@@ -109,33 +101,15 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
             throw new RuntimeException(e);
         }
 
-        long timestamp = DateUtil.getCurrentMicros();
-
-        // 拼接中心签名数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前6项数据)签名64字节】+【时间戳8字节】
-        byte[] centralSignData;
-        centralSignData = ArrayUtils.addAll(
+        // 拼接注册信息原始字节数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【流转节点对信息(前6项数据)签名64字节】
+        byte[] rawBytes;
+        rawBytes = ArrayUtils.addAll(
                 verifyData,
                 flowNodeRegisterMsg.getFlowNodeSignature()
         );
-        centralSignData = ArrayUtils.addAll(
-                centralSignData,
-                ByteArrayUtil.longToBytes(timestamp)
-        );
 
-        try {
-            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
-            byte[] rawBytes = ArrayUtils.addAll(
-                    centralSignData,
-                    centralSignature
-            );
-            flowNodeRegisterMsg.setConfirmTimestamp(timestamp);
-            flowNodeRegisterMsg.setCentralSignature(centralSignature);
-            flowNodeRegisterMsg.setRawBytes(rawBytes);
-            flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        flowNodeRegisterMsg.setRawBytes(rawBytes);
+        flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
 
         msgAbstractService.saveMsgAbstract(flowNodeRegisterMsg);
 
