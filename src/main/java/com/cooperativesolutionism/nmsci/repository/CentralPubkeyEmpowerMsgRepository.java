@@ -11,4 +11,5 @@ public interface CentralPubkeyEmpowerMsgRepository extends JpaRepository<Central
 
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
 
+    long countByFlowNodePubkeyAndCentralPubkey(byte[] flowNodePubkey, byte[] centralPubkey);
 }

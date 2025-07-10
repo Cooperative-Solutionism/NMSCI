@@ -3,10 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.*;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.*;
@@ -36,6 +33,9 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+
+    @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -73,9 +73,13 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
 
-        // TODO: 需要验证该流转节点是否已授权过【现中心公钥】，而不是存在就行
         // 验证流转节点公钥是否已授权
-        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey())) {
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        long centralPubkeyEmpowerMsgCount = centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                transactionRecordMsg.getFlowNodePubkey(),
+                centralPubkey
+        );
+        if (centralPubkeyEmpowerMsgCount == 0) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
         }
 
@@ -84,9 +88,12 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(transactionRecordMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(transactionRecordMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         if (!Arrays.equals(transactionRecordMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {

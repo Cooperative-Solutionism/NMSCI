@@ -37,6 +37,9 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+
+    @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
@@ -93,7 +96,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         }
 
         // 验证流转节点公钥是否已授权
-        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(transactionMountMsg.getFlowNodePubkey())) {
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        long centralPubkeyEmpowerMsgCount = centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                transactionMountMsg.getFlowNodePubkey(),
+                centralPubkey
+        );
+        if (centralPubkeyEmpowerMsgCount == 0) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
         }
 
@@ -102,9 +110,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(transactionMountMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(transactionMountMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         if (!Arrays.equals(transactionMountMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {

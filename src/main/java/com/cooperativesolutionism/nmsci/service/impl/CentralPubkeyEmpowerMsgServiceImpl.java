@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
@@ -35,6 +36,9 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+
+    @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
@@ -58,9 +62,13 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
         }
 
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyEmpowerMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {

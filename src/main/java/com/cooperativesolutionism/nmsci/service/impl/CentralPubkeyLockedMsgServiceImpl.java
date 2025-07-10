@@ -52,7 +52,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
         byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyLockedMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {
@@ -116,6 +116,8 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
         }
 
         msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
+
+        // TODO: 中心公钥冻结时，冻结信息只会被签署一次，冻结信息一旦确认将进行原中心秘钥最后一次区块生成
 
         return centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
     }
