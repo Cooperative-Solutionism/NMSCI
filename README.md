@@ -1,2 +1,4 @@
-消费意愿数值化衡量系统  
-Numerical Measurement System for Consumption Intention  
+# 消费意愿数值化衡量系统
+> 在未来，除了商品的价格和质量之外，商品生产者的消费意愿将成为人们购买商品需要着重考虑的因素之一  
+
+> 参考链接：[【自证的制度】金钱的运转办法：经济合作解主义](https://www.bilibili.com/video/BV13Z421p79c)  

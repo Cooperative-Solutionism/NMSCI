@@ -72,6 +72,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
 
+        // TODO: 需要验证该流转节点是否已授权过【现中心公钥】，而不是存在就行
         // 验证流转节点公钥是否已授权
         if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey())) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
