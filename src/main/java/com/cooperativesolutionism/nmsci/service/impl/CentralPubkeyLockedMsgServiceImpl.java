@@ -123,7 +123,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
             throw new RuntimeException(e);
         }
 
-        CentralPubkeyLockedMsg centralPubkeyLockedMsgInDb = centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
+        centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
         msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
 
         // 冻结信息一旦确认将进行原中心秘钥最后一次区块生成过程，将所有未装块的信息装块

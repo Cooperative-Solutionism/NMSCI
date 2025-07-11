@@ -153,6 +153,7 @@ public class CalcSourceCodeZipHash {
             String[] excludedDirs = new String[]{
                     "\\.git\\",
                     "\\.idea\\",
+                    "\\logs\\",
                     "\\temp\\",
                     "\\target\\"
             };
