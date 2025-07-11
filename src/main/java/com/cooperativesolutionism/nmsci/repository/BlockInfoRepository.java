@@ -7,4 +7,5 @@ public interface BlockInfoRepository extends JpaRepository<BlockInfo, byte[]> {
 
     BlockInfo findTopByOrderByHeightDesc();
 
+    BlockInfo findByHeight(Long height);
 }

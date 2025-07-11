@@ -20,7 +20,7 @@ public class GenerateBlockTask {
     private BlockChainService blockChainService;
 
     /**
-     * 应用启动后立即执行，然后每10分钟执行一次
+     * 定时任务：应用启动后立即开始生成区块，之后每10分钟开始生成区块
      */
     @Scheduled(initialDelay = 0, fixedDelay = 10 * 60 * 1000)
     public void execute() {

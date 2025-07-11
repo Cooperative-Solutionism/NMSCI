@@ -30,6 +30,7 @@ public class ReturningFlowRateController {
         returningFlowRateRequestDTO.setEndTime(endTime);
         returningFlowRateRequestDTO.setCurrencyType(currencyType);
 
+        // TODO： 把总滞留指数接口分开，算力消耗大
         ReturningFlowRateResponseDTO responseDTO = consumeChainService.getReturningFlowRate(returningFlowRateRequestDTO);
         return ResponseResult.success(responseDTO);
     }
