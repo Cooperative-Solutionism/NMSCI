@@ -9,4 +9,6 @@ public interface MsgAbstractRepository extends JpaRepository<MsgAbstract, byte[]
 
     Page<MsgAbstract> findByIsInBlockFalseOrderByConfirmTimestampAsc(Pageable pageable);
 
+    long countByIsInBlockFalseOrderByConfirmTimestampAsc();
+
 }

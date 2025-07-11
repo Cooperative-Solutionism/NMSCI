@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
+import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
@@ -13,6 +14,8 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -23,6 +26,8 @@ import java.util.Arrays;
 @Service
 @Validated
 public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsgService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CentralPubkeyLockedMsgServiceImpl.class);
 
     @Value("${central-key-pair.pubkey}")
     private String centralPubkeyBase64;
@@ -36,8 +41,11 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
     @Resource
     private MsgAbstractService msgAbstractService;
 
+    @Resource
+    private BlockChainService blockChainService;
+
     @Override
-    public CentralPubkeyLockedMsg saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
+    public void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
         if (centralPubkeyLockedMsg.getMsgType() != MsgTypeEnum.CentralPubkeyLockedMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyLockedMsg.getValue());
         }
@@ -115,11 +123,15 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
             throw new RuntimeException(e);
         }
 
+        CentralPubkeyLockedMsg centralPubkeyLockedMsgInDb = centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
         msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
 
-        // TODO: 冻结信息一旦确认将进行原中心秘钥最后一次区块生成
-        //   阻塞前的数据需要全部装块
+        // 冻结信息一旦确认将进行原中心秘钥最后一次区块生成过程，将所有未装块的信息装块
+        blockChainService.generateBlockUntilNoNotInBlockMsgs();
 
-        return centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
+        logger.warn("中心公钥冻结成功，所有未装块的信息装块成功，程序终止");
+
+        // 所有未装块的信息装块后终止程序
+        System.exit(0);
     }
 }

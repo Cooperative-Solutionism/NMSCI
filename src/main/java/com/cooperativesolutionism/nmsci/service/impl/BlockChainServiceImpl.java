@@ -343,6 +343,21 @@ public class BlockChainServiceImpl implements BlockChainService {
     }
 
     @Override
+    @Transactional
+    public void generateBlockUntilNoNotInBlockMsgs() {
+        while (true) {
+            long notInBlockMsgAbstractCount = msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc();
+            if (notInBlockMsgAbstractCount == 0) {
+                break;
+            }
+
+            if (notInBlockMsgAbstractCount > 0) {
+                generateBlock();
+            }
+        }
+    }
+
+    @Override
     public BlockInfo getLastBlock() {
         return blockInfoRepository.findTopByOrderByHeightDesc();
     }

@@ -10,6 +10,11 @@ public interface BlockChainService {
     void generateBlock();
 
     /**
+     * 不断生成区块，直到没有未打包的消息
+     */
+    void generateBlockUntilNoNotInBlockMsgs();
+
+    /**
      * 获取最新的区块信息
      */
     BlockInfo getLastBlock();

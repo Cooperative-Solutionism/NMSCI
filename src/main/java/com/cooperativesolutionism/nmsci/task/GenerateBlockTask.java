@@ -16,6 +16,12 @@ public class GenerateBlockTask {
 
     private static final Logger logger = LoggerFactory.getLogger(GenerateBlockTask.class);
 
+    /**
+     * 是否为第一次运行
+     * 如果是第一次运行，则需要将所有未装块的消息打包进区块
+     */
+    private boolean isFirstTimeRun = true;
+
     @Resource
     private BlockChainService blockChainService;
 
@@ -30,8 +36,17 @@ public class GenerateBlockTask {
         long startTime = DateUtil.getCurrentMicros();
         logger.info("开始生成区块: {}", startTime);
 
-        // 生成区块
-        blockChainService.generateBlock();
+        // 如果是第一次运行，则需要将所有未装块的消息打包进区块
+        if (isFirstTimeRun) {
+            blockChainService.generateBlockUntilNoNotInBlockMsgs();
+            isFirstTimeRun = false;
+            logger.info("第一次运行，已将所有未装块的消息打包进区块");
+        }
+
+        // 如果不是第一次运行，则直接生成一个新的区块
+        if (!isFirstTimeRun) {
+            blockChainService.generateBlock();
+        }
 
         // 计算任务执行时间
         long endTime = DateUtil.getCurrentMicros();
