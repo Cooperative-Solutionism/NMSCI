@@ -12,4 +12,5 @@ public interface ConsumeChainService {
 
     ReturningFlowRateResponseDTO getReturningFlowRate(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
 
+    ReturningFlowRateResponseDTO getReturningFlowRateByTarget(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
 }

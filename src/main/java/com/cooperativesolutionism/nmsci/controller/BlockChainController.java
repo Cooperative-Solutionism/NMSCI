@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -21,12 +22,12 @@ public class BlockChainController {
     }
 
     @GetMapping("/height/{height}")
-    public ResponseResult<BlockInfo> getBlockByHeight(long height) {
+    public ResponseResult<BlockInfo> getBlockByHeight(@PathVariable long height) {
         return ResponseResult.success(blockChainService.getBlockByHeight(height));
     }
 
     @GetMapping("/hash/{hash}")
-    public ResponseResult<BlockInfo> getBlockByHash(String hash) {
+    public ResponseResult<BlockInfo> getBlockByHash(@PathVariable String hash) {
         return ResponseResult.success(blockChainService.getBlockByHash(hash));
     }
 

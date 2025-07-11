@@ -157,13 +157,6 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 returningFlowRateRequestDTO.getEndTime()
         );
 
-        List<ConsumeChainEdge> consumeChainEdgesByOnlyTarget = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
-                target.getId(),
-                returningFlowRateRequestDTO.getCurrencyType(),
-                returningFlowRateRequestDTO.getStartTime(),
-                returningFlowRateRequestDTO.getEndTime()
-        );
-
         double loopedAmount = 0.0;
         double unloopedAmount = 0.0;
 
@@ -175,6 +168,31 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             }
         }
 
+        double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 100.0 : loopedAmount / (loopedAmount + unloopedAmount) * 100.0;
+
+        return new ReturningFlowRateResponseDTO(
+                returningFlowRate,
+                loopedAmount,
+                unloopedAmount,
+                returningFlowRateRequestDTO.getCurrencyType()
+        );
+    }
+
+    @Override
+    public ReturningFlowRateResponseDTO getReturningFlowRateByTarget(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+        }
+
+        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
+
+        List<ConsumeChainEdge> consumeChainEdgesByOnlyTarget = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
+                target.getId(),
+                returningFlowRateRequestDTO.getCurrencyType(),
+                returningFlowRateRequestDTO.getStartTime(),
+                returningFlowRateRequestDTO.getEndTime()
+        );
+
         double targetTotalUnloopedAmount = 0.0;
         for (ConsumeChainEdge edge : consumeChainEdgesByOnlyTarget) {
             if (!edge.getIsLoop()) {
@@ -182,12 +200,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             }
         }
 
-        double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 100.0 : loopedAmount / (loopedAmount + unloopedAmount) * 100.0;
-
         return new ReturningFlowRateResponseDTO(
-                returningFlowRate,
-                loopedAmount,
-                unloopedAmount,
                 targetTotalUnloopedAmount,
                 returningFlowRateRequestDTO.getCurrencyType()
         );
