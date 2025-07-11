@@ -117,7 +117,8 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
         msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
 
-        // TODO: 中心公钥冻结时，冻结信息只会被签署一次，冻结信息一旦确认将进行原中心秘钥最后一次区块生成
+        // TODO: 冻结信息一旦确认将进行原中心秘钥最后一次区块生成
+        //   阻塞前的数据需要全部装块
 
         return centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
     }

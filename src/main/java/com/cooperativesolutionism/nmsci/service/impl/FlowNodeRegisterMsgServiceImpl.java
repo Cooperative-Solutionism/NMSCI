@@ -1,7 +1,9 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
@@ -16,20 +18,13 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.math.BigInteger;
-import java.util.Arrays;
 
 @Service
 @Validated
 public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgService {
 
-    @Value("${central-key-pair.pubkey}")
-    private String centralPubkeyBase64;
-
-    @Value("${central-key-pair.prikey}")
-    private String centralPrikeyBase64;
-
-    @Value("${register-difficulty-target-nbits}")
-    private int registerDifficultyTargetNbits;
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -47,6 +42,8 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
             throw new IllegalArgumentException("该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在");
         }
 
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int registerDifficultyTargetNbits = newestBlockInfo.getRegisterDifficultyTarget();
         if (!flowNodeRegisterMsg.getRegisterDifficultyTarget().equals(registerDifficultyTargetNbits)) {
             throw new IllegalArgumentException("注册难度目标与前区块中的注册难度目标不一致");
         }

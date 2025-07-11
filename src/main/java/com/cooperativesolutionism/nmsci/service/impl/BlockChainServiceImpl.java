@@ -88,7 +88,9 @@ public class BlockChainServiceImpl implements BlockChainService {
 
     @Override
     @Transactional
-    // TODO：需要增加不得加任何信息的区块生成功能
+    // TODO：两种区块生成模式
+    //   1. 生成空区块（不包含任何信息）
+    //   2. 默认生成包含所有未确认信息的区块（包含所有待入块信息）
     public void generateBlock() {
         // 【版本号4字节(0x1)】+【区块高度8字节】+【相应版本全代码压缩包(包含协议文本)sha256hash32字节】
         // +【前区块头的dblsha256hash32字节】+【所有信息默克尔根32字节】+【信息内最大时间戳8字节】

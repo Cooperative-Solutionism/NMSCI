@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.*;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
@@ -22,14 +23,15 @@ import java.util.Arrays;
 @Service
 @Validated
 public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgService {
+
     @Value("${central-key-pair.pubkey}")
     private String centralPubkeyBase64;
 
     @Value("${central-key-pair.prikey}")
     private String centralPrikeyBase64;
 
-    @Value("${transaction-difficulty-target-nbits}")
-    private int transactionDifficultyTargetNbits;
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
@@ -63,6 +65,8 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
         if (!transactionRecordMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }

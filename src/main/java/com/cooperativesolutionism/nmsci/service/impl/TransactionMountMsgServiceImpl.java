@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.*;
@@ -30,8 +31,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     @Value("${central-key-pair.prikey}")
     private String centralPrikeyBase64;
 
-    @Value("${transaction-difficulty-target-nbits}")
-    private int transactionDifficultyTargetNbits;
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
@@ -76,6 +77,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
         }
 
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
         if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }
