@@ -9,4 +9,6 @@ public interface CentralPubkeyLockedMsgRepository extends JpaRepository<CentralP
 
     boolean existsByCentralPubkey(byte[] centralPubkey);
 
+    CentralPubkeyLockedMsg findByCentralPubkey(byte[] centralPubkey);
+
 }

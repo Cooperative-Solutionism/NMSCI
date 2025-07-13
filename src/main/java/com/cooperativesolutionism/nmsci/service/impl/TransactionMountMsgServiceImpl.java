@@ -21,6 +21,8 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -229,5 +231,58 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         consumeChainService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
 
         return transactionMountMsgInDb;
+    }
+
+    @Override
+    public TransactionMountMsg getTransactionMountMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("交易挂载信息id不能为空");
+        }
+
+        return transactionMountMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("交易挂载信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public TransactionMountMsg getTransactionMountMsgByMountedTransactionRecordId(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("挂载的交易记录信息id不能为空");
+        }
+
+        return transactionMountMsgRepository.findByMountedTransactionRecordId(id);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey
+    ) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
     }
 }

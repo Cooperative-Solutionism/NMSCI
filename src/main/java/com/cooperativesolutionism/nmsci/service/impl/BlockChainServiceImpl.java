@@ -280,7 +280,7 @@ public class BlockChainServiceImpl implements BlockChainService {
         );
 
         // 将block字节数据保存至.dat文件
-        if (datFilepathStr == null || datFilepathStr.isEmpty()) {
+        if (datFilepathStr.isEmpty()) {
             Path path = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", 0) + ".dat");
             datFilepathStr = path.toString();
         }

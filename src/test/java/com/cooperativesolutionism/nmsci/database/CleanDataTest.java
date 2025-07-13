@@ -9,7 +9,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 @Disabled
 @SpringBootTest(classes = NmsciApplication.class)
-public class CleanData {
+public class CleanDataTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

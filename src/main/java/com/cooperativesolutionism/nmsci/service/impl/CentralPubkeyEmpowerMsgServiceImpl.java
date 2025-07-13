@@ -21,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -138,5 +139,28 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         msgAbstractService.saveMsgAbstract(centralPubkeyEmpowerMsg);
 
         return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
+    }
+
+    @Override
+    public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("中心公钥公证信息id不能为空");
+        }
+
+        return centralPubkeyEmpowerMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("中心公钥公证信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
+            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未授权");
+        }
+
+        return centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
     }
 }

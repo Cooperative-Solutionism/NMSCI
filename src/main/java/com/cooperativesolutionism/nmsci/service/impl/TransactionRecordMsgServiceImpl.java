@@ -19,6 +19,8 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -211,4 +213,49 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
 
         return transactionRecordMsgRepository.save(transactionRecordMsg);
     }
+
+    @Override
+    public TransactionRecordMsg getTransactionRecordMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("交易记录信息id不能为空");
+        }
+
+        return transactionRecordMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("交易记录信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey
+    ) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
+    }
+
 }

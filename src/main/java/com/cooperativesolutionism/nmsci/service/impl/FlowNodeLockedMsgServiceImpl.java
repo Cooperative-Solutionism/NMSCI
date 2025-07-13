@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -153,5 +154,24 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
         msgAbstractService.saveMsgAbstract(flowNodeLockedMsg);
 
         return flowNodeLockedMsgRepository.save(flowNodeLockedMsg);
+    }
+
+    @Override
+    public FlowNodeLockedMsg getFlowNodeLockedMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("流转节点冻结消息id不能为空");
+        }
+
+        return flowNodeLockedMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点公钥冻结信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public FlowNodeLockedMsg getFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        return flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey);
     }
 }

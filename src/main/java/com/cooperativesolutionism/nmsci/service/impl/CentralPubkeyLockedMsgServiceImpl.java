@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -133,5 +134,24 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
         // 所有未装块的信息装块后终止程序
         System.exit(0);
+    }
+
+    @Override
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("中心公钥冻结信息id不能为空");
+        }
+
+        return centralPubkeyLockedMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("中心公钥冻结信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
+        if (centralPubkey == null || centralPubkey.length != 33) {
+            throw new IllegalArgumentException("中心公钥不能为空或长度不为33字节");
+        }
+
+        return centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey);
     }
 }

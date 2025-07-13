@@ -17,6 +17,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -110,5 +111,28 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         msgAbstractService.saveMsgAbstract(flowNodeRegisterMsg);
 
         return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
+    }
+
+    @Override
+    public FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("流转节点注册信息id不能为空");
+        }
+
+        return flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点注册信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
+            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
+        }
+
+        return flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
     }
 }
