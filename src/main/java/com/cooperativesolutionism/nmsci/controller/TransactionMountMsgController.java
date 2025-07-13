@@ -38,13 +38,13 @@ public class TransactionMountMsgController {
 
     @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
     public ResponseResult<List<TransactionMountMsg>> getTransactionMountMsgByConsumeNodePubkey(@PathVariable String consumeNodePubkey) {
-        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkey(ByteArrayUtil.base64ToBytes(consumeNodePubkey));
+        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkey(ByteArrayUtil.hexToBytes(consumeNodePubkey));
         return ResponseResult.success(transactionMountMsgs);
     }
 
     @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
     public ResponseResult<List<TransactionMountMsg>> getTransactionMountMsgByFlowNodePubkey(@PathVariable String flowNodePubkey) {
-        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByFlowNodePubkey(ByteArrayUtil.base64ToBytes(flowNodePubkey));
+        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
         return ResponseResult.success(transactionMountMsgs);
     }
 
@@ -54,8 +54,8 @@ public class TransactionMountMsgController {
             @PathVariable String flowNodePubkey
     ) {
         List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.base64ToBytes(consumeNodePubkey),
-                ByteArrayUtil.base64ToBytes(flowNodePubkey)
+                ByteArrayUtil.hexToBytes(consumeNodePubkey),
+                ByteArrayUtil.hexToBytes(flowNodePubkey)
         );
         return ResponseResult.success(transactionMountMsgs);
     }

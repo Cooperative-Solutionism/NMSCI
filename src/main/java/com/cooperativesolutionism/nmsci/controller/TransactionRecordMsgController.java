@@ -33,13 +33,13 @@ public class TransactionRecordMsgController {
 
     @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
     public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkey(@PathVariable("consumeNodePubkey") String consumeNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(ByteArrayUtil.base64ToBytes(consumeNodePubkey));
+        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(ByteArrayUtil.hexToBytes(consumeNodePubkey));
         return ResponseResult.success(transactionRecordMsgs);
     }
 
     @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
     public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(ByteArrayUtil.base64ToBytes(flowNodePubkey));
+        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
         return ResponseResult.success(transactionRecordMsgs);
     }
 

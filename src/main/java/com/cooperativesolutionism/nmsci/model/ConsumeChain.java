@@ -1,7 +1,5 @@
 package com.cooperativesolutionism.nmsci.model;
 
-import com.cooperativesolutionism.nmsci.serializer.HexSerializer;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
