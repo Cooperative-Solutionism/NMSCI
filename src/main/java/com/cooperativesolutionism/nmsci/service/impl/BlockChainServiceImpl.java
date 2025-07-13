@@ -115,7 +115,7 @@ public class BlockChainServiceImpl implements BlockChainService {
         if (newestBlockInfo != null) {
             height = newestBlockInfo.getHeight() + 1;
             previousBlockHash = newestBlockInfo.getId();
-            datFilepathStr = newestBlockInfo.getDatFilepath();
+            datFilepathStr = Paths.get(fileRootDir, fileDatDir, newestBlockInfo.getDatFilepath()).toString();
         }
 
         blockInfo.setHeight(height);
@@ -310,6 +310,7 @@ public class BlockChainServiceImpl implements BlockChainService {
             if (!Files.exists(datFilepath)) {
                 Files.createFile(datFilepath);
             }
+
             byte[] existingData = Files.readAllBytes(datFilepath);
             block = ArrayUtils.addAll(existingData, block);
 

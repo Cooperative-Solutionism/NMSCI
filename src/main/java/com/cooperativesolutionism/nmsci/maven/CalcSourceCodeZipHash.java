@@ -155,7 +155,9 @@ public class CalcSourceCodeZipHash {
                     "\\.idea\\",
                     "\\logs\\",
                     "\\temp\\",
-                    "\\target\\"
+                    "\\target\\",
+                    "\\static\\source_code_v",
+                    ".iml"
             };
             zipDirectory(sourceDir, zipFilePath, excludedDirs);
             System.out.println("The file has been compressed to: " + zipFilePath);

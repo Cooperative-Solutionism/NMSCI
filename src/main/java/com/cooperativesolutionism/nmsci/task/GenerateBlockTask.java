@@ -36,16 +36,14 @@ public class GenerateBlockTask {
         long startTime = DateUtil.getCurrentMicros();
         logger.info("开始生成区块: {}", startTime);
 
-        // 如果是第一次运行，则需要将所有未装块的消息打包进区块
+        // 无论是否有未装块的消息，都需要先生成一个区块
+        blockChainService.generateBlock();
+
+        // 如果是第一次运行，则需要将所有未装块的消息都进行装块
         if (isFirstTimeRun) {
             blockChainService.generateBlockUntilNoNotInBlockMsgs();
             isFirstTimeRun = false;
-            logger.info("第一次运行，已将所有未装块的消息打包进区块");
-        }
-
-        // 如果不是第一次运行，则直接生成一个新的区块
-        if (!isFirstTimeRun) {
-            blockChainService.generateBlock();
+            logger.info("第一次运行，已将所有未装块的消息都进行装块");
         }
 
         // 计算任务执行时间

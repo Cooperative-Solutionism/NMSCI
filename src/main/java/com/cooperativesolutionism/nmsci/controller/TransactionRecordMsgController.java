@@ -23,4 +23,6 @@ public class TransactionRecordMsgController {
         TransactionRecordMsg transactionRecordMsg = TransactionRecordMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(transactionRecordMsgService.saveTransactionRecordMsg(transactionRecordMsg));
     }
+
+    // todo: 用户获取交易记录消息
 }
