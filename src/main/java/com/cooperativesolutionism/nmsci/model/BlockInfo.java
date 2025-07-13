@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import com.cooperativesolutionism.nmsci.serializer.HexSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -14,6 +16,7 @@ public class BlockInfo {
     @Id
     @Comment("本区块头的dblsha256hash")
     @Column(name = "id", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] id;
 
     @ColumnDefault("1")
@@ -26,14 +29,17 @@ public class BlockInfo {
 
     @Comment("相应版本全代码压缩包(包含协议内容)的sha256hash")
     @Column(name = "source_code_zip_hash", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] sourceCodeZipHash;
 
     @Comment("前区块头的dblsha256hash")
     @Column(name = "previous_block_hash", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] previousBlockHash;
 
     @Comment("所有信息的默克尔根")
     @Column(name = "merkle_root", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] merkleRoot;
 
     @Comment("信息内的最大时间戳，单位微秒，时区UTC+0")
@@ -50,6 +56,7 @@ public class BlockInfo {
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] centralPubkey;
 
     @Comment("区块固定时间，单位微秒，时区UTC+0")
@@ -58,6 +65,7 @@ public class BlockInfo {
 
     @Comment("中心签名")
     @Column(name = "central_signature", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] centralSignature;
 
     @Comment("保存区块的dat文件的文件路径")
@@ -70,6 +78,7 @@ public class BlockInfo {
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
+    @JsonSerialize(using = HexSerializer.class)
     private byte[] rawBytes;
 
     public byte[] getRawBytes() {
