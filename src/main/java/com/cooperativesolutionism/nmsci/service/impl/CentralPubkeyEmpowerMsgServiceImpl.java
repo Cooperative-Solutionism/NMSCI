@@ -1,7 +1,9 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
@@ -19,6 +21,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -34,6 +37,9 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+
+    @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
@@ -41,8 +47,8 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
 
     @Override
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
-        if (centralPubkeyEmpowerMsg.getMsgType() != 0) {
-            throw new IllegalArgumentException("信息类型错误，必须为0");
+        if (centralPubkeyEmpowerMsg.getMsgType() != MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue());
         }
 
         if (centralPubkeyEmpowerMsgRepository.existsById(centralPubkeyEmpowerMsg.getId())) {
@@ -57,9 +63,13 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
         }
 
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyEmpowerMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
         if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {
@@ -129,5 +139,28 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
         msgAbstractService.saveMsgAbstract(centralPubkeyEmpowerMsg);
 
         return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
+    }
+
+    @Override
+    public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("中心公钥公证信息id不能为空");
+        }
+
+        return centralPubkeyEmpowerMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("中心公钥公证信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
+            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未授权");
+        }
+
+        return centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
     }
 }

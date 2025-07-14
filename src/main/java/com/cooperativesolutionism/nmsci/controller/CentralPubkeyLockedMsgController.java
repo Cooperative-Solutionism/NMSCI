@@ -3,13 +3,12 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
-import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/central-pubkey-locked-msg")
@@ -19,8 +18,18 @@ public class CentralPubkeyLockedMsgController {
     private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
 
     @PostMapping("/send")
-    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
+    public void saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
         CentralPubkeyLockedMsg centralPubkeyLockedMsg = CentralPubkeyLockedMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg));
+        centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+    }
+
+    @GetMapping("/id/{id}")
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(@PathVariable String id) {
+        return centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id));
+    }
+
+    @GetMapping("/central-pubkey/{centralPubkey}")
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
+        return centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey));
     }
 }

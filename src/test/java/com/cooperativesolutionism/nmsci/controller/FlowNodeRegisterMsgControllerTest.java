@@ -20,7 +20,6 @@ import java.math.BigInteger;
 import java.security.Security;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -33,9 +32,6 @@ class FlowNodeRegisterMsgControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Value("${central-key-pair.pubkey}")
-    private String centralPubkeyBase64;
-
     @Value("${register-difficulty-target-nbits}")
     private int registerDifficultyTargetNbits;
 
@@ -47,12 +43,11 @@ class FlowNodeRegisterMsgControllerTest {
         byte[] testData;
         byte[] verfyData;
 
-        short msgType = 2;
+        short msgType = 0;
         UUID uuid = UUID.randomUUID();
         BigInteger registerDifficultyTarget = PoWUtil.calculateTargetFromNBits(ByteArrayUtil.intToBytes(registerDifficultyTargetNbits));
         byte[] flowNodePubkey = ByteArrayUtil.base64ToBytes("AjQ2H9M/OTpDs0caRjSe+cR5Ru4sUQSDP0Ime9PTwIGI");
         byte[] flowNodePrikey = ByteArrayUtil.base64ToBytes("qZaEg1hS+yR89ky9uNN2acpk0C7F9KeUpEBitso27Mw=");
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
 
         verfyData = ArrayUtils.addAll(ByteArrayUtil.shortToBytes(msgType),
                 ByteArrayUtil.uuidToBytes(uuid)
@@ -65,11 +60,8 @@ class FlowNodeRegisterMsgControllerTest {
             int nonce = (int) (Math.random() * Integer.MAX_VALUE);
             mineData = ArrayUtils.addAll(verfyData, ByteArrayUtil.intToBytes(nonce));
             mineData = ArrayUtils.addAll(mineData, flowNodePubkey);
-            mineData = ArrayUtils.addAll(mineData, centralPubkey);
             BigInteger mineDataHash = new BigInteger(1, Sha256Util.doubleDigest(mineData));
             if (mineDataHash.compareTo(registerDifficultyTarget) < 0) {
-//                System.out.println("registerDifficultyTarget = " + registerDifficultyTarget);
-//                System.out.println("mineDataHash = " + mineDataHash);
                 System.out.println("registerDifficultyTargetHex = " + String.format("%064x", registerDifficultyTarget));
                 System.out.println("mineDataHashHex = " + ByteArrayUtil.bytesToHex(Sha256Util.doubleDigest(mineData)));
                 System.out.println("nonce = " + nonce);

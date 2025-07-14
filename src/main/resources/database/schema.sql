@@ -2,7 +2,7 @@ create table central_pubkey_empower_msgs
 (
     id                  uuid               not null
         primary key,
-    msg_type            smallint default 0 not null,
+    msg_type            smallint default 1 not null,
     flow_node_pubkey    bytea              not null,
     central_pubkey      bytea              not null,
     flow_node_signature bytea              not null,
@@ -37,7 +37,7 @@ create table central_pubkey_locked_msgs
 (
     id                    uuid               not null
         primary key,
-    msg_type              smallint default 1 not null,
+    msg_type              smallint default 2 not null,
     central_pubkey        bytea              not null,
     central_signature_pre bytea              not null,
     confirm_timestamp     bigint             not null,
@@ -69,14 +69,11 @@ create table flow_node_register_msgs
 (
     id                         uuid               not null
         primary key,
-    msg_type                   smallint default 2 not null,
+    msg_type                   smallint default 0 not null,
     register_difficulty_target integer            not null,
     nonce                      integer            not null,
     flow_node_pubkey           bytea              not null,
-    central_pubkey             bytea              not null,
     flow_node_signature        bytea              not null,
-    confirm_timestamp          bigint             not null,
-    central_signature          bytea              not null,
     raw_bytes                  bytea              not null,
     txid                       bytea              not null
 );
@@ -91,13 +88,7 @@ comment on column flow_node_register_msgs.nonce is '随机数';
 
 comment on column flow_node_register_msgs.flow_node_pubkey is '流转节点公钥';
 
-comment on column flow_node_register_msgs.central_pubkey is '中心公钥';
-
 comment on column flow_node_register_msgs.flow_node_signature is '流转节点签名';
-
-comment on column flow_node_register_msgs.confirm_timestamp is '信息确认时间，单位微秒，时区UTC+0';
-
-comment on column flow_node_register_msgs.central_signature is '中心签名';
 
 comment on column flow_node_register_msgs.raw_bytes is '原始字节格式';
 

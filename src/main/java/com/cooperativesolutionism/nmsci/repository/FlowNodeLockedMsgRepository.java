@@ -9,4 +9,5 @@ public interface FlowNodeLockedMsgRepository extends JpaRepository<FlowNodeLocke
 
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
 
+    FlowNodeLockedMsg findByFlowNodePubkey(byte[] flowNodePubkey);
 }

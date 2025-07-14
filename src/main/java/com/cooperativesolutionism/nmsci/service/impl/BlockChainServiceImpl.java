@@ -88,15 +88,14 @@ public class BlockChainServiceImpl implements BlockChainService {
 
     @Override
     @Transactional
-    // TODO：需要增加不得加任何信息的区块生成功能
     public void generateBlock() {
         // 【版本号4字节(0x1)】+【区块高度8字节】+【相应版本全代码压缩包(包含协议文本)sha256hash32字节】
         // +【前区块头的dblsha256hash32字节】+【所有信息默克尔根32字节】+【信息内最大时间戳8字节】
         // +【流转节点注册难度目标4字节】+【消费节点交易难度目标4字节】
         // +【中心公钥32字节】+【固定区块时间戳8字节】+【中心公钥对前述所有信息签名64字节】
+        // +【流转节点注册信息数量8字节】+【流转节点注册信息123字节】*n
         // +【中心公钥公证信息数量8字节】+【中心公钥公证信息220字节】*n
         // +【中心公钥冻结信息数量8字节】+【中心公钥冻结信息187字节】*n
-        // +【流转节点注册信息数量8字节】+【流转节点注册信息228字节】*n
         // +【流转节点冻结信息数量8字节】+【流转节点冻结信息220字节】*n
         // +【交易记录信息数量8字节】+【交易记录信息335字节】*n
         // +【交易挂载信息数量8字节】+【交易挂载信息341字节】*n
@@ -116,7 +115,7 @@ public class BlockChainServiceImpl implements BlockChainService {
         if (newestBlockInfo != null) {
             height = newestBlockInfo.getHeight() + 1;
             previousBlockHash = newestBlockInfo.getId();
-            datFilepathStr = newestBlockInfo.getDatFilepath();
+            datFilepathStr = Paths.get(fileRootDir, fileDatDir, newestBlockInfo.getDatFilepath()).toString();
         }
 
         blockInfo.setHeight(height);
@@ -180,12 +179,12 @@ public class BlockChainServiceImpl implements BlockChainService {
                     msgAbstract.setIsInBlock(true);
                 }
 
-                if (msgType.equals(MsgTypeEnum.CentralPubkeyEmpowerMsg)) {
+                if (msgType.equals(MsgTypeEnum.FlowNodeRegisterMsg)) {
+                    allMsgs.addAll(flowNodeRegisterMsgRepository.findAllById(msgIds));
+                } else if (msgType.equals(MsgTypeEnum.CentralPubkeyEmpowerMsg)) {
                     allMsgs.addAll(centralPubkeyEmpowerMsgRepository.findAllById(msgIds));
                 } else if (msgType.equals(MsgTypeEnum.CentralPubkeyLockedMsg)) {
                     allMsgs.addAll(centralPubkeyLockedMsgRepository.findAllById(msgIds));
-                } else if (msgType.equals(MsgTypeEnum.FlowNodeRegisterMsg)) {
-                    allMsgs.addAll(flowNodeRegisterMsgRepository.findAllById(msgIds));
                 } else if (msgType.equals(MsgTypeEnum.FlowNodeLockedMsg)) {
                     allMsgs.addAll(flowNodeLockedMsgRepository.findAllById(msgIds));
                 } else if (msgType.equals(MsgTypeEnum.TransactionRecordMsg)) {
@@ -281,7 +280,7 @@ public class BlockChainServiceImpl implements BlockChainService {
         );
 
         // 将block字节数据保存至.dat文件
-        if (datFilepathStr == null || datFilepathStr.isEmpty()) {
+        if (datFilepathStr.isEmpty()) {
             Path path = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", 0) + ".dat");
             datFilepathStr = path.toString();
         }
@@ -305,26 +304,26 @@ public class BlockChainServiceImpl implements BlockChainService {
                 String indexStr = lastPart.replace("blk", "").replace(".dat", "");
                 int index = Integer.parseInt(indexStr);
                 datFilepath = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", index + 1) + ".dat");
-                datFilepathStr = datFilepath.toString();
             }
 
             // 追加写入.dat文件
             if (!Files.exists(datFilepath)) {
                 Files.createFile(datFilepath);
             }
+
             byte[] existingData = Files.readAllBytes(datFilepath);
             block = ArrayUtils.addAll(existingData, block);
 
             // 写入.dat文件
             Files.write(datFilepath, block);
 
-            blockInfo.setDatFilepath(datFilepathStr);
+            blockInfo.setDatFilepath(datFilepath.getFileName().toString());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
 
         try {
-            Path sourceCodePath = Paths.get(fileRootDir, fileSourceCodeDir, "source_code_v" + blockVersion + ".zip");
+            Path sourceCodePath = Paths.get(rootDir, fileRootDir, fileSourceCodeDir, "source_code_v" + blockVersion + ".zip");
             // 检测文件是否存在
             if (!Files.exists(sourceCodePath)) {
                 // 不存在则读取static文件夹中的source_code文件内容，复制到source_code文件夹
@@ -336,11 +335,44 @@ public class BlockChainServiceImpl implements BlockChainService {
                 Files.copy(classPathResource.getFile().toPath(), sourceCodePath);
             }
 
-            blockInfo.setSourceCodeZipFilepath(sourceCodePath.toString());
+            blockInfo.setSourceCodeZipFilepath(sourceCodePath.getFileName().toString());
         } catch (IOException e) {
             throw new RuntimeException("Failed to copy source code zip file", e);
         }
 
         blockInfoRepository.save(blockInfo);
     }
+
+    @Override
+    @Transactional
+    public void generateBlockUntilNoNotInBlockMsgs() {
+        while (true) {
+            long notInBlockMsgAbstractCount = msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc();
+            if (notInBlockMsgAbstractCount == 0) {
+                break;
+            }
+
+            if (notInBlockMsgAbstractCount > 0) {
+                generateBlock();
+            }
+        }
+    }
+
+    @Override
+    public BlockInfo getLastBlock() {
+        return blockInfoRepository.findTopByOrderByHeightDesc();
+    }
+
+    @Override
+    public BlockInfo getBlockByHeight(long height) {
+        return blockInfoRepository.findByHeight(height);
+    }
+
+    @Override
+    public BlockInfo getBlockByHash(String hash) {
+        return blockInfoRepository.findById(ByteArrayUtil.hexToBytes(hash)).orElseThrow(
+                () -> new IllegalArgumentException("该区块不存在: " + hash)
+        );
+    }
+
 }

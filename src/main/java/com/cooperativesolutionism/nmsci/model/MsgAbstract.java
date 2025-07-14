@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -16,6 +18,7 @@ public class MsgAbstract {
     @Id
     @Comment("msg的msg_type与id的拼接")
     @Column(name = "id", nullable = false)
+    @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] id;
 
     @Comment("信息类型")

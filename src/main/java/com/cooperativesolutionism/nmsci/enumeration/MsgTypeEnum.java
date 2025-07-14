@@ -1,9 +1,9 @@
 package com.cooperativesolutionism.nmsci.enumeration;
 
 public enum MsgTypeEnum {
-    CentralPubkeyEmpowerMsg((short) 0x0000, 220, "中心公钥公证信息"),
-    CentralPubkeyLockedMsg((short) 0x0001, 187, "中心公钥冻结信息"),
-    FlowNodeRegisterMsg((short) 0x0002, 228, "流转节点注册信息"),
+    FlowNodeRegisterMsg((short) 0x0000, 123, "流转节点注册信息"),
+    CentralPubkeyEmpowerMsg((short) 0x0001, 220, "中心公钥公证信息"),
+    CentralPubkeyLockedMsg((short) 0x0002, 187, "中心公钥冻结信息"),
     FlowNodeLockedMsg((short) 0x0003, 220, "流转节点冻结信息"),
     TransactionRecordMsg((short) 0x0004, 335, "交易记录信息"),
     TransactionMountMsg((short) 0x0005, 341, "交易挂载信息");

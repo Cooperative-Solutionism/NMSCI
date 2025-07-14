@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.*;
@@ -19,6 +21,8 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Validated
@@ -29,11 +33,14 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     @Value("${central-key-pair.prikey}")
     private String centralPrikeyBase64;
 
-    @Value("${transaction-difficulty-target-nbits}")
-    private int transactionDifficultyTargetNbits;
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+
+    @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -56,8 +63,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     @Override
     @Transactional
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
-        if (transactionMountMsg.getMsgType() != 5) {
-            throw new IllegalArgumentException("信息类型错误，必须为5");
+        if (transactionMountMsg.getMsgType() != MsgTypeEnum.TransactionMountMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionMountMsg.getValue());
         }
 
         if (transactionMountMsgRepository.existsById(transactionMountMsg.getId())) {
@@ -72,6 +79,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
         }
 
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
         if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }
@@ -92,7 +101,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         }
 
         // 验证流转节点公钥是否已授权
-        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(transactionMountMsg.getFlowNodePubkey())) {
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        long centralPubkeyEmpowerMsgCount = centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                transactionMountMsg.getFlowNodePubkey(),
+                centralPubkey
+        );
+        if (centralPubkeyEmpowerMsgCount == 0) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
         }
 
@@ -101,9 +115,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(transactionMountMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(transactionMountMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         if (!Arrays.equals(transactionMountMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {
@@ -214,5 +231,58 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         consumeChainService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
 
         return transactionMountMsgInDb;
+    }
+
+    @Override
+    public TransactionMountMsg getTransactionMountMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("交易挂载信息id不能为空");
+        }
+
+        return transactionMountMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("交易挂载信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public TransactionMountMsg getTransactionMountMsgByMountedTransactionRecordId(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("挂载的交易记录信息id不能为空");
+        }
+
+        return transactionMountMsgRepository.findByMountedTransactionRecordId(id);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+    }
+
+    @Override
+    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey
+    ) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
     }
 }

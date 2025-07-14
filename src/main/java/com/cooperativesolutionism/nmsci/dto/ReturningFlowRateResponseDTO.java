@@ -27,10 +27,14 @@ public class ReturningFlowRateResponseDTO {
      */
     private short currencyType;
 
-    public ReturningFlowRateResponseDTO(double returningFlowRate, double loopedAmount, double unloopedAmount, double targetTotalUnloopedAmount, short currencyType) {
+    public ReturningFlowRateResponseDTO(double returningFlowRate, double loopedAmount, double unloopedAmount, short currencyType) {
         this.returningFlowRate = returningFlowRate;
         this.loopedAmount = loopedAmount;
         this.unloopedAmount = unloopedAmount;
+        this.currencyType = currencyType;
+    }
+
+    public ReturningFlowRateResponseDTO(double targetTotalUnloopedAmount, short currencyType) {
         this.targetTotalUnloopedAmount = targetTotalUnloopedAmount;
         this.currencyType = currencyType;
     }

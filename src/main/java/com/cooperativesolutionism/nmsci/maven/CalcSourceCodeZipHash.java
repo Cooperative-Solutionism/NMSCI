@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.maven;
 
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
@@ -85,21 +87,7 @@ public class CalcSourceCodeZipHash {
             }
         }
         byte[] hashBytes = digest.digest();
-        return bytesToHex(hashBytes);
-    }
-
-    /**
-     * 将字节数组转换为十六进制字符串
-     *
-     * @param bytes 要转换的字节数组
-     * @return 十六进制字符串表示
-     */
-    public static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            hexString.append(String.format("%02x", b));
-        }
-        return hexString.toString();
+        return ByteArrayUtil.bytesToHex(hashBytes);
     }
 
     /**
@@ -153,8 +141,11 @@ public class CalcSourceCodeZipHash {
             String[] excludedDirs = new String[]{
                     "\\.git\\",
                     "\\.idea\\",
+                    "\\logs\\",
                     "\\temp\\",
-                    "\\target\\"
+                    "\\target\\",
+                    "\\static\\source_code_v",
+                    ".iml"
             };
             zipDirectory(sourceDir, zipFilePath, excludedDirs);
             System.out.println("The file has been compressed to: " + zipFilePath);

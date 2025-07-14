@@ -34,4 +34,21 @@ public class ReturningFlowRateController {
         return ResponseResult.success(responseDTO);
     }
 
+    @GetMapping("/{target}")
+    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRateByTarget(
+            @PathVariable String target,
+            @RequestParam(required = false, defaultValue = "0") long startTime,
+            @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
+            @RequestParam(required = false, defaultValue = "1") short currencyType
+    ) {
+        ReturningFlowRateRequestDTO returningFlowRateRequestDTO = new ReturningFlowRateRequestDTO();
+        returningFlowRateRequestDTO.setTarget(ByteArrayUtil.hexToBytes(target));
+        returningFlowRateRequestDTO.setStartTime(startTime);
+        returningFlowRateRequestDTO.setEndTime(endTime);
+        returningFlowRateRequestDTO.setCurrencyType(currencyType);
+
+        ReturningFlowRateResponseDTO responseDTO = consumeChainService.getReturningFlowRateByTarget(returningFlowRateRequestDTO);
+        return ResponseResult.success(responseDTO);
+    }
+
 }

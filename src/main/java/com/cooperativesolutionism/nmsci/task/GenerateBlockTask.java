@@ -16,11 +16,17 @@ public class GenerateBlockTask {
 
     private static final Logger logger = LoggerFactory.getLogger(GenerateBlockTask.class);
 
+    /**
+     * 是否为第一次运行
+     * 如果是第一次运行，则需要将所有未装块的消息打包进区块
+     */
+    private boolean isFirstTimeRun = true;
+
     @Resource
     private BlockChainService blockChainService;
 
     /**
-     * 应用启动后立即执行，然后每10分钟执行一次
+     * 定时任务：应用启动后立即开始生成区块，之后每10分钟开始生成区块
      */
     @Scheduled(initialDelay = 0, fixedDelay = 10 * 60 * 1000)
     public void execute() {
@@ -30,8 +36,15 @@ public class GenerateBlockTask {
         long startTime = DateUtil.getCurrentMicros();
         logger.info("开始生成区块: {}", startTime);
 
-        // 生成区块
+        // 无论是否有未装块的消息，都需要先生成一个区块
         blockChainService.generateBlock();
+
+        // 如果是第一次运行，则需要将所有未装块的消息都进行装块
+        if (isFirstTimeRun) {
+            blockChainService.generateBlockUntilNoNotInBlockMsgs();
+            isFirstTimeRun = false;
+            logger.info("第一次运行，已将所有未装块的消息都进行装块");
+        }
 
         // 计算任务执行时间
         long endTime = DateUtil.getCurrentMicros();

@@ -1,11 +1,10 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.*;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.*;
@@ -20,21 +19,27 @@ import org.springframework.validation.annotation.Validated;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Validated
 public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgService {
+
     @Value("${central-key-pair.pubkey}")
     private String centralPubkeyBase64;
 
     @Value("${central-key-pair.prikey}")
     private String centralPrikeyBase64;
 
-    @Value("${transaction-difficulty-target-nbits}")
-    private int transactionDifficultyTargetNbits;
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+
+    @Resource
+    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -50,8 +55,8 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
 
     @Override
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        if (transactionRecordMsg.getMsgType() != 4) {
-            throw new IllegalArgumentException("信息类型错误，必须为4");
+        if (transactionRecordMsg.getMsgType() != MsgTypeEnum.TransactionRecordMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionRecordMsg.getValue());
         }
 
         if (transactionRecordMsgRepository.existsById(transactionRecordMsg.getId())) {
@@ -62,6 +67,8 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
         if (!transactionRecordMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }
@@ -72,9 +79,13 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
         }
 
-        // TODO: 需要验证该流转节点是否已授权过【现中心公钥】，而不是存在就行
         // 验证流转节点公钥是否已授权
-        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey())) {
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        long centralPubkeyEmpowerMsgCount = centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                transactionRecordMsg.getFlowNodePubkey(),
+                centralPubkey
+        );
+        if (centralPubkeyEmpowerMsgCount == 0) {
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
         }
 
@@ -83,9 +94,12 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
         }
 
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(transactionRecordMsg.getCentralPubkey())) {
+            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(transactionRecordMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
         if (!Arrays.equals(transactionRecordMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误");
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
         }
 
         try {
@@ -199,4 +213,49 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
 
         return transactionRecordMsgRepository.save(transactionRecordMsg);
     }
+
+    @Override
+    public TransactionRecordMsg getTransactionRecordMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("交易记录信息id不能为空");
+        }
+
+        return transactionRecordMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("交易记录信息id(" + id + ")不存在"));
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+    }
+
+    @Override
+    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey
+    ) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionRecordMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
+    }
+
 }
