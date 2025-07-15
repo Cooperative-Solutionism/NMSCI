@@ -8,6 +8,8 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/returning-flow-rate")
 public class ReturningFlowRateController {
@@ -15,28 +17,35 @@ public class ReturningFlowRateController {
     @Resource
     private ConsumeChainService consumeChainService;
 
-    @GetMapping("/{source}/{target}")
-    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRate(
-            @PathVariable String source,
-            @PathVariable String target,
+    @GetMapping("/by-id")
+    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRateByTarget(
+            @RequestParam(required = false, defaultValue = "") String sourceId,
+            @RequestParam String targetId,
             @RequestParam(required = false, defaultValue = "0") long startTime,
             @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
             @RequestParam(required = false, defaultValue = "1") short currencyType
     ) {
         ReturningFlowRateRequestDTO returningFlowRateRequestDTO = new ReturningFlowRateRequestDTO();
-        returningFlowRateRequestDTO.setSource(ByteArrayUtil.hexToBytes(source));
-        returningFlowRateRequestDTO.setTarget(ByteArrayUtil.hexToBytes(target));
+        returningFlowRateRequestDTO.setTargetId(UUID.fromString(targetId));
         returningFlowRateRequestDTO.setStartTime(startTime);
         returningFlowRateRequestDTO.setEndTime(endTime);
         returningFlowRateRequestDTO.setCurrencyType(currencyType);
 
-        ReturningFlowRateResponseDTO responseDTO = consumeChainService.getReturningFlowRate(returningFlowRateRequestDTO);
+        ReturningFlowRateResponseDTO responseDTO;
+        if (sourceId.isEmpty()) {
+            responseDTO = consumeChainService.getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
+        } else {
+            returningFlowRateRequestDTO.setSourceId(UUID.fromString(sourceId));
+            responseDTO = consumeChainService.getReturningFlowRateById(returningFlowRateRequestDTO);
+        }
+
         return ResponseResult.success(responseDTO);
     }
 
-    @GetMapping("/{target}")
-    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRateByTarget(
-            @PathVariable String target,
+    @GetMapping("/by-pubkey")
+    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRate(
+            @RequestParam(required = false, defaultValue = "") String source,
+            @RequestParam String target,
             @RequestParam(required = false, defaultValue = "0") long startTime,
             @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
             @RequestParam(required = false, defaultValue = "1") short currencyType
@@ -47,7 +56,15 @@ public class ReturningFlowRateController {
         returningFlowRateRequestDTO.setEndTime(endTime);
         returningFlowRateRequestDTO.setCurrencyType(currencyType);
 
-        ReturningFlowRateResponseDTO responseDTO = consumeChainService.getReturningFlowRateByTarget(returningFlowRateRequestDTO);
+        ReturningFlowRateResponseDTO responseDTO;
+        if (source.isEmpty()) {
+            responseDTO = consumeChainService.getReturningFlowRateByTargetPubkey(returningFlowRateRequestDTO);
+            return ResponseResult.success(responseDTO);
+        } else {
+            returningFlowRateRequestDTO.setSource(ByteArrayUtil.hexToBytes(source));
+            responseDTO = consumeChainService.getReturningFlowRateByPubkey(returningFlowRateRequestDTO);
+        }
+
         return ResponseResult.success(responseDTO);
     }
 

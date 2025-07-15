@@ -10,7 +10,12 @@ public interface ConsumeChainService {
 
     void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg);
 
-    ReturningFlowRateResponseDTO getReturningFlowRate(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
+    ReturningFlowRateResponseDTO getReturningFlowRateById(ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
 
-    ReturningFlowRateResponseDTO getReturningFlowRateByTarget(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
+    ReturningFlowRateResponseDTO getReturningFlowRateByTargetId(ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
+
+    ReturningFlowRateResponseDTO getReturningFlowRateByPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
+
+    ReturningFlowRateResponseDTO getReturningFlowRateByTargetPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO);
+
 }

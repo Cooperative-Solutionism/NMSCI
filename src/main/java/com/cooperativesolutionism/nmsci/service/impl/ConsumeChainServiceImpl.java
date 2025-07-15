@@ -141,17 +141,14 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     }
 
     @Override
-    public ReturningFlowRateResponseDTO getReturningFlowRate(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+    public ReturningFlowRateResponseDTO getReturningFlowRateById(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
         if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
-        FlowNodeRegisterMsg source = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getSource());
-        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
-
         List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findConsumeChainEdges(
-                source.getId(),
-                target.getId(),
+                returningFlowRateRequestDTO.getSourceId(),
+                returningFlowRateRequestDTO.getTargetId(),
                 returningFlowRateRequestDTO.getCurrencyType(),
                 returningFlowRateRequestDTO.getStartTime(),
                 returningFlowRateRequestDTO.getEndTime()
@@ -179,15 +176,13 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     }
 
     @Override
-    public ReturningFlowRateResponseDTO getReturningFlowRateByTarget(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+    public ReturningFlowRateResponseDTO getReturningFlowRateByTargetId(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
         if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
-        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
-
         List<ConsumeChainEdge> consumeChainEdgesByOnlyTarget = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
-                target.getId(),
+                returningFlowRateRequestDTO.getTargetId(),
                 returningFlowRateRequestDTO.getCurrencyType(),
                 returningFlowRateRequestDTO.getStartTime(),
                 returningFlowRateRequestDTO.getEndTime()
@@ -204,6 +199,26 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 targetTotalUnloopedAmount,
                 returningFlowRateRequestDTO.getCurrencyType()
         );
+    }
+
+    @Override
+    public ReturningFlowRateResponseDTO getReturningFlowRateByPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        FlowNodeRegisterMsg source = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getSource());
+        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
+
+        returningFlowRateRequestDTO.setTargetId(target.getId());
+        returningFlowRateRequestDTO.setSourceId(source.getId());
+
+        return getReturningFlowRateById(returningFlowRateRequestDTO);
+    }
+
+    @Override
+    public ReturningFlowRateResponseDTO getReturningFlowRateByTargetPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
+
+        returningFlowRateRequestDTO.setTargetId(target.getId());
+
+        return getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
     }
 
     /**

@@ -1,6 +1,18 @@
 package com.cooperativesolutionism.nmsci.dto;
 
+import java.util.UUID;
+
 public class ReturningFlowRateRequestDTO {
+
+    /**
+     * 查询回流率时的源流转节点ID
+     */
+    private UUID sourceId;
+
+    /**
+     * 查询回流率时的目标流转节点ID
+     */
+    private UUID targetId;
 
     /**
      * 查询回流率时的源流转节点公钥
@@ -26,6 +38,22 @@ public class ReturningFlowRateRequestDTO {
      * 查询回流率时的货币类型
      */
     private short currencyType;
+
+    public UUID getSourceId() {
+        return sourceId;
+    }
+
+    public void setSourceId(UUID sourceId) {
+        this.sourceId = sourceId;
+    }
+
+    public UUID getTargetId() {
+        return targetId;
+    }
+
+    public void setTargetId(UUID targetId) {
+        this.targetId = targetId;
+    }
 
     public byte[] getSource() {
         return source;
