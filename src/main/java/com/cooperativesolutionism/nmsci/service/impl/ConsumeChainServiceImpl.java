@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
@@ -7,6 +8,7 @@ import com.cooperativesolutionism.nmsci.model.*;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class ConsumeChainServiceImpl implements ConsumeChainService {
@@ -26,6 +29,9 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
 
     @Resource
     private ConsumeChainEdgeRepository consumeChainEdgeRepository;
+
+    @Resource
+    private TransactionMountMsgRepository transactionMountMsgRepository;
 
     @Override
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
@@ -221,6 +227,84 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         return getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
     }
 
+    @Override
+    public List<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("挂载交易ID不能为空");
+        }
+
+        TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("挂载交易ID不存在"));
+
+        List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByRelatedTransactionMount(transactionMountMsg);
+
+        List<ConsumeChain> consumeChains = new ArrayList<>();
+        for (ConsumeChainEdge edge : consumeChainEdges) {
+            ConsumeChain consumeChain = consumeChainRepository.findById(edge.getChain().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("消费链条不存在"));
+
+            consumeChains.add(consumeChain);
+        }
+
+        return getConsumeChainResponseDTOs(consumeChains);
+    }
+
+    @Override
+    public List<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("起点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
+
+        List<ConsumeChain> consumeChains = consumeChainRepository.findByStart(startNode);
+
+        return getConsumeChainResponseDTOs(consumeChains);
+    }
+
+    @Override
+    public List<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop) {
+        if (id == null) {
+            throw new IllegalArgumentException("起点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
+
+        List<ConsumeChain> consumeChains = consumeChainRepository.findByStartAndIsLoop(startNode, isLoop);
+
+        return getConsumeChainResponseDTOs(consumeChains);
+    }
+
+    @Override
+    public List<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("终点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
+
+        List<ConsumeChain> consumeChains = consumeChainRepository.findByEnd(endNode);
+
+        return getConsumeChainResponseDTOs(consumeChains);
+    }
+
+    @Override
+    public List<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop) {
+        if (id == null) {
+            throw new IllegalArgumentException("终点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
+
+        List<ConsumeChain> consumeChains = consumeChainRepository.findByEndAndIsLoop(endNode, isLoop);
+
+        return getConsumeChainResponseDTOs(consumeChains);
+    }
+
     /**
      * 在保存消费链之前先检测消费链是否已成环
      *
@@ -265,6 +349,28 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         saveAllConsumeChainEdgesWithTestLoop(
                 List.of(consumeChainEdge)
         );
+    }
+
+    /**
+     * 获取消费链响应DTO列表
+     *
+     * @param consumeChains 消费链列表
+     * @return 返回消费链响应DTO列表
+     */
+    private List<ConsumeChainResponseDTO> getConsumeChainResponseDTOs(List<ConsumeChain> consumeChains) {
+        List<ConsumeChainResponseDTO> consumeChainResponseDTOs = new ArrayList<>();
+
+        for (ConsumeChain consumeChain : consumeChains) {
+            ConsumeChainResponseDTO consumeChainResponseDTO = new ConsumeChainResponseDTO();
+            List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByChainOrderByRelatedTransactionMountTimestampAsc(consumeChain);
+
+            consumeChainResponseDTO.setConsumeChain(consumeChain);
+            consumeChainResponseDTO.setConsumeChainEdges(consumeChainEdges);
+
+            consumeChainResponseDTOs.add(consumeChainResponseDTO);
+        }
+
+        return consumeChainResponseDTOs;
     }
 
 }

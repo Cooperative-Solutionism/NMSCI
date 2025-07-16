@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
+import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -48,4 +49,7 @@ public interface ConsumeChainEdgeRepository extends JpaRepository<ConsumeChainEd
             Long endTime
     );
 
+    List<ConsumeChainEdge> findByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount);
+
+    List<ConsumeChainEdge> findByChainOrderByRelatedTransactionMountTimestampAsc(ConsumeChain chain);
 }

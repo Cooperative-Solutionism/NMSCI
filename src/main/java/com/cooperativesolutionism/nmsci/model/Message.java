@@ -1,11 +1,6 @@
 package com.cooperativesolutionism.nmsci.model;
 
-import java.util.UUID;
-
-public interface Message {
-    UUID getId();
-
-    void setId(UUID id);
+public interface Message extends Identifiable {
 
     Short getMsgType();
 

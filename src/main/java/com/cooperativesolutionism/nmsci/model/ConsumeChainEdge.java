@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import com.cooperativesolutionism.nmsci.serializer.IdentifiableToStringSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
@@ -10,7 +12,7 @@ import java.util.UUID;
 @Comment("消费链的边")
 @Entity
 @Table(name = "consume_chain_edges")
-public class ConsumeChainEdge {
+public class ConsumeChainEdge implements Identifiable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -20,12 +22,14 @@ public class ConsumeChainEdge {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("边的起点")
     @JoinColumn(name = "source", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private FlowNodeRegisterMsg source;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("边的终点")
     @JoinColumn(name = "target", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private FlowNodeRegisterMsg target;
 
     @NotNull
@@ -42,18 +46,21 @@ public class ConsumeChainEdge {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("边所属的消费链")
     @JoinColumn(name = "chain", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private ConsumeChain chain;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("关联的交易记录")
     @JoinColumn(name = "related_transaction_record", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private TransactionRecordMsg relatedTransactionRecord;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("关联的交易挂载")
     @JoinColumn(name = "related_transaction_mount", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private TransactionMountMsg relatedTransactionMount;
 
     @NotNull

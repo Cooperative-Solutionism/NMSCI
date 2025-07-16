@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import com.cooperativesolutionism.nmsci.serializer.IdentifiableToStringSerializer;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
@@ -10,7 +12,7 @@ import java.util.UUID;
 @Comment("消费链")
 @Entity
 @Table(name = "consume_chains")
-public class ConsumeChain {
+public class ConsumeChain implements Identifiable {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -20,12 +22,14 @@ public class ConsumeChain {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("消费链起点")
     @JoinColumn(name = "start", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private FlowNodeRegisterMsg start;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @Comment("消费链终点")
     @JoinColumn(name = "\"end\"", nullable = false)
+    @JsonSerialize(using = IdentifiableToStringSerializer.class)
     private FlowNodeRegisterMsg end;
 
     @NotNull

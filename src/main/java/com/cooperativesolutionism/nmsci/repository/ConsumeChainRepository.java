@@ -12,4 +12,11 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
 
     List<ConsumeChain> findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(@NotNull FlowNodeRegisterMsg end, @NotNull Short currencyType);
 
+    List<ConsumeChain> findByStart(FlowNodeRegisterMsg start);
+
+    List<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop);
+
+    List<ConsumeChain> findByEnd(FlowNodeRegisterMsg end);
+
+    List<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop);
 }
