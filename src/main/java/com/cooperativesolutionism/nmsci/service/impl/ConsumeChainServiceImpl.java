@@ -194,14 +194,18 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 returningFlowRateRequestDTO.getEndTime()
         );
 
+        double targetTotalLoopedAmount = 0.0;
         double targetTotalUnloopedAmount = 0.0;
         for (ConsumeChainEdge edge : consumeChainEdgesByOnlyTarget) {
-            if (!edge.getIsLoop()) {
+            if (edge.getIsLoop()) {
+                targetTotalLoopedAmount += edge.getAmount();
+            } else {
                 targetTotalUnloopedAmount += edge.getAmount();
             }
         }
 
         return new ReturningFlowRateResponseDTO(
+                targetTotalLoopedAmount,
                 targetTotalUnloopedAmount,
                 returningFlowRateRequestDTO.getCurrencyType()
         );

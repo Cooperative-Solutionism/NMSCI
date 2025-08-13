@@ -18,6 +18,11 @@ public class ReturningFlowRateResponseDTO {
     private double unloopedAmount;
 
     /**
+     * 目标(target)所有成环的金额总和
+     */
+    private double targetTotalLoopedAmount;
+
+    /**
      * 目标(target)所有未成环的金额总和(总滞留指数)
      */
     private double targetTotalUnloopedAmount;
@@ -34,7 +39,8 @@ public class ReturningFlowRateResponseDTO {
         this.currencyType = currencyType;
     }
 
-    public ReturningFlowRateResponseDTO(double targetTotalUnloopedAmount, short currencyType) {
+    public ReturningFlowRateResponseDTO(double targetTotalLoopedAmount, double targetTotalUnloopedAmount, short currencyType) {
+        this.targetTotalLoopedAmount = targetTotalLoopedAmount;
         this.targetTotalUnloopedAmount = targetTotalUnloopedAmount;
         this.currencyType = currencyType;
     }
@@ -69,6 +75,14 @@ public class ReturningFlowRateResponseDTO {
 
     public void setCurrencyType(short currencyType) {
         this.currencyType = currencyType;
+    }
+
+    public double getTargetTotalLoopedAmount() {
+        return targetTotalLoopedAmount;
+    }
+
+    public void setTargetTotalLoopedAmount(double targetTotalLoopedAmount) {
+        this.targetTotalLoopedAmount = targetTotalLoopedAmount;
     }
 
     public double getTargetTotalUnloopedAmount() {
