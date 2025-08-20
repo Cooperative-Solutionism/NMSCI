@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
+import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
@@ -24,12 +25,12 @@ public class CentralPubkeyLockedMsgController {
     }
 
     @GetMapping("/id/{id}")
-    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(@PathVariable String id) {
-        return centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id));
+    public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgById(@PathVariable String id) {
+        return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id)));
     }
 
     @GetMapping("/central-pubkey/{centralPubkey}")
-    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
-        return centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey));
+    public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
+        return  ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey)));
     }
 }
