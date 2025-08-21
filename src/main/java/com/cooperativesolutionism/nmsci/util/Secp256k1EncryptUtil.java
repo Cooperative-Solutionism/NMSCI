@@ -195,9 +195,11 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果签名失败
      */
     public static byte[] signData(byte[] data, PrivateKey privateKey) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withECDSA", "BC");
+        Signature signature = Signature.getInstance("ECDSA", "BC");
         signature.initSign(privateKey);
-        signature.update(data);
+        // 先对数据进行双重哈希（SHA-256）
+        byte[] dataDblDigest = Sha256Util.doubleDigest(data);
+        signature.update(dataDblDigest);
         byte[] derSignature = signature.sign();
         byte[] rsSignature = derToRs(derSignature);
         if (isNotLowS(rsSignature)) {
@@ -223,9 +225,10 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果验证失败
      */
     public static boolean verifySignature(byte[] data, byte[] rsSignature, PublicKey publicKey) throws Exception {
-        Signature signature = Signature.getInstance("SHA256withECDSA", "BC");
+        Signature signature = Signature.getInstance("ECDSA", "BC");
         signature.initVerify(publicKey);
-        signature.update(data);
+        // 先对数据进行双重哈希（SHA-256）
+        signature.update(Sha256Util.doubleDigest(data));
         byte[] derSignature = rsToDer(rsSignature);
         return signature.verify(derSignature);
     }
