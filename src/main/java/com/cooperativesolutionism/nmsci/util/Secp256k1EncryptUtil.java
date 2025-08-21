@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.util;
 
+import org.bitcoinj.crypto.ECKey;
+import org.bitcoinj.base.Sha256Hash;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -195,24 +197,14 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果签名失败
      */
     public static byte[] signData(byte[] data, PrivateKey privateKey) throws Exception {
-        Signature signature = Signature.getInstance("ECDSA", "BC");
-        signature.initSign(privateKey);
-        // 先对数据进行双重哈希（SHA-256）
+        byte[] rawPrivateKey = privateKeyToRaw(privateKey);
+        ECKey ecKey = ECKey.fromPrivate(new BigInteger(1, rawPrivateKey));
+        
         byte[] dataDblDigest = Sha256Util.doubleDigest(data);
-        signature.update(dataDblDigest);
-        byte[] derSignature = signature.sign();
-        byte[] rsSignature = derToRs(derSignature);
-        if (isNotLowS(rsSignature)) {
-            // 如果签名的s值不小于等于曲线阶的一半，则需要调整s值
-            BigInteger r = new BigInteger(1, Arrays.copyOfRange(rsSignature, 0, 32));
-            BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
-            s = CURVE_ORDER.subtract(s);
-            ASN1Integer rAsn1 = new ASN1Integer(r);
-            ASN1Integer sAsn1 = new ASN1Integer(s);
-            DERSequence sequence = new DERSequence(new ASN1Primitive[]{rAsn1, sAsn1});
-            derSignature = sequence.getEncoded();
-        }
-        return derSignature;
+        Sha256Hash hash = Sha256Hash.wrap(dataDblDigest);
+        ECKey.ECDSASignature ecdsaSignature = ecKey.sign(hash);
+        
+        return ecdsaSignature.encodeToDER();
     }
 
     /**
@@ -225,12 +217,16 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果验证失败
      */
     public static boolean verifySignature(byte[] data, byte[] rsSignature, PublicKey publicKey) throws Exception {
-        Signature signature = Signature.getInstance("ECDSA", "BC");
-        signature.initVerify(publicKey);
-        // 先对数据进行双重哈希（SHA-256）
-        signature.update(Sha256Util.doubleDigest(data));
+        byte[] compressedPubKey = publicKeyToCompressed(publicKey);
+        ECKey ecKey = ECKey.fromPublicOnly(compressedPubKey);
+        
+        byte[] dataDblDigest = Sha256Util.doubleDigest(data);
+        Sha256Hash hash = Sha256Hash.wrap(dataDblDigest);
+        
         byte[] derSignature = rsToDer(rsSignature);
-        return signature.verify(derSignature);
+        ECKey.ECDSASignature ecdsaSignature = ECKey.ECDSASignature.decodeFromDER(derSignature);
+        
+        return ecKey.verify(hash, ecdsaSignature);
     }
 
     /**
