@@ -1,10 +1,6 @@
 package com.cooperativesolutionism.nmsci.util;
 
-import org.bitcoinj.base.Sha256Hash;
-import org.bitcoinj.core.PartialMerkleTree;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MerkleTreeUtil {
@@ -19,12 +15,13 @@ public class MerkleTreeUtil {
         if (txData == null || txData.length == 0) {
             throw new IllegalArgumentException("数据不能为空");
         }
-        byte[] doubleHash = Sha256Hash.hashTwice(txData);
-        return Sha256Hash.wrapReversed(doubleHash).getBytes();
+        byte[] doubleHash = Sha256Util.doubleDigest(txData);
+        return ByteArrayUtil.reverseBytes(doubleHash);
     }
 
     /**
      * 计算Merkle树的根哈希值
+     * 实现Bitcoin标准的Merkle树算法
      *
      * @param leafArr 包含叶子节点哈希值的字节数组
      *                如果数组为空或为null，则返回一个全0的32字节数组
@@ -35,21 +32,45 @@ public class MerkleTreeUtil {
             return new byte[32];
         }
 
-        int leafCount = leafArr.size();
-        final List<Sha256Hash> hashes = new ArrayList<>();
-        final byte[] bits = new byte[(leafCount + 7) / 8];
-        Arrays.fill(bits, (byte) 0xFF);
+        List<byte[]> leafByteReverseArr = new ArrayList<>();
 
-        for (byte[] bytes : leafArr) {
-            if (bytes == null) {
+        for (byte[] leaf : leafArr) {
+            if (leaf == null) {
                 throw new IllegalArgumentException("叶子节点哈希值不能为null");
             }
-            hashes.add(Sha256Hash.wrap(bytes));
+            if (leaf.length != 32) {
+                throw new IllegalArgumentException("叶子节点哈希值必须为32字节");
+            }
+            leafByteReverseArr.add(ByteArrayUtil.reverseBytes(leaf));
         }
 
-        PartialMerkleTree pmt = new PartialMerkleTree(leafCount, hashes, bits);
-        Sha256Hash rootHash = pmt.getTxnHashAndMerkleRoot(new ArrayList<>());
-        return rootHash.getBytes();
+        List<byte[]> currentLevel = new ArrayList<>(leafByteReverseArr);
+
+        while (currentLevel.size() > 1) {
+            List<byte[]> nextLevel = new ArrayList<>();
+
+            for (int i = 0; i < currentLevel.size(); i += 2) {
+                byte[] left = currentLevel.get(i);
+                byte[] right;
+
+                if (i + 1 < currentLevel.size()) {
+                    right = currentLevel.get(i + 1);
+                } else {
+                    right = left;
+                }
+
+                byte[] combined = new byte[64];
+                System.arraycopy(left, 0, combined, 0, 32);
+                System.arraycopy(right, 0, combined, 32, 32);
+
+                byte[] parentHash = Sha256Util.doubleDigest(combined);
+                nextLevel.add(parentHash);
+            }
+
+            currentLevel = nextLevel;
+        }
+
+        return ByteArrayUtil.reverseBytes(currentLevel.get(0));
     }
 
 }
