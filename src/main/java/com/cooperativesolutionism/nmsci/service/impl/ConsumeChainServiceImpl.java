@@ -309,6 +309,25 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         return getConsumeChainResponseDTOs(consumeChains);
     }
 
+    @Override
+    public ConsumeChainResponseDTO getConsumeChainById(UUID uuid) {
+        if (uuid == null) {
+            throw new IllegalArgumentException("消费链ID不能为空");
+        }
+
+        ConsumeChain consumeChain = consumeChainRepository.findById(uuid)
+                .orElseThrow(() -> new IllegalArgumentException("消费链ID不存在"));
+
+        List<ConsumeChain> consumeChains = List.of(consumeChain);
+
+        List<ConsumeChainResponseDTO> consumeChainResponseDTOs = getConsumeChainResponseDTOs(consumeChains);
+        if (consumeChainResponseDTOs.isEmpty()) {
+            throw new IllegalArgumentException("消费链ID不存在");
+        }
+
+        return consumeChainResponseDTOs.get(0);
+    }
+
     /**
      * 在保存消费链之前先检测消费链是否已成环
      *

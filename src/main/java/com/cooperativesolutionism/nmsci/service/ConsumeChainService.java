@@ -93,4 +93,6 @@ public interface ConsumeChainService {
      * @return 返回消费链数据
      */
     List<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop);
+
+    ConsumeChainResponseDTO getConsumeChainById(UUID uuid);
 }

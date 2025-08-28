@@ -4,10 +4,7 @@ import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -25,6 +22,12 @@ public class ConsumeChainController {
     ) {
         List<ConsumeChainResponseDTO> consumeChainResponseDTOList = consumeChainService.getConsumeChainByMountedTransaction(UUID.fromString(relatedTransactionMount));
         return ResponseResult.success(consumeChainResponseDTOList);
+    }
+
+    @GetMapping("/id/{id}")
+    public ResponseResult<ConsumeChainResponseDTO> getConsumeChainById(@PathVariable String id) {
+        ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainService.getConsumeChainById(UUID.fromString(id));
+        return ResponseResult.success(consumeChainResponseDTO);
     }
 
     @GetMapping("/by-start")
