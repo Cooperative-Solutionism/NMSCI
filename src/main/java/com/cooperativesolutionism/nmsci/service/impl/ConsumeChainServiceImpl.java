@@ -13,6 +13,7 @@ import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +35,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
     @Override
+    @Transactional
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
         FlowNodeRegisterMsg source = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(transactionMountMsg.getFlowNodePubkey());
         FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey());
@@ -90,8 +92,6 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                     consumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
                     consumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
                     saveAllConsumeChainEdgesWithTestLoop(consumeChainEdge);
-
-                    restAmount -= mountChainAmount;
                 }
 
                 // 如果剩余金额小于该挂载链条金额，则需要分裂链条
@@ -141,6 +141,8 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                     saveAllConsumeChainEdgesWithTestLoop(originEdges);
                     saveAllConsumeChainEdgesWithTestLoop(newEdges);
                 }
+
+                restAmount -= mountChainAmount;
             }
         }
 
@@ -354,11 +356,9 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         ConsumeChain consumeChain = consumeChainEdges.get(0).getChain();
         boolean isLoop = consumeChain.getStart().equals(consumeChain.getEnd());
 
-        System.out.println("ConsumeChain = " + consumeChain);
         for (ConsumeChainEdge consumeChainEdge : consumeChainEdges) {
             consumeChainEdge.setIsLoop(isLoop);
         }
-        System.out.println("consumeChainEdges = " + consumeChainEdges);
 
         consumeChainEdgeRepository.saveAll(consumeChainEdges);
     }
