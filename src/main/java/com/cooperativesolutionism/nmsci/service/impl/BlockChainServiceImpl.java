@@ -332,7 +332,10 @@ public class BlockChainServiceImpl implements BlockChainService {
                 if (!Files.exists(sourceCodePath.getParent())) {
                     Files.createDirectories(sourceCodePath.getParent());
                 }
-                Files.copy(classPathResource.getFile().toPath(), sourceCodePath);
+                
+                try (var inputStream = classPathResource.getInputStream()) {
+                    Files.copy(inputStream, sourceCodePath);
+                }
             }
 
             blockInfo.setSourceCodeZipFilepath(sourceCodePath.getFileName().toString());

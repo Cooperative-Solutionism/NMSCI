@@ -13,6 +13,10 @@ class PoWUtilTest {
     void calculateTargetFromNBits() {
         // 基础难度0x1d00ffff
         // 0.07倍基础难度 0x1d0e4916
+        // 0.01倍基础难度 0x1d63ff9c
+        // 0.001倍基础难度 0x1e03e7fd
+        //                0x1f002708 (10000Hash/s时用时约120秒)
+        // 0.0001倍基础难度 0x1f00270d (10000Hash/s时用时约5秒)
         // 0难度 0x20ffffff
         int nBits = 0x1d0e4916;
         System.out.println("nBits = " + nBits);
