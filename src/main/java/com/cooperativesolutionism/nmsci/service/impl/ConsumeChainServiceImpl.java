@@ -45,12 +45,92 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 transactionRecordMsg.getCurrencyType()
         );
 
-        // 如果没有已有的挂载链条，则直接创建新的消费链条
-        if (mountChains.isEmpty()) {
+        // 处理挂载链条
+        long restAmount = transactionRecordMsg.getAmount();
+        for (ConsumeChain mountChain : mountChains) {
+            long mountChainAmount = mountChain.getAmount();
+
+            // 如果剩余金额小于等于0，则不需要继续处理
+            if (restAmount <= 0) break;
+
+            // 如果剩余金额大于等于该挂载链条金额，则直接延伸链条
+            if (restAmount >= mountChainAmount) {
+                mountChain.setEnd(target);
+                mountChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
+                ConsumeChain mountChainInDb = saveConsumeChainWithTestLoop(mountChain);
+                List<ConsumeChainEdge> originEdges = consumeChainEdgeRepository.findByChain(mountChainInDb);
+
+                ConsumeChainEdge consumeChainEdge = new ConsumeChainEdge();
+                consumeChainEdge.setSource(source);
+                consumeChainEdge.setTarget(target);
+                consumeChainEdge.setAmount(mountChainAmount);
+                consumeChainEdge.setCurrencyType(transactionRecordMsg.getCurrencyType());
+                consumeChainEdge.setChain(mountChainInDb);
+                consumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
+                consumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
+                consumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
+
+                originEdges.add(consumeChainEdge);
+                saveAllConsumeChainEdgesWithTestLoop(originEdges);
+            }
+
+            // 如果剩余金额小于该挂载链条金额，则需要分裂链条
+            if (restAmount < mountChainAmount) {
+                ConsumeChain newConsumeChain = new ConsumeChain();
+                newConsumeChain.setStart(mountChain.getStart());
+                newConsumeChain.setEnd(target);
+                newConsumeChain.setAmount(restAmount);
+                newConsumeChain.setCurrencyType(transactionRecordMsg.getCurrencyType());
+                newConsumeChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
+                ConsumeChain newConsumeChainInDb = saveConsumeChainWithTestLoop(newConsumeChain);
+
+                ConsumeChainEdge newConsumeChainEdge = new ConsumeChainEdge();
+                newConsumeChainEdge.setSource(source);
+                newConsumeChainEdge.setTarget(target);
+                newConsumeChainEdge.setAmount(restAmount);
+                newConsumeChainEdge.setCurrencyType(transactionRecordMsg.getCurrencyType());
+                newConsumeChainEdge.setChain(newConsumeChainInDb);
+                newConsumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
+                newConsumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
+                newConsumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
+                saveAllConsumeChainEdgesWithTestLoop(newConsumeChainEdge);
+
+                // 更新原链条金额
+                mountChain.setAmount(mountChainAmount - restAmount);
+                ConsumeChain mountChainInDb = saveConsumeChainWithTestLoop(mountChain);
+
+                // 更新原链条边的金额并复制一份作为新链条的边
+                List<ConsumeChainEdge> originEdges = consumeChainEdgeRepository.findByChain(mountChain);
+                List<ConsumeChainEdge> newEdges = new ArrayList<>();
+                for (ConsumeChainEdge originEdge : originEdges) {
+                    // 更新原链条边的金额
+                    originEdge.setAmount(mountChainInDb.getAmount());
+
+                    ConsumeChainEdge newEdge = new ConsumeChainEdge();
+                    newEdge.setSource(originEdge.getSource());
+                    newEdge.setTarget(originEdge.getTarget());
+                    newEdge.setAmount(restAmount);
+                    newEdge.setCurrencyType(originEdge.getCurrencyType());
+                    newEdge.setChain(newConsumeChainInDb);
+                    newEdge.setRelatedTransactionRecord(originEdge.getRelatedTransactionRecord());
+                    newEdge.setRelatedTransactionMount(originEdge.getRelatedTransactionMount());
+                    newEdge.setRelatedTransactionMountTimestamp(originEdge.getRelatedTransactionMountTimestamp());
+                    newEdges.add(newEdge);
+                }
+
+                saveAllConsumeChainEdgesWithTestLoop(originEdges);
+                saveAllConsumeChainEdgesWithTestLoop(newEdges);
+            }
+
+            restAmount -= mountChainAmount;
+        }
+
+        // 如果所有消费链处理完后仍有剩余金额，则需要创建一条新消费链
+        if (restAmount > 0) {
             ConsumeChain consumeChain = new ConsumeChain();
             consumeChain.setStart(source);
             consumeChain.setEnd(target);
-            consumeChain.setAmount(transactionRecordMsg.getAmount());
+            consumeChain.setAmount(restAmount);
             consumeChain.setCurrencyType(transactionRecordMsg.getCurrencyType());
             consumeChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
             ConsumeChain consumeChainInDb = saveConsumeChainWithTestLoop(consumeChain);
@@ -58,95 +138,13 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             ConsumeChainEdge consumeChainEdge = new ConsumeChainEdge();
             consumeChainEdge.setSource(source);
             consumeChainEdge.setTarget(target);
-            consumeChainEdge.setAmount(transactionRecordMsg.getAmount());
+            consumeChainEdge.setAmount(restAmount);
             consumeChainEdge.setCurrencyType(transactionRecordMsg.getCurrencyType());
             consumeChainEdge.setChain(consumeChainInDb);
             consumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
             consumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
             consumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
             saveAllConsumeChainEdgesWithTestLoop(consumeChainEdge);
-        }
-
-        // 如果有挂载链条，则需要处理挂载链条
-        if (!mountChains.isEmpty()) {
-            long restAmount = transactionRecordMsg.getAmount();
-            for (ConsumeChain mountChain : mountChains) {
-                long mountChainAmount = mountChain.getAmount();
-
-                // 如果剩余金额小于等于0，则不需要继续处理
-                if (restAmount <= 0) break;
-
-                // 如果剩余金额大于等于该挂载链条金额，则直接延伸链条
-                if (restAmount >= mountChainAmount) {
-                    mountChain.setEnd(target);
-                    mountChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
-                    ConsumeChain mountChainInDb = saveConsumeChainWithTestLoop(mountChain);
-                    List<ConsumeChainEdge> originEdges = consumeChainEdgeRepository.findByChain(mountChainInDb);
-
-                    ConsumeChainEdge consumeChainEdge = new ConsumeChainEdge();
-                    consumeChainEdge.setSource(source);
-                    consumeChainEdge.setTarget(target);
-                    consumeChainEdge.setAmount(mountChainAmount);
-                    consumeChainEdge.setCurrencyType(transactionRecordMsg.getCurrencyType());
-                    consumeChainEdge.setChain(mountChainInDb);
-                    consumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
-                    consumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
-                    consumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
-
-                    originEdges.add(consumeChainEdge);
-                    saveAllConsumeChainEdgesWithTestLoop(originEdges);
-                }
-
-                // 如果剩余金额小于该挂载链条金额，则需要分裂链条
-                if (restAmount < mountChainAmount) {
-                    ConsumeChain newConsumeChain = new ConsumeChain();
-                    newConsumeChain.setStart(mountChain.getStart());
-                    newConsumeChain.setEnd(target);
-                    newConsumeChain.setAmount(restAmount);
-                    newConsumeChain.setCurrencyType(transactionRecordMsg.getCurrencyType());
-                    newConsumeChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
-                    ConsumeChain newConsumeChainInDb = saveConsumeChainWithTestLoop(newConsumeChain);
-
-                    ConsumeChainEdge newConsumeChainEdge = new ConsumeChainEdge();
-                    newConsumeChainEdge.setSource(source);
-                    newConsumeChainEdge.setTarget(target);
-                    newConsumeChainEdge.setAmount(restAmount);
-                    newConsumeChainEdge.setCurrencyType(transactionRecordMsg.getCurrencyType());
-                    newConsumeChainEdge.setChain(newConsumeChainInDb);
-                    newConsumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
-                    newConsumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
-                    newConsumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
-                    saveAllConsumeChainEdgesWithTestLoop(newConsumeChainEdge);
-
-                    // 更新原链条金额
-                    mountChain.setAmount(mountChainAmount - restAmount);
-                    ConsumeChain mountChainInDb = saveConsumeChainWithTestLoop(mountChain);
-
-                    // 更新原链条边的金额并复制一份作为新链条的边
-                    List<ConsumeChainEdge> originEdges = consumeChainEdgeRepository.findByChain(mountChain);
-                    List<ConsumeChainEdge> newEdges = new ArrayList<>();
-                    for (ConsumeChainEdge originEdge : originEdges) {
-                        // 更新原链条边的金额
-                        originEdge.setAmount(mountChainInDb.getAmount());
-
-                        ConsumeChainEdge newEdge = new ConsumeChainEdge();
-                        newEdge.setSource(originEdge.getSource());
-                        newEdge.setTarget(originEdge.getTarget());
-                        newEdge.setAmount(restAmount);
-                        newEdge.setCurrencyType(originEdge.getCurrencyType());
-                        newEdge.setChain(newConsumeChainInDb);
-                        newEdge.setRelatedTransactionRecord(originEdge.getRelatedTransactionRecord());
-                        newEdge.setRelatedTransactionMount(originEdge.getRelatedTransactionMount());
-                        newEdge.setRelatedTransactionMountTimestamp(originEdge.getRelatedTransactionMountTimestamp());
-                        newEdges.add(newEdge);
-                    }
-
-                    saveAllConsumeChainEdgesWithTestLoop(originEdges);
-                    saveAllConsumeChainEdgesWithTestLoop(newEdges);
-                }
-
-                restAmount -= mountChainAmount;
-            }
         }
 
     }
@@ -176,7 +174,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             }
         }
 
-        double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 100.0 : loopedAmount / (loopedAmount + unloopedAmount) * 100.0;
+        double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 0 : loopedAmount / (loopedAmount + unloopedAmount);
 
         return new ReturningFlowRateResponseDTO(
                 returningFlowRate,
