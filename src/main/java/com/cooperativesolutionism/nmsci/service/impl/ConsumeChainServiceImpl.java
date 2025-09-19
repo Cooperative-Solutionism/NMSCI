@@ -81,6 +81,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                     mountChain.setEnd(target);
                     mountChain.setTailMountTimestamp(transactionMountMsg.getConfirmTimestamp());
                     ConsumeChain mountChainInDb = saveConsumeChainWithTestLoop(mountChain);
+                    List<ConsumeChainEdge> originEdges = consumeChainEdgeRepository.findByChain(mountChainInDb);
 
                     ConsumeChainEdge consumeChainEdge = new ConsumeChainEdge();
                     consumeChainEdge.setSource(source);
@@ -91,7 +92,9 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                     consumeChainEdge.setRelatedTransactionRecord(transactionRecordMsg);
                     consumeChainEdge.setRelatedTransactionMount(transactionMountMsg);
                     consumeChainEdge.setRelatedTransactionMountTimestamp(transactionMountMsg.getConfirmTimestamp());
-                    saveAllConsumeChainEdgesWithTestLoop(consumeChainEdge);
+
+                    originEdges.add(consumeChainEdge);
+                    saveAllConsumeChainEdgesWithTestLoop(originEdges);
                 }
 
                 // 如果剩余金额小于该挂载链条金额，则需要分裂链条
