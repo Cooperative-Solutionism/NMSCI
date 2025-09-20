@@ -3,6 +3,11 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+# Development environment files
+/src/main/resources/static/source_code_*.zip
+temp/
+logs/
+
 ### STS ###
 .apt_generated
 .classpath
