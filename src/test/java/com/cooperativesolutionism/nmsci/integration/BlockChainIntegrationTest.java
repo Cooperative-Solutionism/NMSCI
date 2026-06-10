@@ -9,6 +9,7 @@ import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,5 +68,34 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         assertTrue(Files.exists(datFile), "block dat file must be written");
         assertTrue(Files.size(datFile) >= generatedBlock.getRawBytes().length + 12L);
         assertTrue(Files.exists(sourceCodeZip), "source code zip must be copied");
+    }
+
+    @Test
+    void generateBlockRotatesDatFileUsingPlatformPathSeparator() throws Exception {
+        UUID flowNodeId = UUID.fromString("22222222-aaaa-2222-aaaa-222222222222");
+        Path datDir = Path.of("target", "nmsci-test-files", "dat");
+        Path currentDatFile = datDir.resolve("blk00000000.dat");
+        Path nextDatFile = datDir.resolve("blk00000001.dat");
+        Files.createDirectories(datDir);
+        Files.write(currentDatFile, new byte[]{1});
+        Files.deleteIfExists(nextDatFile);
+        Object originalBlockDatMaxSize = ReflectionTestUtils.getField(blockChainService, "blockDatMaxSize");
+        ReflectionTestUtils.setField(blockChainService, "blockDatMaxSize", 1L);
+        try {
+            mockMvc.perform(post("/flow-node-register-msg/send")
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(200));
+
+            blockChainService.generateBlock();
+
+            var generatedBlock = blockInfoRepository.findByHeight(1L);
+            assertNotNull(generatedBlock);
+            assertEquals("blk00000001.dat", generatedBlock.getDatFilepath());
+            assertTrue(Files.exists(nextDatFile), "rotated dat file must be written");
+        } finally {
+            ReflectionTestUtils.setField(blockChainService, "blockDatMaxSize", originalBlockDatMaxSize);
+        }
     }
 }

@@ -299,11 +299,10 @@ public class BlockChainServiceImpl implements BlockChainService {
         try {
             // 查看文件大小是否超过限制
             if (Files.exists(datFilepath) && Files.size(datFilepath) + block.length > blockDatMaxSize) {
-                String[] parts = datFilepathStr.split("\\\\");
-                String lastPart = parts[parts.length - 1];
+                String lastPart = datFilepath.getFileName().toString();
                 String indexStr = lastPart.replace("blk", "").replace(".dat", "");
                 int index = Integer.parseInt(indexStr);
-                datFilepath = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", index + 1) + ".dat");
+                datFilepath = datFilepath.getParent().resolve("blk" + String.format("%08d", index + 1) + ".dat");
             }
 
             // 追加写入.dat文件
