@@ -201,7 +201,9 @@ create table transaction_mount_msgs
     confirm_timestamp             bigint             not null,
     central_signature             bytea              not null,
     raw_bytes                     bytea              not null,
-    txid                          bytea              not null
+    txid                          bytea              not null,
+    constraint uk_transaction_mount_msgs_mounted_transaction_record_id
+        unique (mounted_transaction_record_id)
 );
 
 comment on table transaction_mount_msgs is '交易挂载信息';

@@ -71,9 +71,8 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在");
         }
 
-        if (!transactionRecordMsgRepository.existsById(transactionMountMsg.getMountedTransactionRecordId())) {
-            throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在");
-        }
+        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findByIdForUpdate(transactionMountMsg.getMountedTransactionRecordId())
+                .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
 
         if (transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(transactionMountMsg.getMountedTransactionRecordId())) {
             throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
@@ -86,8 +85,6 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
         }
 
         // 消费节点公钥与要挂载的交易信息中的消费节点公钥需相同
-        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findById(transactionMountMsg.getMountedTransactionRecordId())
-                .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
         byte[] consumeNodePubkey = transactionRecordMsg.getConsumeNodePubkey();
         if (!Arrays.equals(transactionMountMsg.getConsumeNodePubkey(), consumeNodePubkey)) {
             String consumeNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(consumeNodePubkey);

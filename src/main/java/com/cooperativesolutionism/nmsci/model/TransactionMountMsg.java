@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -16,7 +17,15 @@ import java.util.UUID;
 
 @Comment("交易挂载信息")
 @Entity
-@Table(name = "transaction_mount_msgs")
+@Table(
+        name = "transaction_mount_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_transaction_mount_msgs_mounted_transaction_record_id",
+                        columnNames = "mounted_transaction_record_id"
+                )
+        }
+)
 public class TransactionMountMsg implements Message {
     @Id
     @Column(name = "id", nullable = false)
