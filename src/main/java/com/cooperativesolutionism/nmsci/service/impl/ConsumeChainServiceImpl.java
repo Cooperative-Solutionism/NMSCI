@@ -147,7 +147,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("挂载交易ID不存在"));
 
-        Slice<ConsumeChain> consumeChains = consumeChainEdgeRepository.findDistinctChainsByRelatedTransactionMount(transactionMountMsg, pageable);
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByRelatedTransactionMount(transactionMountMsg, pageable);
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
 

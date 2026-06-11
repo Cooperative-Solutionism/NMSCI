@@ -125,7 +125,7 @@ class ConsumeChainQueryOptimizationTest {
         Pageable pageable = PageRequest.of(0, 50);
 
         when(mountRepository.findById(mount.getId())).thenReturn(Optional.of(mount));
-        when(edgeRepository.findDistinctChainsByRelatedTransactionMount(mount, pageable))
+        when(chainRepository.findDistinctByRelatedTransactionMount(mount, pageable))
                 .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
 
@@ -133,7 +133,7 @@ class ConsumeChainQueryOptimizationTest {
 
         assertEquals(1, response.getNumberOfElements());
         assertSame(chain, response.getContent().get(0).getConsumeChain());
-        verify(edgeRepository).findDistinctChainsByRelatedTransactionMount(mount, pageable);
+        verify(chainRepository).findDistinctByRelatedTransactionMount(mount, pageable);
         verify(edgeRepository, never()).findByRelatedTransactionMount(any());
         verify(chainRepository, never()).findById(any());
     }

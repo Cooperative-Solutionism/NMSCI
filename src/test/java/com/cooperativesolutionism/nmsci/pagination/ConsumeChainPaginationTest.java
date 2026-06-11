@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.controller.ConsumeChainController;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
-import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
@@ -31,7 +30,7 @@ class ConsumeChainPaginationTest {
         assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEndAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainEdgeRepository.class, "findDistinctChainsByRelatedTransactionMount", TransactionMountMsg.class, Pageable.class);
+        assertSliceMethod(ConsumeChainRepository.class, "findDistinctByRelatedTransactionMount", TransactionMountMsg.class, Pageable.class);
     }
 
     @Test
