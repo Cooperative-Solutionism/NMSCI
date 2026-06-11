@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
@@ -31,4 +32,12 @@ public interface FlowNodeRegisterMsgService {
      * @return 流转节点注册消息
      */
     FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey);
+
+    /**
+     * 查询流转节点当前状态
+     *
+     * @param flowNodePubkey 流转节点公钥
+     * @return 流转节点状态
+     */
+    FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey);
 }

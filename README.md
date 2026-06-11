@@ -2,7 +2,7 @@
 
 消费意愿数值化衡量系统（Numerical Measurement System for Consumption Intention）。
 
-本项目用于记录流转节点注册、中心公钥授权/冻结、交易记录、交易挂载、消费链和回流率计算，并将已确认消息按协议打包进区块文件。
+在未来，除了商品的价格和质量之外，商品生产者的消费意愿将成为人们购买商品需要着重考虑的因素之一。
 
 协议规范见 [PROTOCOL.md](./PROTOCOL.md)。
 

@@ -1,8 +1,10 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
@@ -13,6 +15,7 @@ import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
@@ -31,6 +34,9 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
 
     @Resource
     private MsgAbstractService msgAbstractService;
+
+    @Resource
+    private CentralPubkeyValidator centralPubkeyValidator;
 
     @Override
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
@@ -134,5 +140,18 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
         }
 
         return flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        return FlowNodeStateResponseDTO.from(flowNodeRegisterMsgRepository.findFlowNodeStateOverview(
+                flowNodePubkey,
+                centralPubkeyValidator.currentCentralPubkey()
+        ));
     }
 }
