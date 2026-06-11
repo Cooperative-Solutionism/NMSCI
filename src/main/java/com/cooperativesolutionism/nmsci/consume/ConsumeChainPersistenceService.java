@@ -7,6 +7,7 @@ import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,22 +25,30 @@ public class ConsumeChainPersistenceService {
     private LoopMarker loopMarker;
 
     public void save(ConsumeChainAllocationPlan plan) {
+        List<ConsumeChain> chains = new ArrayList<>(plan.chainsToSave());
         Map<ConsumeChain, ConsumeChain> savedChains = new IdentityHashMap<>();
 
-        for (ConsumeChain consumeChain : plan.chainsToSave()) {
+        for (ConsumeChain consumeChain : chains) {
             loopMarker.markChain(consumeChain);
-            savedChains.put(consumeChain, consumeChainRepository.save(consumeChain));
         }
 
+        List<ConsumeChain> savedChainList = consumeChainRepository.saveAll(chains);
+        for (int i = 0; i < chains.size(); i++) {
+            savedChains.put(chains.get(i), savedChainList.get(i));
+        }
+
+        List<ConsumeChainEdge> edges = new ArrayList<>();
         for (List<ConsumeChainEdge> edgeBatch : plan.edgeBatchesToSave()) {
             for (ConsumeChainEdge consumeChainEdge : edgeBatch) {
                 ConsumeChain savedChain = savedChains.get(consumeChainEdge.getChain());
                 if (savedChain != null) {
                     consumeChainEdge.setChain(savedChain);
                 }
+                edges.add(consumeChainEdge);
             }
-            loopMarker.markEdges(edgeBatch);
-            consumeChainEdgeRepository.saveAll(edgeBatch);
         }
+
+        loopMarker.markEdges(edges);
+        consumeChainEdgeRepository.saveAll(edges);
     }
 }

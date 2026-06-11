@@ -20,8 +20,11 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -56,20 +59,12 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 transactionRecordMsg.getCurrencyType()
         );
 
-        List<ConsumeChainAllocationCandidate> candidates = new ArrayList<>();
-        for (ConsumeChain mountChain : mountChains) {
-            candidates.add(new ConsumeChainAllocationCandidate(
-                    mountChain,
-                    consumeChainEdgeRepository.findByChain(mountChain)
-            ));
-        }
-
         ConsumeChainAllocationPlan plan = consumeChainAllocator.allocate(
                 transactionMountMsg,
                 transactionRecordMsg,
                 source,
                 target,
-                candidates
+                getConsumeChainAllocationCandidates(mountChains)
         );
         consumeChainPersistenceService.save(plan);
     }
@@ -80,7 +75,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
-        List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findConsumeChainEdges(
+        ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRate(
                 returningFlowRateRequestDTO.getSourceId(),
                 returningFlowRateRequestDTO.getTargetId(),
                 returningFlowRateRequestDTO.getCurrencyType(),
@@ -88,17 +83,8 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
                 returningFlowRateRequestDTO.getEndTime()
         );
 
-        double loopedAmount = 0.0;
-        double unloopedAmount = 0.0;
-
-        for (ConsumeChainEdge edge : consumeChainEdges) {
-            if (edge.getIsLoop()) {
-                loopedAmount += edge.getAmount();
-            } else {
-                unloopedAmount += edge.getAmount();
-            }
-        }
-
+        double loopedAmount = amount(aggregate.getLoopedAmount());
+        double unloopedAmount = amount(aggregate.getUnloopedAmount());
         double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 0 : loopedAmount / (loopedAmount + unloopedAmount);
 
         return new ReturningFlowRateResponseDTO(
@@ -115,26 +101,16 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
-        List<ConsumeChainEdge> consumeChainEdgesByOnlyTarget = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
+        ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRateByTarget(
                 returningFlowRateRequestDTO.getTargetId(),
                 returningFlowRateRequestDTO.getCurrencyType(),
                 returningFlowRateRequestDTO.getStartTime(),
                 returningFlowRateRequestDTO.getEndTime()
         );
 
-        double targetTotalLoopedAmount = 0.0;
-        double targetTotalUnloopedAmount = 0.0;
-        for (ConsumeChainEdge edge : consumeChainEdgesByOnlyTarget) {
-            if (edge.getIsLoop()) {
-                targetTotalLoopedAmount += edge.getAmount();
-            } else {
-                targetTotalUnloopedAmount += edge.getAmount();
-            }
-        }
-
         return new ReturningFlowRateResponseDTO(
-                targetTotalLoopedAmount,
-                targetTotalUnloopedAmount,
+                amount(aggregate.getLoopedAmount()),
+                amount(aggregate.getUnloopedAmount()),
                 returningFlowRateRequestDTO.getCurrencyType()
         );
     }
@@ -168,16 +144,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("挂载交易ID不存在"));
 
-        List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByRelatedTransactionMount(transactionMountMsg);
-
-        List<ConsumeChain> consumeChains = new ArrayList<>();
-        for (ConsumeChainEdge edge : consumeChainEdges) {
-            ConsumeChain consumeChain = consumeChainRepository.findById(edge.getChain().getId())
-                    .orElseThrow(() -> new IllegalArgumentException("消费链条不存在"));
-
-            consumeChains.add(consumeChain);
-        }
-
+        List<ConsumeChain> consumeChains = consumeChainEdgeRepository.findDistinctChainsByRelatedTransactionMount(transactionMountMsg);
         return getConsumeChainResponseDTOs(consumeChains);
     }
 
@@ -269,6 +236,20 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         return flowNodeRegisterMsg;
     }
 
+    private List<ConsumeChainAllocationCandidate> getConsumeChainAllocationCandidates(List<ConsumeChain> mountChains) {
+        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = getEdgesByChainId(mountChains);
+        List<ConsumeChainAllocationCandidate> candidates = new ArrayList<>();
+
+        for (ConsumeChain mountChain : mountChains) {
+            candidates.add(new ConsumeChainAllocationCandidate(
+                    mountChain,
+                    edgesByChainId.getOrDefault(mountChain.getId(), List.of())
+            ));
+        }
+
+        return candidates;
+    }
+
     /**
      * 获取消费链响应DTO列表
      *
@@ -276,19 +257,38 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
      * @return 返回消费链响应DTO列表
      */
     private List<ConsumeChainResponseDTO> getConsumeChainResponseDTOs(List<ConsumeChain> consumeChains) {
+        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = getEdgesByChainId(consumeChains);
         List<ConsumeChainResponseDTO> consumeChainResponseDTOs = new ArrayList<>();
 
         for (ConsumeChain consumeChain : consumeChains) {
             ConsumeChainResponseDTO consumeChainResponseDTO = new ConsumeChainResponseDTO();
-            List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByChainOrderByRelatedTransactionMountTimestampAsc(consumeChain);
 
             consumeChainResponseDTO.setConsumeChain(consumeChain);
-            consumeChainResponseDTO.setConsumeChainEdges(consumeChainEdges);
+            consumeChainResponseDTO.setConsumeChainEdges(edgesByChainId.getOrDefault(consumeChain.getId(), List.of()));
 
             consumeChainResponseDTOs.add(consumeChainResponseDTO);
         }
 
         return consumeChainResponseDTOs;
+    }
+
+    private Map<UUID, List<ConsumeChainEdge>> getEdgesByChainId(List<ConsumeChain> consumeChains) {
+        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = new HashMap<>();
+        if (consumeChains.isEmpty()) {
+            return edgesByChainId;
+        }
+
+        List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(consumeChains);
+        for (ConsumeChainEdge consumeChainEdge : consumeChainEdges) {
+            UUID chainId = consumeChainEdge.getChain().getId();
+            edgesByChainId.computeIfAbsent(chainId, unused -> new ArrayList<>()).add(consumeChainEdge);
+        }
+
+        return edgesByChainId;
+    }
+
+    private double amount(BigDecimal amount) {
+        return amount == null ? 0.0 : amount.doubleValue();
     }
 
 }

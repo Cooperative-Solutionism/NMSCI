@@ -98,6 +98,35 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void returningFlowRateIsAggregatedByDatabase() throws Exception {
+        UUID flowNodeId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        UUID empowerId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        UUID recordId = UUID.fromString("33333333-3333-3333-3333-333333333333");
+        UUID mountId = UUID.fromString("44444444-4444-4444-4444-444444444444");
+
+        sendFlowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A);
+        sendCentralPubkeyEmpower(empowerId, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+
+        mockMvc.perform(get("/returning-flow-rate/by-id")
+                        .param("sourceId", flowNodeId.toString())
+                        .param("targetId", flowNodeId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.returningFlowRate").value(1.0))
+                .andExpect(jsonPath("$.data.loopedAmount").value(1200.0))
+                .andExpect(jsonPath("$.data.unloopedAmount").value(0.0));
+
+        mockMvc.perform(get("/returning-flow-rate/by-id")
+                        .param("targetId", flowNodeId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.targetTotalLoopedAmount").value(1200.0))
+                .andExpect(jsonPath("$.data.targetTotalUnloopedAmount").value(0.0));
+    }
+
+    @Test
     void queryByFlowNodePubkeyReturnsSavedRegisterMessage() throws Exception {
         UUID flowNodeId = UUID.fromString("55555555-5555-5555-5555-555555555555");
         sendFlowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A);
