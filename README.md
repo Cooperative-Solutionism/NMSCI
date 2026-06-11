@@ -46,7 +46,7 @@
 block-version=1
 block-header-size=229
 block-max-size=1048576
-blcok-dat-max-size=134217728
+block-dat-max-size=134217728
 
 file-root-dir=file
 file-dat-dir=dat

@@ -41,7 +41,7 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Value("${block-max-size}")
     private long blockMaxSize;
 
-    @Value("${blcok-dat-max-size}")
+    @Value("${block-dat-max-size}")
     private long blockDatMaxSize;
 
     @Value("${file-root-dir}")

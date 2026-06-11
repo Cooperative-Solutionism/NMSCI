@@ -36,7 +36,7 @@
       "description": "区块最大字节数."
     },
     {
-      "name": "blcok-dat-max-size",
+      "name": "block-dat-max-size",
       "type": "java.lang.Long",
       "description": "dat文件最大字节数."
     },
