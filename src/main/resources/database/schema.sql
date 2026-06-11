@@ -137,7 +137,9 @@ create table transaction_record_msgs
     id                            uuid               not null
         primary key,
     msg_type                      smallint default 4 not null,
-    amount                        bigint             not null,
+    amount                        bigint             not null
+        constraint ck_transaction_record_msgs_amount_positive
+            check (amount > 0),
     currency_type                 smallint           not null,
     transaction_difficulty_target integer            not null,
     nonce                         integer            not null,

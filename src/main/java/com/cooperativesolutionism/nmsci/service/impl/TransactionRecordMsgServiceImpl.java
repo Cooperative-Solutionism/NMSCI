@@ -60,6 +60,10 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionRecordMsg.getValue());
         }
 
+        if (transactionRecordMsg.getAmount() == null || transactionRecordMsg.getAmount() <= 0) {
+            throw new IllegalArgumentException("交易金额必须为正数");
+        }
+
         if (transactionRecordMsgRepository.existsById(transactionRecordMsg.getId())) {
             throw new IllegalArgumentException("该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在");
         }
