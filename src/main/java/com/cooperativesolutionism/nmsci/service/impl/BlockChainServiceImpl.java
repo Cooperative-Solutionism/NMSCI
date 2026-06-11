@@ -123,6 +123,8 @@ public class BlockChainServiceImpl implements BlockChainService {
         blockInfo.setPreviousBlockHash(previousBlockHash);
 
         blockSize += blockHeaderSize;
+        // 区块体始终为每种消息类型写入8字节数量字段
+        blockSize += MsgTypeEnum.values().length * Long.BYTES;
 
         int page = 0;
         int pageSize = 1000;

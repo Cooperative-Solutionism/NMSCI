@@ -98,4 +98,30 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
             ReflectionTestUtils.setField(blockChainService, "blockDatMaxSize", originalBlockDatMaxSize);
         }
     }
+
+    @Test
+    void generateBlockKeepsRawBytesWithinBlockMaxSizeIncludingMessageCountFields() throws Exception {
+        UUID flowNodeId = UUID.fromString("33333333-aaaa-3333-aaaa-333333333333");
+        byte[] flowNodeRegisterMsg = builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS);
+        int blockHeaderSize = (Integer) ReflectionTestUtils.getField(blockChainService, "blockHeaderSize");
+        long configuredBlockMaxSize = blockHeaderSize + flowNodeRegisterMsg.length;
+        Object originalBlockMaxSize = ReflectionTestUtils.getField(blockChainService, "blockMaxSize");
+        ReflectionTestUtils.setField(blockChainService, "blockMaxSize", configuredBlockMaxSize);
+        try {
+            mockMvc.perform(post("/flow-node-register-msg/send")
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .content(flowNodeRegisterMsg))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.code").value(200));
+
+            blockChainService.generateBlock();
+
+            var generatedBlock = blockInfoRepository.findByHeight(1L);
+            assertNotNull(generatedBlock);
+            assertTrue(generatedBlock.getRawBytes().length <= configuredBlockMaxSize);
+            assertEquals(1L, msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc());
+        } finally {
+            ReflectionTestUtils.setField(blockChainService, "blockMaxSize", originalBlockMaxSize);
+        }
+    }
 }
