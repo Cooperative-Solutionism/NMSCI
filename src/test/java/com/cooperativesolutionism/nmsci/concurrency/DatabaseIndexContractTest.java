@@ -29,6 +29,7 @@ class DatabaseIndexContractTest {
             "idx_transaction_mount_flow_pubkey",
             "idx_transaction_mount_consume_flow_pubkey",
             "idx_msg_abstracts_unblocked_timestamp",
+            "idx_msg_abstracts_unblocked_timestamp_id",
             "idx_block_infos_height_desc",
             "idx_consume_chains_open_end_currency_tail",
             "idx_consume_chains_start",

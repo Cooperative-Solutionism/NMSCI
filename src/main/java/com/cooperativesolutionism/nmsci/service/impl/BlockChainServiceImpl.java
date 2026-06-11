@@ -39,8 +39,21 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Override
     @Transactional
     public void generateBlock() {
-        BlockInfo previousBlock = blockInfoRepository.findTopByOrderByHeightDesc();
+        generateSelectedBlock(blockMessageSelector.select());
+    }
+
+    private boolean generateBlockIfMessagesSelectedForLoop() {
         SelectedBlockMessages selectedMessages = blockMessageSelector.select();
+        if (selectedMessages.isEmpty()) {
+            return false;
+        }
+
+        generateSelectedBlock(selectedMessages);
+        return true;
+    }
+
+    private void generateSelectedBlock(SelectedBlockMessages selectedMessages) {
+        BlockInfo previousBlock = blockInfoRepository.findTopByOrderByHeightDesc();
         AssembledBlock assembledBlock = blockAssembler.assemble(previousBlock, selectedMessages);
         BlockInfo blockInfo = assembledBlock.getBlockInfo();
 
@@ -53,15 +66,8 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Override
     @Transactional
     public void generateBlockUntilNoNotInBlockMsgs() {
-        while (true) {
-            long notInBlockMsgAbstractCount = msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc();
-            if (notInBlockMsgAbstractCount == 0) {
-                break;
-            }
-
-            if (notInBlockMsgAbstractCount > 0) {
-                generateBlock();
-            }
+        while (generateBlockIfMessagesSelectedForLoop()) {
+            // Continue until the selector returns no messages.
         }
     }
 

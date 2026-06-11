@@ -434,6 +434,9 @@ create index idx_transaction_mount_consume_flow_pubkey
 create index idx_msg_abstracts_unblocked_timestamp
     on msg_abstracts(is_in_block, confirm_timestamp);
 
+create index idx_msg_abstracts_unblocked_timestamp_id
+    on msg_abstracts(is_in_block, confirm_timestamp, id);
+
 create index idx_block_infos_height_desc
     on block_infos(height desc);
 
