@@ -1,26 +1,22 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
-import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
+import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
+import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
+import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import com.cooperativesolutionism.nmsci.util.DateUtil;
-import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
-import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -28,25 +24,28 @@ import java.util.UUID;
 public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerMsgService {
 
     @Resource
-    private NmsciProperties nmsciProperties;
-
-    @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
-
-    @Resource
-    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
-
-    @Resource
-    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
     private MsgAbstractService msgAbstractService;
 
+    @Resource
+    private FlowNodeStateValidator flowNodeStateValidator;
+
+    @Resource
+    private CentralPubkeyValidator centralPubkeyValidator;
+
+    @Resource
+    private SignatureValidator signatureValidator;
+
+    @Resource
+    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
+
+    @Resource
+    private CentralSignatureService centralSignatureService;
+
     @Override
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
-        String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
-        String centralPrikeyBase64 = nmsciProperties.getCentralPrikeyBase64();
-
         if (centralPubkeyEmpowerMsg.getMsgType() != MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue());
         }
@@ -55,86 +54,25 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
             throw new IllegalArgumentException("该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在");
         }
 
-        if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")未注册");
-        }
-
+        flowNodeStateValidator.validateRegistered(centralPubkeyEmpowerMsg.getFlowNodePubkey());
         if (centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
             throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
         }
+        centralPubkeyValidator.validateCurrentAndNotLocked(centralPubkeyEmpowerMsg.getCentralPubkey());
+        signatureValidator.validateLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature(), "流转节点签名不符合低S标准");
 
-        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyEmpowerMsg.getCentralPubkey())) {
-            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getCentralPubkey()) + ")已被冻结");
-        }
-
-        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
-        if (!Arrays.equals(centralPubkeyEmpowerMsg.getCentralPubkey(), centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
-        }
-
-        try {
-            if (Secp256k1EncryptUtil.isNotLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature())) {
-                throw new IllegalArgumentException("流转节点签名不符合低S标准");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        // 拼接验证数据 【信息类型2字节(0)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】
-        byte[] verifyData;
-        verifyData = ArrayUtils.addAll(
-                ByteArrayUtil.shortToBytes(centralPubkeyEmpowerMsg.getMsgType()),
-                ByteArrayUtil.uuidToBytes(centralPubkeyEmpowerMsg.getId())
-        );
-        verifyData = ArrayUtils.addAll(
+        byte[] verifyData = protocolRawBytesBuilder.centralPubkeyEmpowerVerifyData(centralPubkeyEmpowerMsg);
+        signatureValidator.validateSignature(
                 verifyData,
-                centralPubkeyEmpowerMsg.getFlowNodePubkey()
+                centralPubkeyEmpowerMsg.getFlowNodeSignature(),
+                centralPubkeyEmpowerMsg.getFlowNodePubkey(),
+                "流转节点签名验证失败"
         );
-        verifyData = ArrayUtils.addAll(
-                verifyData,
-                centralPubkeyEmpowerMsg.getCentralPubkey()
-        );
-
-        try {
-            boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
-                    verifyData,
-                    centralPubkeyEmpowerMsg.getFlowNodeSignature(),
-                    Secp256k1EncryptUtil.compressedToPublicKey(centralPubkeyEmpowerMsg.getFlowNodePubkey())
-            );
-            if (!isValidSignature) {
-                throw new IllegalArgumentException("流转节点签名验证失败");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        long timestamp = DateUtil.getCurrentMicros();
-
-        // 拼接中心签名数据 【信息类型2字节(0)】+【uuid16字节】+【流转节点公钥33字节】+【中心公钥33字节】+【流转节点对信息(前4项数据)签名64字节】+【时间戳8字节】
-        byte[] centralSignData;
-        centralSignData = ArrayUtils.addAll(
+        centralSignatureService.signAndPopulate(
+                centralPubkeyEmpowerMsg,
                 verifyData,
                 centralPubkeyEmpowerMsg.getFlowNodeSignature()
         );
-        centralSignData = ArrayUtils.addAll(
-                centralSignData,
-                ByteArrayUtil.longToBytes(timestamp)
-        );
-
-        try {
-            byte[] centralPrikey = ByteArrayUtil.base64ToBytes(centralPrikeyBase64);
-            byte[] centralSignature = Secp256k1EncryptUtil.derToRs(Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey)));
-            byte[] rawBytes = ArrayUtils.addAll(
-                    centralSignData,
-                    centralSignature
-            );
-            centralPubkeyEmpowerMsg.setConfirmTimestamp(timestamp);
-            centralPubkeyEmpowerMsg.setCentralSignature(centralSignature);
-            centralPubkeyEmpowerMsg.setRawBytes(rawBytes);
-            centralPubkeyEmpowerMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
         msgAbstractService.saveMsgAbstract(centralPubkeyEmpowerMsg);
 

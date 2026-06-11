@@ -16,7 +16,7 @@ import java.util.UUID;
 @Comment("流转节点冻结信息")
 @Entity
 @Table(name = "flow_node_locked_msgs")
-public class FlowNodeLockedMsg implements Message {
+public class FlowNodeLockedMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;

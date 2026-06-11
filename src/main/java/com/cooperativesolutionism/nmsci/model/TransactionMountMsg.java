@@ -26,7 +26,7 @@ import java.util.UUID;
                 )
         }
 )
-public class TransactionMountMsg implements Message {
+public class TransactionMountMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;

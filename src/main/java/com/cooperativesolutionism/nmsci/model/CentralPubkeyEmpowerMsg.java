@@ -15,7 +15,7 @@ import java.util.UUID;
 @Comment("中心公钥公证信息")
 @Entity
 @Table(name = "central_pubkey_empower_msgs")
-public class CentralPubkeyEmpowerMsg implements Message {
+public class CentralPubkeyEmpowerMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;

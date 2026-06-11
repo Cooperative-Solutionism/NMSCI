@@ -17,7 +17,7 @@ import java.util.UUID;
 @Comment("交易记录信息")
 @Entity
 @Table(name = "transaction_record_msgs")
-public class TransactionRecordMsg implements Message {
+public class TransactionRecordMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
