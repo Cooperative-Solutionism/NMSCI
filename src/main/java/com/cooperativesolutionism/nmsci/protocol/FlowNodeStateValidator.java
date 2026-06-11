@@ -49,8 +49,18 @@ public class FlowNodeStateValidator {
     }
 
     public void validateRegisteredAuthorizedAndNotLocked(byte[] flowNodePubkey, byte[] centralPubkey) {
-        validateRegistered(flowNodePubkey);
-        validateAuthorized(flowNodePubkey, centralPubkey);
-        validateNotLocked(flowNodePubkey);
+        String flowNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(flowNodePubkey);
+        FlowNodeState flowNodeState = flowNodeRegisterMsgRepository.findFlowNodeState(flowNodePubkey, centralPubkey);
+        if (flowNodeState == null || !flowNodeState.getRegistered()) {
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未注册");
+        }
+
+        if (!flowNodeState.getAuthorized()) {
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")未授权");
+        }
+
+        if (flowNodeState.getLocked()) {
+            throw new IllegalArgumentException("该流转节点公钥(" + flowNodePubkeyBase64 + ")已冻结");
+        }
     }
 }

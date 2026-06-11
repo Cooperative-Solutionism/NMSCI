@@ -30,6 +30,15 @@ public class SelectedBlockMessages {
         return Collections.unmodifiableList(messages);
     }
 
+    public boolean isEmpty() {
+        for (List<MsgAbstract> typedMessages : messagesByType.values()) {
+            if (!typedMessages.isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public long getMaxMsgTimestamp() {
         return maxMsgTimestamp;
     }

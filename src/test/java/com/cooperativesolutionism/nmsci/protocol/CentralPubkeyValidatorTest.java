@@ -22,6 +22,26 @@ class CentralPubkeyValidatorTest {
     }
 
     @Test
+    void cachesDecodedCurrentCentralPubkeyAfterConstruction() {
+        CountingProperties properties = new CountingProperties();
+        CentralPubkeyValidator cachingValidator = new CentralPubkeyValidator(properties, lockedRepository);
+
+        cachingValidator.currentCentralPubkey();
+        cachingValidator.currentCentralPubkey();
+        cachingValidator.validateCurrent(TestKeyPairs.CENTRAL.pubkey());
+
+        assertEquals(1, properties.getCentralPubkeyBase64ReadCount());
+    }
+
+    @Test
+    void returnsDefensiveCopyOfCachedCentralPubkey() {
+        byte[] currentCentralPubkey = validator.currentCentralPubkey();
+        currentCentralPubkey[0] = (byte) (currentCentralPubkey[0] + 1);
+
+        assertArrayEquals(TestKeyPairs.CENTRAL.pubkey(), validator.currentCentralPubkey());
+    }
+
+    @Test
     void rejectsLockedCentralPubkeyBeforeCheckingCurrentPubkey() {
         when(lockedRepository.existsByCentralPubkey(TestKeyPairs.FLOW_NODE_A.pubkey())).thenReturn(true);
 
@@ -50,5 +70,26 @@ class CentralPubkeyValidatorTest {
         centralKeyPair.setPrikey(TestKeyPairs.CENTRAL.prikeyBase64());
         properties.setCentralKeyPair(centralKeyPair);
         return properties;
+    }
+
+    private static class CountingProperties extends NmsciProperties {
+        private int centralPubkeyBase64ReadCount;
+
+        private CountingProperties() {
+            CentralKeyPair centralKeyPair = new CentralKeyPair();
+            centralKeyPair.setPubkey(TestKeyPairs.CENTRAL.pubkeyBase64());
+            centralKeyPair.setPrikey(TestKeyPairs.CENTRAL.prikeyBase64());
+            setCentralKeyPair(centralKeyPair);
+        }
+
+        @Override
+        public String getCentralPubkeyBase64() {
+            centralPubkeyBase64ReadCount++;
+            return super.getCentralPubkeyBase64();
+        }
+
+        private int getCentralPubkeyBase64ReadCount() {
+            return centralPubkeyBase64ReadCount;
+        }
     }
 }

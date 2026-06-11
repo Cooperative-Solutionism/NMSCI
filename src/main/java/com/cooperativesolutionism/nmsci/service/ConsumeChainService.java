@@ -6,8 +6,9 @@ import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import jakarta.annotation.Nonnull;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface ConsumeChainService {
@@ -58,7 +59,7 @@ public interface ConsumeChainService {
      * @param id 消费链挂载交易ID
      * @return 返回消费链数据
      */
-    List<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id);
+    Slice<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id, Pageable pageable);
 
     /**
      * 根据起点ID获取消费链数据
@@ -66,7 +67,7 @@ public interface ConsumeChainService {
      * @param id 起点ID
      * @return 返回消费链数据
      */
-    List<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id);
+    Slice<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id, Pageable pageable);
 
     /**
      * 根据起点ID和是否成环获取消费链数据
@@ -75,7 +76,7 @@ public interface ConsumeChainService {
      * @param isLoop 是否成环
      * @return 返回消费链数据
      */
-    List<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop);
+    Slice<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop, Pageable pageable);
 
     /**
      * 根据终点ID获取消费链数据
@@ -83,7 +84,7 @@ public interface ConsumeChainService {
      * @param id   终点ID
      * @return 返回消费链数据
      */
-    List<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id);
+    Slice<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id, Pageable pageable);
 
     /**
      * 根据终点ID和是否成环获取消费链数据
@@ -92,7 +93,7 @@ public interface ConsumeChainService {
      * @param isLoop 是否成环
      * @return 返回消费链数据
      */
-    List<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop);
+    Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable);
 
     ConsumeChainResponseDTO getConsumeChainById(UUID uuid);
 }

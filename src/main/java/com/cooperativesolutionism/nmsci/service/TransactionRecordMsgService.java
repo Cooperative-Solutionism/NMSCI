@@ -3,8 +3,9 @@ package com.cooperativesolutionism.nmsci.service;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
-import java.util.List;
 import java.util.UUID;
 
 public interface TransactionRecordMsgService {
@@ -31,7 +32,7 @@ public interface TransactionRecordMsgService {
      * @param consumeNodePubkey 消费节点公钥
      * @return 交易记录消息列表
      */
-    List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey);
+    Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable);
 
     /**
      * 根据流转节点公钥获取交易记录消息列表
@@ -39,7 +40,7 @@ public interface TransactionRecordMsgService {
      * @param flowNodePubkey 流转节点公钥
      * @return 交易记录消息列表
      */
-    List<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey);
+    Slice<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
 
     /**
      * 根据消费节点公钥和流转节点公钥获取交易记录消息列表
@@ -48,5 +49,5 @@ public interface TransactionRecordMsgService {
      * @param flowNodePubkey 流转节点公钥
      * @return 交易记录消息列表
      */
-    List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey);
+    Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey, Pageable pageable);
 }

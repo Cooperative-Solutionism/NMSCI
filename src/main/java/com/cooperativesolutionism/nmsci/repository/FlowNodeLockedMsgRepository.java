@@ -1,8 +1,11 @@
 package com.cooperativesolutionism.nmsci.repository;
 
+import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 public interface FlowNodeLockedMsgRepository extends JpaRepository<FlowNodeLockedMsg, UUID> {
@@ -10,4 +13,6 @@ public interface FlowNodeLockedMsgRepository extends JpaRepository<FlowNodeLocke
     boolean existsByFlowNodePubkey(byte[] flowNodePubkey);
 
     FlowNodeLockedMsg findByFlowNodePubkey(byte[] flowNodePubkey);
+
+    List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
 }

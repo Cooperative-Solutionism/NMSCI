@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.constant.BlockConstants;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
-import com.cooperativesolutionism.nmsci.model.Message;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
@@ -18,10 +17,12 @@ import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import com.cooperativesolutionism.nmsci.util.Sha256Util;
 import jakarta.annotation.Resource;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -51,20 +52,13 @@ public class BlockAssembler {
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
     public AssembledBlock assemble(BlockInfo previousBlock, SelectedBlockMessages selectedMessages) {
-        byte[] blockHeader = ArrayUtils.addAll(
-                ByteArrayUtil.intToBytes(nmsciProperties.getBlockVersion()),
-                ByteArrayUtil.longToBytes(nextHeight(previousBlock))
-        );
-        blockHeader = ArrayUtils.addAll(
-                blockHeader,
-                ByteArrayUtil.hexToBytes(nmsciProperties.getSourceCodeZipHash())
-        );
-        blockHeader = ArrayUtils.addAll(
-                blockHeader,
-                previousBlockHash(previousBlock)
-        );
+        ByteArrayOutputStream blockHeader = new ByteArrayOutputStream(nmsciProperties.getBlockHeaderSize());
+        write(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getBlockVersion()));
+        write(blockHeader, ByteArrayUtil.longToBytes(nextHeight(previousBlock)));
+        write(blockHeader, ByteArrayUtil.hexToBytes(nmsciProperties.getSourceCodeZipHash()));
+        write(blockHeader, previousBlockHash(previousBlock));
 
-        byte[] blockBody = new byte[0];
+        ByteArrayOutputStream blockBody = new ByteArrayOutputStream();
         List<byte[]> leafTxids = new ArrayList<>();
         for (Map.Entry<MsgTypeEnum, List<MsgAbstract>> entry : selectedMessages.getMessagesByType().entrySet()) {
             MsgTypeEnum msgType = entry.getKey();
@@ -76,49 +70,52 @@ public class BlockAssembler {
                 msgAbstract.setIsInBlock(true);
             }
 
-            blockBody = ArrayUtils.addAll(blockBody, ByteArrayUtil.longToBytes(msgAbstracts.size()));
-            for (Message msg : findMessages(msgType, msgIds)) {
+            write(blockBody, ByteArrayUtil.longToBytes(msgAbstracts.size()));
+            for (BlockMessagePayload msg : findMessages(msgType, msgIds)) {
                 leafTxids.add(msg.getTxid());
-                blockBody = ArrayUtils.addAll(blockBody, msg.getRawBytes());
+                write(blockBody, msg.getRawBytes());
             }
         }
 
         byte[] merkleRoot = MerkleTreeUtil.calcMerkleRoot(leafTxids);
         long nowTimestamp = DateUtil.getCurrentMicros();
 
-        blockHeader = ArrayUtils.addAll(blockHeader, merkleRoot);
-        blockHeader = ArrayUtils.addAll(blockHeader, ByteArrayUtil.longToBytes(selectedMessages.getMaxMsgTimestamp()));
-        blockHeader = ArrayUtils.addAll(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getRegisterDifficultyTargetNbits()));
-        blockHeader = ArrayUtils.addAll(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getTransactionDifficultyTargetNbits()));
-        blockHeader = ArrayUtils.addAll(blockHeader, ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPubkeyBase64()));
-        blockHeader = ArrayUtils.addAll(blockHeader, ByteArrayUtil.longToBytes(nowTimestamp));
+        write(blockHeader, merkleRoot);
+        write(blockHeader, ByteArrayUtil.longToBytes(selectedMessages.getMaxMsgTimestamp()));
+        write(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getRegisterDifficultyTargetNbits()));
+        write(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getTransactionDifficultyTargetNbits()));
+        write(blockHeader, ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPubkeyBase64()));
+        write(blockHeader, ByteArrayUtil.longToBytes(nowTimestamp));
 
         try {
+            byte[] blockHeaderForSigning = blockHeader.toByteArray();
             byte[] centralPrikey = ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPrikeyBase64());
             byte[] centralSignature = Secp256k1EncryptUtil.derToRs(
-                    Secp256k1EncryptUtil.signData(blockHeader, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey))
+                    Secp256k1EncryptUtil.signData(blockHeaderForSigning, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey))
             );
-            blockHeader = ArrayUtils.addAll(blockHeader, centralSignature);
+            write(blockHeader, centralSignature);
 
-            byte[] rawBlockBytes = ArrayUtils.addAll(blockHeader, blockBody);
+            byte[] blockHeaderBytes = blockHeader.toByteArray();
+            byte[] blockBodyBytes = blockBody.toByteArray();
+            ByteArrayOutputStream rawBlock = new ByteArrayOutputStream(blockHeaderBytes.length + blockBodyBytes.length);
+            write(rawBlock, blockHeaderBytes);
+            write(rawBlock, blockBodyBytes);
+            byte[] rawBlockBytes = rawBlock.toByteArray();
             BlockInfo blockInfo = buildBlockInfo(
                     previousBlock,
                     merkleRoot,
                     selectedMessages.getMaxMsgTimestamp(),
                     nowTimestamp,
                     centralSignature,
-                    blockHeader,
+                    blockHeaderBytes,
                     rawBlockBytes
             );
-            byte[] datBytes = ArrayUtils.addAll(
-                    ArrayUtils.addAll(
-                            ByteArrayUtil.intToBytes(BlockConstants.MAGIC_NUMBER),
-                            ByteArrayUtil.longToBytes(rawBlockBytes.length)
-                    ),
-                    rawBlockBytes
-            );
+            ByteArrayOutputStream dat = new ByteArrayOutputStream(Integer.BYTES + Long.BYTES + rawBlockBytes.length);
+            write(dat, ByteArrayUtil.intToBytes(BlockConstants.MAGIC_NUMBER));
+            write(dat, ByteArrayUtil.longToBytes(rawBlockBytes.length));
+            write(dat, rawBlockBytes);
 
-            return new AssembledBlock(blockInfo, datBytes, selectedMessages.getAllMessages());
+            return new AssembledBlock(blockInfo, dat.toByteArray(), selectedMessages.getAllMessages());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -164,26 +161,46 @@ public class BlockAssembler {
         return previousBlock.getId();
     }
 
-    private List<Message> findMessages(MsgTypeEnum msgType, List<UUID> msgIds) {
-        List<Message> messages = new ArrayList<>();
+    private List<BlockMessagePayload> findMessages(MsgTypeEnum msgType, List<UUID> msgIds) {
         if (msgIds.isEmpty()) {
-            return messages;
+            return List.of();
         }
 
+        List<BlockMessagePayload> payloads;
         if (msgType.equals(MsgTypeEnum.FlowNodeRegisterMsg)) {
-            messages.addAll(flowNodeRegisterMsgRepository.findAllById(msgIds));
+            payloads = flowNodeRegisterMsgRepository.findPayloadByIdIn(msgIds);
         } else if (msgType.equals(MsgTypeEnum.CentralPubkeyEmpowerMsg)) {
-            messages.addAll(centralPubkeyEmpowerMsgRepository.findAllById(msgIds));
+            payloads = centralPubkeyEmpowerMsgRepository.findPayloadByIdIn(msgIds);
         } else if (msgType.equals(MsgTypeEnum.CentralPubkeyLockedMsg)) {
-            messages.addAll(centralPubkeyLockedMsgRepository.findAllById(msgIds));
+            payloads = centralPubkeyLockedMsgRepository.findPayloadByIdIn(msgIds);
         } else if (msgType.equals(MsgTypeEnum.FlowNodeLockedMsg)) {
-            messages.addAll(flowNodeLockedMsgRepository.findAllById(msgIds));
+            payloads = flowNodeLockedMsgRepository.findPayloadByIdIn(msgIds);
         } else if (msgType.equals(MsgTypeEnum.TransactionRecordMsg)) {
-            messages.addAll(transactionRecordMsgRepository.findAllById(msgIds));
+            payloads = transactionRecordMsgRepository.findPayloadByIdIn(msgIds);
         } else if (msgType.equals(MsgTypeEnum.TransactionMountMsg)) {
-            messages.addAll(transactionMountMsgRepository.findAllById(msgIds));
+            payloads = transactionMountMsgRepository.findPayloadByIdIn(msgIds);
+        } else {
+            return List.of();
         }
 
-        return messages;
+        Map<UUID, BlockMessagePayload> payloadsById = new HashMap<>();
+        for (BlockMessagePayload payload : payloads) {
+            payloadsById.put(payload.getId(), payload);
+        }
+
+        List<BlockMessagePayload> orderedPayloads = new ArrayList<>();
+        for (UUID msgId : msgIds) {
+            BlockMessagePayload payload = payloadsById.get(msgId);
+            if (payload == null) {
+                throw new IllegalStateException("未找到区块消息正文: " + msgId);
+            }
+            orderedPayloads.add(payload);
+        }
+
+        return orderedPayloads;
+    }
+
+    private void write(ByteArrayOutputStream outputStream, byte[] bytes) {
+        outputStream.writeBytes(bytes);
     }
 }

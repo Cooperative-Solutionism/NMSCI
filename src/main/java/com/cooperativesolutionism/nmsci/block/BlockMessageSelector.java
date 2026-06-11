@@ -6,9 +6,6 @@ import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import jakarta.annotation.Resource;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -37,12 +34,11 @@ public class BlockMessageSelector {
             selectedMessages.put(msgType, new ArrayList<>());
         }
 
-        int page = 0;
+        Long lastConfirmTimestamp = null;
+        byte[] lastId = null;
         outerLoop:
         while (true) {
-            Pageable pageable = PageRequest.of(page, PAGE_SIZE);
-            Page<MsgAbstract> msgAbstractRes = msgAbstractRepository.findByIsInBlockFalseOrderByConfirmTimestampAsc(pageable);
-            List<MsgAbstract> msgAbstracts = msgAbstractRes.getContent();
+            List<MsgAbstract> msgAbstracts = msgAbstractRepository.findNextNotInBlockBatch(lastConfirmTimestamp, lastId, PAGE_SIZE);
             if (msgAbstracts.isEmpty()) {
                 break;
             }
@@ -62,7 +58,9 @@ public class BlockMessageSelector {
                 selectedMessages.get(msgType).add(msgAbstract);
             }
 
-            page++;
+            MsgAbstract lastMsgAbstract = msgAbstracts.get(msgAbstracts.size() - 1);
+            lastConfirmTimestamp = lastMsgAbstract.getConfirmTimestamp();
+            lastId = lastMsgAbstract.getId();
         }
 
         return new SelectedBlockMessages(selectedMessages, maxMsgTimestamp);

@@ -2,25 +2,25 @@ package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
+import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
 import com.cooperativesolutionism.nmsci.protocol.ProofOfWorkValidator;
 import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
-import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -28,7 +28,7 @@ import java.util.UUID;
 public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgService {
 
     @Resource
-    private BlockInfoRepository blockInfoRepository;
+    private BlockDifficultyService blockDifficultyService;
 
     @Resource
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
@@ -68,8 +68,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
-        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
-        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
+        int transactionDifficultyTargetNbits = blockDifficultyService.currentTransactionDifficultyTarget();
         if (!transactionRecordMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }
@@ -109,27 +108,28 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     }
 
     @Override
-    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+    public Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable) {
         if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
         }
 
-        return transactionRecordMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+        return transactionRecordMsgRepository.findByConsumeNodePubkey(consumeNodePubkey, pageable);
     }
 
     @Override
-    public List<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+    public Slice<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
-        return transactionRecordMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+        return transactionRecordMsgRepository.findByFlowNodePubkey(flowNodePubkey, pageable);
     }
 
     @Override
-    public List<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+    public Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
             byte[] consumeNodePubkey,
-            byte[] flowNodePubkey
+            byte[] flowNodePubkey,
+            Pageable pageable
     ) {
         if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
@@ -139,7 +139,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
-        return transactionRecordMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
+        return transactionRecordMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey, pageable);
     }
 
 }
