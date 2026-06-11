@@ -1,16 +1,15 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
+import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
 import com.cooperativesolutionism.nmsci.protocol.ProofOfWorkValidator;
 import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
-import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
@@ -32,7 +31,7 @@ import java.util.UUID;
 @Validated
 public class TransactionMountMsgServiceImpl implements TransactionMountMsgService {
     @Resource
-    private BlockInfoRepository blockInfoRepository;
+    private BlockDifficultyService blockDifficultyService;
 
     @Resource
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
@@ -82,8 +81,7 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
         }
 
-        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
-        int transactionDifficultyTargetNbits = newestBlockInfo.getTransactionDifficultyTarget();
+        int transactionDifficultyTargetNbits = blockDifficultyService.currentTransactionDifficultyTarget();
         if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
         }

@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyEmpowerMsgConverter;
+import com.cooperativesolutionism.nmsci.converter.TransactionMountMsgConverter;
 import com.cooperativesolutionism.nmsci.converter.TransactionRecordMsgConverter;
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
@@ -32,6 +33,23 @@ class ProtocolRawBytesBuilderTest {
         assertArrayEquals(
                 Arrays.copyOfRange(messageBytes, 0, 135),
                 rawBytesBuilder.transactionRecordVerifyData(TransactionRecordMsgConverter.fromByteArray(messageBytes))
+        );
+    }
+
+    @Test
+    void buildsTransactionMountVerifyDataInProtocolFieldOrder() {
+        byte[] messageBytes = messageBuilder.transactionMount(
+                UUID.fromString("12121212-1212-1212-1212-121212121212"),
+                UUID.fromString("34343434-3434-3434-3434-343434343434"),
+                TestKeyPairs.CONSUME_NODE_A,
+                TestKeyPairs.FLOW_NODE_A,
+                TestKeyPairs.CENTRAL,
+                0x20ffffff
+        );
+
+        assertArrayEquals(
+                Arrays.copyOfRange(messageBytes, 0, 141),
+                rawBytesBuilder.transactionMountVerifyData(TransactionMountMsgConverter.fromByteArray(messageBytes))
         );
     }
 

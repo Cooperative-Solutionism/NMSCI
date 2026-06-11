@@ -10,19 +10,21 @@ import java.util.Arrays;
 @Component
 public class CentralPubkeyValidator {
 
-    private final NmsciProperties nmsciProperties;
     private final CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+    private final String currentCentralPubkeyBase64;
+    private final byte[] currentCentralPubkey;
 
     public CentralPubkeyValidator(
             NmsciProperties nmsciProperties,
             CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository
     ) {
-        this.nmsciProperties = nmsciProperties;
         this.centralPubkeyLockedMsgRepository = centralPubkeyLockedMsgRepository;
+        this.currentCentralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
+        this.currentCentralPubkey = ByteArrayUtil.base64ToBytes(currentCentralPubkeyBase64);
     }
 
     public byte[] currentCentralPubkey() {
-        return ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPubkeyBase64());
+        return Arrays.copyOf(currentCentralPubkey, currentCentralPubkey.length);
     }
 
     public void validateCurrentAndNotLocked(byte[] centralPubkey) {
@@ -37,8 +39,8 @@ public class CentralPubkeyValidator {
     }
 
     public void validateCurrent(byte[] centralPubkey) {
-        if (!Arrays.equals(centralPubkey, currentCentralPubkey())) {
-            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + nmsciProperties.getCentralPubkeyBase64() + ")");
+        if (!Arrays.equals(centralPubkey, currentCentralPubkey)) {
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + currentCentralPubkeyBase64 + ")");
         }
     }
 }

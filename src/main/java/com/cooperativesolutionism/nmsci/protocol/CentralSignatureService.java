@@ -6,8 +6,9 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
+
+import java.nio.ByteBuffer;
 
 @Service
 public class CentralSignatureService {
@@ -31,7 +32,10 @@ public class CentralSignatureService {
             byte[] centralSignature = Secp256k1EncryptUtil.derToRs(
                     Secp256k1EncryptUtil.signData(centralSignData, Secp256k1EncryptUtil.rawToPrivateKey(centralPrikey))
             );
-            byte[] rawBytes = ArrayUtils.addAll(centralSignData, centralSignature);
+            byte[] rawBytes = ByteBuffer.allocate(centralSignData.length + centralSignature.length)
+                    .put(centralSignData)
+                    .put(centralSignature)
+                    .array();
             message.setConfirmTimestamp(timestamp);
             message.setCentralSignature(centralSignature);
             message.setRawBytes(rawBytes);
