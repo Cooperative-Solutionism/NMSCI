@@ -10,6 +10,7 @@ import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -37,8 +38,8 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     @Override
     @Transactional
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        FlowNodeRegisterMsg source = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(transactionMountMsg.getFlowNodePubkey());
-        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(transactionRecordMsg.getFlowNodePubkey());
+        FlowNodeRegisterMsg source = getFlowNodeRegisterMsgByPubkey(transactionMountMsg.getFlowNodePubkey(), "源");
+        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(transactionRecordMsg.getFlowNodePubkey(), "目标");
 
         List<ConsumeChain> mountChains = consumeChainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
                 source,
@@ -216,8 +217,8 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
 
     @Override
     public ReturningFlowRateResponseDTO getReturningFlowRateByPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
-        FlowNodeRegisterMsg source = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getSource());
-        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
+        FlowNodeRegisterMsg source = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getSource(), "源");
+        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
 
         returningFlowRateRequestDTO.setTargetId(target.getId());
         returningFlowRateRequestDTO.setSourceId(source.getId());
@@ -227,7 +228,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
 
     @Override
     public ReturningFlowRateResponseDTO getReturningFlowRateByTargetPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
-        FlowNodeRegisterMsg target = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(returningFlowRateRequestDTO.getTarget());
+        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
 
         returningFlowRateRequestDTO.setTargetId(target.getId());
 
@@ -373,6 +374,19 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         saveAllConsumeChainEdgesWithTestLoop(
                 List.of(consumeChainEdge)
         );
+    }
+
+    private FlowNodeRegisterMsg getFlowNodeRegisterMsgByPubkey(byte[] flowNodePubkey, String roleName) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException(roleName + "流转节点公钥不能为空或长度不为33字节");
+        }
+
+        FlowNodeRegisterMsg flowNodeRegisterMsg = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
+        if (flowNodeRegisterMsg == null) {
+            throw new IllegalArgumentException(roleName + "流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
+        }
+
+        return flowNodeRegisterMsg;
     }
 
     /**

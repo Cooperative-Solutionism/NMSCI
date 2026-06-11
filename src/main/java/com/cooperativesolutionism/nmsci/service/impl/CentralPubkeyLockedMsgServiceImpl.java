@@ -152,6 +152,10 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
             throw new IllegalArgumentException("中心公钥不能为空或长度不为33字节");
         }
 
+        if (!centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkey)) {
+            throw new IllegalArgumentException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结");
+        }
+
         return centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey);
     }
 }

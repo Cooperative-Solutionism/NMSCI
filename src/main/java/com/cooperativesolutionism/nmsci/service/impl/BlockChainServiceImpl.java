@@ -369,7 +369,12 @@ public class BlockChainServiceImpl implements BlockChainService {
 
     @Override
     public BlockInfo getBlockByHeight(long height) {
-        return blockInfoRepository.findByHeight(height);
+        BlockInfo blockInfo = blockInfoRepository.findByHeight(height);
+        if (blockInfo == null) {
+            throw new IllegalArgumentException("区块高度(" + height + ")不存在");
+        }
+
+        return blockInfo;
     }
 
     @Override

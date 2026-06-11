@@ -172,6 +172,10 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
         }
 
+        if (!flowNodeLockedMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
+            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未冻结");
+        }
+
         return flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey);
     }
 }

@@ -246,7 +246,12 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("挂载的交易记录信息id不能为空");
         }
 
-        return transactionMountMsgRepository.findByMountedTransactionRecordId(id);
+        TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findByMountedTransactionRecordId(id);
+        if (transactionMountMsg == null) {
+            throw new IllegalArgumentException("挂载的交易记录信息id(" + id + ")不存在对应的交易挂载信息");
+        }
+
+        return transactionMountMsg;
     }
 
     @Override
