@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.constant.BlockConstants;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
@@ -10,7 +11,6 @@ import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -26,41 +26,8 @@ import java.util.*;
 
 @Service
 public class BlockChainServiceImpl implements BlockChainService {
-    @Value("${central-key-pair.pubkey}")
-    private String centralPubkeyBase64;
-
-    @Value("${central-key-pair.prikey}")
-    private String centralPrikeyBase64;
-
-    @Value("${block-version}")
-    private int blockVersion;
-
-    @Value("${block-header-size}")
-    private int blockHeaderSize;
-
-    @Value("${block-max-size}")
-    private long blockMaxSize;
-
-    @Value("${block-dat-max-size}")
-    private long blockDatMaxSize;
-
-    @Value("${file-root-dir}")
-    private String fileRootDir;
-
-    @Value("${file-dat-dir}")
-    private String fileDatDir;
-
-    @Value("${file-source-code-dir}")
-    private String fileSourceCodeDir;
-
-    @Value("${source-code-zip-hash}")
-    private String sourceCodeZipHash;
-
-    @Value("${register-difficulty-target-nbits}")
-    private int registerDifficultyTargetNbits;
-
-    @Value("${transaction-difficulty-target-nbits}")
-    private int transactionDifficultyTargetNbits;
+    @Resource
+    private NmsciProperties nmsciProperties;
 
     @Resource
     private BlockInfoRepository blockInfoRepository;
@@ -89,6 +56,19 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Override
     @Transactional
     public void generateBlock() {
+        String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
+        String centralPrikeyBase64 = nmsciProperties.getCentralPrikeyBase64();
+        int blockVersion = nmsciProperties.getBlockVersion();
+        int blockHeaderSize = nmsciProperties.getBlockHeaderSize();
+        long blockMaxSize = nmsciProperties.getBlockMaxSize();
+        long blockDatMaxSize = nmsciProperties.getBlockDatMaxSize();
+        String fileRootDir = nmsciProperties.getFileRootDir();
+        String fileDatDir = nmsciProperties.getFileDatDir();
+        String fileSourceCodeDir = nmsciProperties.getFileSourceCodeDir();
+        String sourceCodeZipHash = nmsciProperties.getSourceCodeZipHash();
+        int registerDifficultyTargetNbits = nmsciProperties.getRegisterDifficultyTargetNbits();
+        int transactionDifficultyTargetNbits = nmsciProperties.getTransactionDifficultyTargetNbits();
+
         // 【版本号4字节(0x1)】+【区块高度8字节】+【相应版本全代码压缩包(包含协议文本)sha256hash32字节】
         // +【前区块头的dblsha256hash32字节】+【所有信息默克尔根32字节】+【信息内最大时间戳8字节】
         // +【流转节点注册难度目标4字节】+【消费节点交易难度目标4字节】
@@ -104,7 +84,7 @@ public class BlockChainServiceImpl implements BlockChainService {
         int blockSize = 0;
         long height = 0L;
         byte[] previousBlockHash = ByteArrayUtil.hexToBytes(BlockConstants.GENESIS_HASH);
-        byte[] merkleRoot = new byte[32];
+        byte[] merkleRoot = new byte[BlockConstants.HASH_SIZE];
         long maxMsgTimestamp = 0L;
         String datFilepathStr = "";
         BlockInfo blockInfo = new BlockInfo();
@@ -124,7 +104,7 @@ public class BlockChainServiceImpl implements BlockChainService {
 
         blockSize += blockHeaderSize;
         // 区块体始终为每种消息类型写入8字节数量字段
-        blockSize += MsgTypeEnum.values().length * Long.BYTES;
+        blockSize += MsgTypeEnum.values().length * BlockConstants.MESSAGE_COUNT_FIELD_SIZE;
 
         int page = 0;
         int pageSize = 1000;
@@ -283,7 +263,11 @@ public class BlockChainServiceImpl implements BlockChainService {
 
         // 将block字节数据保存至.dat文件
         if (datFilepathStr.isEmpty()) {
-            Path path = Paths.get(fileRootDir, fileDatDir, "blk" + String.format("%08d", 0) + ".dat");
+            Path path = Paths.get(
+                    fileRootDir,
+                    fileDatDir,
+                    BlockConstants.DAT_FILE_PREFIX + String.format("%0" + BlockConstants.DAT_FILE_INDEX_WIDTH + "d", 0) + BlockConstants.DAT_FILE_SUFFIX
+            );
             datFilepathStr = path.toString();
         }
 
@@ -302,9 +286,13 @@ public class BlockChainServiceImpl implements BlockChainService {
             // 查看文件大小是否超过限制
             if (Files.exists(datFilepath) && Files.size(datFilepath) + block.length > blockDatMaxSize) {
                 String lastPart = datFilepath.getFileName().toString();
-                String indexStr = lastPart.replace("blk", "").replace(".dat", "");
+                String indexStr = lastPart.replace(BlockConstants.DAT_FILE_PREFIX, "").replace(BlockConstants.DAT_FILE_SUFFIX, "");
                 int index = Integer.parseInt(indexStr);
-                datFilepath = datFilepath.getParent().resolve("blk" + String.format("%08d", index + 1) + ".dat");
+                datFilepath = datFilepath.getParent().resolve(
+                        BlockConstants.DAT_FILE_PREFIX
+                                + String.format("%0" + BlockConstants.DAT_FILE_INDEX_WIDTH + "d", index + 1)
+                                + BlockConstants.DAT_FILE_SUFFIX
+                );
             }
 
             // 追加写入.dat文件
@@ -324,11 +312,12 @@ public class BlockChainServiceImpl implements BlockChainService {
         }
 
         try {
-            Path sourceCodePath = Paths.get(rootDir, fileRootDir, fileSourceCodeDir, "source_code_v" + blockVersion + ".zip");
+            String sourceCodeZipFilename = BlockConstants.SOURCE_CODE_ZIP_PREFIX + blockVersion + BlockConstants.SOURCE_CODE_ZIP_SUFFIX;
+            Path sourceCodePath = Paths.get(rootDir, fileRootDir, fileSourceCodeDir, sourceCodeZipFilename);
             // 检测文件是否存在
             if (!Files.exists(sourceCodePath)) {
                 // 不存在则读取static文件夹中的source_code文件内容，复制到source_code文件夹
-                ClassPathResource classPathResource = new ClassPathResource("static/source_code_v" + blockVersion + ".zip");
+                ClassPathResource classPathResource = new ClassPathResource("static/" + sourceCodeZipFilename);
                 // 确保父目录存在
                 if (!Files.exists(sourceCodePath.getParent())) {
                     Files.createDirectories(sourceCodePath.getParent());

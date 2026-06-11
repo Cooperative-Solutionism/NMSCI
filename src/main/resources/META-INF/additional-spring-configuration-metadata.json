@@ -3,22 +3,22 @@
     {
       "name": "central-key-pair.pubkey",
       "type": "java.lang.String",
-      "description": "Description for central-key-pair.pubkey."
+      "description": "中心压缩公钥的Base64字符串。"
     },
     {
       "name": "central-key-pair.prikey",
       "type": "java.lang.String",
-      "description": "Description for central-key-pair.prikey."
+      "description": "中心私钥原始字节的Base64字符串。"
     },
     {
       "name": "register-difficulty-target-nbits",
       "type": "java.lang.Integer",
-      "description": "Description for register-difficulty-target-nbits."
+      "description": "流转节点注册消息使用的nBits难度目标。"
     },
     {
       "name": "transaction-difficulty-target-nbits",
       "type": "java.lang.Integer",
-      "description": "Description for transaction-difficulty-target-nbits."
+      "description": "交易记录和交易挂载消息使用的nBits难度目标。"
     },
     {
       "name": "block-version",
@@ -38,7 +38,7 @@
     {
       "name": "block-dat-max-size",
       "type": "java.lang.Long",
-      "description": "dat文件最大字节数."
+      "description": "单个区块dat文件最大字节数。"
     },
     {
       "name": "source-code-zip-hash",
@@ -48,7 +48,7 @@
     {
       "name": "file-root-dir",
       "type": "java.lang.String",
-      "description": "文件储存根目录."
+      "description": "文件存储根目录。"
     },
     {
       "name": "file-dat-dir",
@@ -60,4 +60,5 @@
       "type": "java.lang.String",
       "description": "相应版本全代码压缩包(包含协议内容)目录."
     }
-  ] }
+  ]
+}

@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
@@ -16,7 +17,6 @@ import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -30,11 +30,8 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
     private static final Logger logger = LoggerFactory.getLogger(CentralPubkeyLockedMsgServiceImpl.class);
 
-    @Value("${central-key-pair.pubkey}")
-    private String centralPubkeyBase64;
-
-    @Value("${central-key-pair.prikey}")
-    private String centralPrikeyBase64;
+    @Resource
+    private NmsciProperties nmsciProperties;
 
     @Resource
     private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
@@ -47,6 +44,9 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
     @Override
     public void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
+        String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
+        String centralPrikeyBase64 = nmsciProperties.getCentralPrikeyBase64();
+
         if (centralPubkeyLockedMsg.getMsgType() != MsgTypeEnum.CentralPubkeyLockedMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyLockedMsg.getValue());
         }

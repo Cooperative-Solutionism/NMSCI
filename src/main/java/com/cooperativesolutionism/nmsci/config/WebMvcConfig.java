@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
+import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
@@ -11,23 +12,17 @@ import java.nio.file.Paths;
 @Configuration
 public class WebMvcConfig extends WebMvcConfigurationSupport {
 
-    @Value("${file-root-dir}")
-    private String fileRootDir;
+    @Resource
+    private NmsciProperties nmsciProperties;
 
-    @Value("${file-dat-dir}")
-    private String fileDatDir;
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String rootDir = System.getProperty("user.dir");
+        Path datFilepath = Paths.get(rootDir, nmsciProperties.getFileRootDir(), nmsciProperties.getFileDatDir());
+        Path sourceCodeFilepath = Paths.get(rootDir, nmsciProperties.getFileRootDir(), nmsciProperties.getFileSourceCodeDir());
 
-    @Value("${file-source-code-dir}")
-    private String fileSourceCodeDir;
-
-     @Override
-     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-         String rootDir = System.getProperty("user.dir");
-         Path datFilepath = Paths.get(rootDir, fileRootDir, fileDatDir);
-         Path sourceCodeFilepath = Paths.get(rootDir, fileRootDir, fileSourceCodeDir);
-
-         registry.addResourceHandler("/dat/**").addResourceLocations("file:" + datFilepath + "/");
-         registry.addResourceHandler("/source-code/**").addResourceLocations("file:" + sourceCodeFilepath + "/");
-         super.addResourceHandlers(registry);
-     }
+        registry.addResourceHandler("/dat/**").addResourceLocations("file:" + datFilepath + "/");
+        registry.addResourceHandler("/source-code/**").addResourceLocations("file:" + sourceCodeFilepath + "/");
+        super.addResourceHandlers(registry);
+    }
 }

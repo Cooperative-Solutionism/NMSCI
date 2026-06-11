@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.integration;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
@@ -29,6 +30,9 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
 
     @Resource
     private BlockChainService blockChainService;
+
+    @Resource
+    private NmsciProperties nmsciProperties;
 
     @Resource
     private BlockInfoRepository blockInfoRepository;
@@ -79,8 +83,8 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         Files.createDirectories(datDir);
         Files.write(currentDatFile, new byte[]{1});
         Files.deleteIfExists(nextDatFile);
-        Object originalBlockDatMaxSize = ReflectionTestUtils.getField(blockChainService, "blockDatMaxSize");
-        ReflectionTestUtils.setField(blockChainService, "blockDatMaxSize", 1L);
+        Object originalBlockDatMaxSize = ReflectionTestUtils.getField(nmsciProperties, "blockDatMaxSize");
+        ReflectionTestUtils.setField(nmsciProperties, "blockDatMaxSize", 1L);
         try {
             mockMvc.perform(post("/flow-node-register-msg/send")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -95,7 +99,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
             assertEquals("blk00000001.dat", generatedBlock.getDatFilepath());
             assertTrue(Files.exists(nextDatFile), "rotated dat file must be written");
         } finally {
-            ReflectionTestUtils.setField(blockChainService, "blockDatMaxSize", originalBlockDatMaxSize);
+            ReflectionTestUtils.setField(nmsciProperties, "blockDatMaxSize", originalBlockDatMaxSize);
         }
     }
 
@@ -103,10 +107,10 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
     void generateBlockKeepsRawBytesWithinBlockMaxSizeIncludingMessageCountFields() throws Exception {
         UUID flowNodeId = UUID.fromString("33333333-aaaa-3333-aaaa-333333333333");
         byte[] flowNodeRegisterMsg = builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS);
-        int blockHeaderSize = (Integer) ReflectionTestUtils.getField(blockChainService, "blockHeaderSize");
+        int blockHeaderSize = (Integer) ReflectionTestUtils.getField(nmsciProperties, "blockHeaderSize");
         long configuredBlockMaxSize = blockHeaderSize + flowNodeRegisterMsg.length;
-        Object originalBlockMaxSize = ReflectionTestUtils.getField(blockChainService, "blockMaxSize");
-        ReflectionTestUtils.setField(blockChainService, "blockMaxSize", configuredBlockMaxSize);
+        Object originalBlockMaxSize = ReflectionTestUtils.getField(nmsciProperties, "blockMaxSize");
+        ReflectionTestUtils.setField(nmsciProperties, "blockMaxSize", configuredBlockMaxSize);
         try {
             mockMvc.perform(post("/flow-node-register-msg/send")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -121,7 +125,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
             assertTrue(generatedBlock.getRawBytes().length <= configuredBlockMaxSize);
             assertEquals(1L, msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc());
         } finally {
-            ReflectionTestUtils.setField(blockChainService, "blockMaxSize", originalBlockMaxSize);
+            ReflectionTestUtils.setField(nmsciProperties, "blockMaxSize", originalBlockMaxSize);
         }
     }
 }

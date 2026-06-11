@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
@@ -15,7 +16,6 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -27,11 +27,8 @@ import java.util.UUID;
 @Validated
 public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerMsgService {
 
-    @Value("${central-key-pair.pubkey}")
-    private String centralPubkeyBase64;
-
-    @Value("${central-key-pair.prikey}")
-    private String centralPrikeyBase64;
+    @Resource
+    private NmsciProperties nmsciProperties;
 
     @Resource
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
@@ -47,6 +44,9 @@ public class CentralPubkeyEmpowerMsgServiceImpl implements CentralPubkeyEmpowerM
 
     @Override
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
+        String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
+        String centralPrikeyBase64 = nmsciProperties.getCentralPrikeyBase64();
+
         if (centralPubkeyEmpowerMsg.getMsgType() != MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue());
         }
