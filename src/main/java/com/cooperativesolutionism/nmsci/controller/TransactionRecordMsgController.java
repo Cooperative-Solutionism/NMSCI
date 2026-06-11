@@ -71,8 +71,8 @@ public class TransactionRecordMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.base64ToBytes(consumeNodePubkey),
-                ByteArrayUtil.base64ToBytes(flowNodePubkey),
+                ByteArrayUtil.hexToBytes(consumeNodePubkey),
+                ByteArrayUtil.hexToBytes(flowNodePubkey),
                 pageable(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));

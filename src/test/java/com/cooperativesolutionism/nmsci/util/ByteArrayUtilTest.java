@@ -30,4 +30,14 @@ class ByteArrayUtilTest {
         assertThrows(IllegalArgumentException.class, () -> ByteArrayUtil.bytesToInt(new byte[]{1, 2, 3}));
         assertThrows(IllegalArgumentException.class, () -> ByteArrayUtil.bytesToUUID(new byte[15]));
     }
+
+    @Test
+    void rejectsNonHexCharactersWhenConvertingHexToBytes() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ByteArrayUtil.hexToBytes("0g")
+        );
+
+        assertEquals("十六进制字符串包含非法字符", exception.getMessage());
+    }
 }
