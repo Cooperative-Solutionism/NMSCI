@@ -1,27 +1,38 @@
 package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/consume-chain")
 public class ConsumeChainController {
 
+    private static final Sort CONSUME_CHAIN_QUERY_SORT = Sort.by(Sort.Order.desc("tailMountTimestamp"), Sort.Order.desc("id"));
+
     @Resource
     private ConsumeChainService consumeChainService;
 
     @GetMapping("/by-mounted-transaction")
-    public ResponseResult<List<ConsumeChainResponseDTO>> getConsumeChainByMountedTransaction(
-            @RequestParam String relatedTransactionMount
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByMountedTransaction(
+            @RequestParam String relatedTransactionMount,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        List<ConsumeChainResponseDTO> consumeChainResponseDTOList = consumeChainService.getConsumeChainByMountedTransaction(UUID.fromString(relatedTransactionMount));
-        return ResponseResult.success(consumeChainResponseDTOList);
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByMountedTransaction(
+                UUID.fromString(relatedTransactionMount),
+                pageable(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
     }
 
     @GetMapping("/id/{id}")
@@ -31,32 +42,40 @@ public class ConsumeChainController {
     }
 
     @GetMapping("/by-start")
-    public ResponseResult<List<ConsumeChainResponseDTO>> getConsumeChainByStart(
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByStart(
             @RequestParam String start,
-            @RequestParam(required = false) Boolean isLoop
+            @RequestParam(required = false) Boolean isLoop,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        List<ConsumeChainResponseDTO> consumeChainResponseDTOList;
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
         if (isLoop == null) {
-            consumeChainResponseDTOList = consumeChainService.getConsumeChainByStart(UUID.fromString(start));
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByStart(UUID.fromString(start), pageable(page, size));
         } else {
-            consumeChainResponseDTOList = consumeChainService.getConsumeChainByStartAndIsLoop(UUID.fromString(start), isLoop);
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByStartAndIsLoop(UUID.fromString(start), isLoop, pageable(page, size));
         }
 
-        return ResponseResult.success(consumeChainResponseDTOList);
+        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
     }
 
     @GetMapping("/by-end")
-    public ResponseResult<List<ConsumeChainResponseDTO>> getConsumeChainByEnd(
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByEnd(
             @RequestParam String end,
-            @RequestParam(required = false) Boolean isLoop
+            @RequestParam(required = false) Boolean isLoop,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        List<ConsumeChainResponseDTO> consumeChainResponseDTOList;
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
         if (isLoop == null) {
-            consumeChainResponseDTOList = consumeChainService.getConsumeChainByEnd(UUID.fromString(end));
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByEnd(UUID.fromString(end), pageable(page, size));
         } else {
-            consumeChainResponseDTOList = consumeChainService.getConsumeChainByEndAndIsLoop(UUID.fromString(end), isLoop);
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByEndAndIsLoop(UUID.fromString(end), isLoop, pageable(page, size));
         }
 
-        return ResponseResult.success(consumeChainResponseDTOList);
+        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
+    }
+
+    private Pageable pageable(int page, int size) {
+        return PageRequestUtil.of(page, size, CONSUME_CHAIN_QUERY_SORT);
     }
 }

@@ -4,6 +4,8 @@ import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import jakarta.persistence.LockModeType;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 
@@ -15,11 +17,11 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<ConsumeChain> findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(@NotNull FlowNodeRegisterMsg end, @NotNull Short currencyType);
 
-    List<ConsumeChain> findByStart(FlowNodeRegisterMsg start);
+    Slice<ConsumeChain> findByStart(FlowNodeRegisterMsg start, Pageable pageable);
 
-    List<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop);
+    Slice<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop, Pageable pageable);
 
-    List<ConsumeChain> findByEnd(FlowNodeRegisterMsg end);
+    Slice<ConsumeChain> findByEnd(FlowNodeRegisterMsg end, Pageable pageable);
 
-    List<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop);
+    Slice<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop, Pageable pageable);
 }

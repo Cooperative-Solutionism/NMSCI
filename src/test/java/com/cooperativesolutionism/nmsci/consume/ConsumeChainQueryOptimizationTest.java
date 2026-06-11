@@ -12,6 +12,10 @@ import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.service.impl.ConsumeChainServiceImpl;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -90,17 +94,19 @@ class ConsumeChainQueryOptimizationTest {
         ConsumeChain secondChain = chain("33333333-3333-3333-3333-333333333333", start);
         ConsumeChainEdge firstEdge = edge(firstChain, 10L);
         ConsumeChainEdge secondEdge = edge(secondChain, 20L);
+        Pageable pageable = PageRequest.of(0, 50);
 
         when(flowNodeRepository.findById(start.getId())).thenReturn(Optional.of(start));
-        when(chainRepository.findByStart(start)).thenReturn(List.of(firstChain, secondChain));
+        when(chainRepository.findByStart(start, pageable))
+                .thenReturn(new SliceImpl<>(List.of(firstChain, secondChain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain)))
                 .thenReturn(List.of(firstEdge, secondEdge));
 
-        List<ConsumeChainResponseDTO> response = service.getConsumeChainByStart(start.getId());
+        Slice<ConsumeChainResponseDTO> response = service.getConsumeChainByStart(start.getId(), pageable);
 
-        assertEquals(2, response.size());
-        assertSame(firstEdge, response.get(0).getConsumeChainEdges().get(0));
-        assertSame(secondEdge, response.get(1).getConsumeChainEdges().get(0));
+        assertEquals(2, response.getNumberOfElements());
+        assertSame(firstEdge, response.getContent().get(0).getConsumeChainEdges().get(0));
+        assertSame(secondEdge, response.getContent().get(1).getConsumeChainEdges().get(0));
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain));
         verify(edgeRepository, never()).findByChainOrderByRelatedTransactionMountTimestampAsc(any());
     }
@@ -116,16 +122,18 @@ class ConsumeChainQueryOptimizationTest {
         TransactionMountMsg mount = mount(pubkey(1));
         ConsumeChain chain = chain("11111111-1111-1111-1111-111111111111", node("22222222-2222-2222-2222-222222222222", pubkey(2)));
         ConsumeChainEdge edge = edge(chain, 10L);
+        Pageable pageable = PageRequest.of(0, 50);
 
         when(mountRepository.findById(mount.getId())).thenReturn(Optional.of(mount));
-        when(edgeRepository.findDistinctChainsByRelatedTransactionMount(mount)).thenReturn(List.of(chain));
+        when(edgeRepository.findDistinctChainsByRelatedTransactionMount(mount, pageable))
+                .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
 
-        List<ConsumeChainResponseDTO> response = service.getConsumeChainByMountedTransaction(mount.getId());
+        Slice<ConsumeChainResponseDTO> response = service.getConsumeChainByMountedTransaction(mount.getId(), pageable);
 
-        assertEquals(1, response.size());
-        assertSame(chain, response.get(0).getConsumeChain());
-        verify(edgeRepository).findDistinctChainsByRelatedTransactionMount(mount);
+        assertEquals(1, response.getNumberOfElements());
+        assertSame(chain, response.getContent().get(0).getConsumeChain());
+        verify(edgeRepository).findDistinctChainsByRelatedTransactionMount(mount, pageable);
         verify(edgeRepository, never()).findByRelatedTransactionMount(any());
         verify(chainRepository, never()).findById(any());
     }

@@ -19,12 +19,13 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -144,27 +145,28 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
     }
 
     @Override
-    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey) {
+    public Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable) {
         if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
         }
 
-        return transactionMountMsgRepository.findByConsumeNodePubkey(consumeNodePubkey);
+        return transactionMountMsgRepository.findByConsumeNodePubkey(consumeNodePubkey, pageable);
     }
 
     @Override
-    public List<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+    public Slice<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
-        return transactionMountMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+        return transactionMountMsgRepository.findByFlowNodePubkey(flowNodePubkey, pageable);
     }
 
     @Override
-    public List<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
+    public Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
             byte[] consumeNodePubkey,
-            byte[] flowNodePubkey
+            byte[] flowNodePubkey,
+            Pageable pageable
     ) {
         if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
@@ -174,6 +176,6 @@ public class TransactionMountMsgServiceImpl implements TransactionMountMsgServic
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
-        return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey);
+        return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey, pageable);
     }
 }

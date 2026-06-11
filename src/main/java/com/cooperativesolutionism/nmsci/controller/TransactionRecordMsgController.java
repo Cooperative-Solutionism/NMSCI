@@ -2,19 +2,25 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.TransactionRecordMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/transaction-record-msg")
 public class TransactionRecordMsgController {
+
+    private static final Sort MESSAGE_QUERY_SORT = Sort.by(Sort.Order.desc("confirmTimestamp"), Sort.Order.desc("id"));
 
     @Resource
     private TransactionRecordMsgService transactionRecordMsgService;
@@ -32,26 +38,47 @@ public class TransactionRecordMsgController {
     }
 
     @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkey(@PathVariable("consumeNodePubkey") String consumeNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(ByteArrayUtil.hexToBytes(consumeNodePubkey));
-        return ResponseResult.success(transactionRecordMsgs);
+    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkey(
+            @PathVariable("consumeNodePubkey") String consumeNodePubkey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(
+                ByteArrayUtil.hexToBytes(consumeNodePubkey),
+                pageable(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
 
     @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(transactionRecordMsgs);
+    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByFlowNodePubkey(
+            @PathVariable("flowNodePubkey") String flowNodePubkey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(
+                ByteArrayUtil.hexToBytes(flowNodePubkey),
+                pageable(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
 
     @GetMapping("/{consumeNodePubkey}/{flowNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
             @PathVariable("consumeNodePubkey") String consumeNodePubkey,
-            @PathVariable("flowNodePubkey") String flowNodePubkey
+            @PathVariable("flowNodePubkey") String flowNodePubkey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
                 ByteArrayUtil.base64ToBytes(consumeNodePubkey),
-                ByteArrayUtil.base64ToBytes(flowNodePubkey)
+                ByteArrayUtil.base64ToBytes(flowNodePubkey),
+                pageable(page, size)
         );
-        return ResponseResult.success(transactionRecordMsgs);
+        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
+    }
+
+    private Pageable pageable(int page, int size) {
+        return PageRequestUtil.of(page, size, MESSAGE_QUERY_SORT);
     }
 }

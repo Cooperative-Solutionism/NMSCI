@@ -17,6 +17,9 @@ import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -136,7 +139,7 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     }
 
     @Override
-    public List<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id) {
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("挂载交易ID不能为空");
         }
@@ -144,12 +147,12 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("挂载交易ID不存在"));
 
-        List<ConsumeChain> consumeChains = consumeChainEdgeRepository.findDistinctChainsByRelatedTransactionMount(transactionMountMsg);
-        return getConsumeChainResponseDTOs(consumeChains);
+        Slice<ConsumeChain> consumeChains = consumeChainEdgeRepository.findDistinctChainsByRelatedTransactionMount(transactionMountMsg, pageable);
+        return getConsumeChainResponseDTOSlice(consumeChains);
     }
 
     @Override
-    public List<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id) {
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("起点ID不能为空");
         }
@@ -157,13 +160,13 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
 
-        List<ConsumeChain> consumeChains = consumeChainRepository.findByStart(startNode);
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStart(startNode, pageable);
 
-        return getConsumeChainResponseDTOs(consumeChains);
+        return getConsumeChainResponseDTOSlice(consumeChains);
     }
 
     @Override
-    public List<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop) {
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("起点ID不能为空");
         }
@@ -171,13 +174,13 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
 
-        List<ConsumeChain> consumeChains = consumeChainRepository.findByStartAndIsLoop(startNode, isLoop);
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStartAndIsLoop(startNode, isLoop, pageable);
 
-        return getConsumeChainResponseDTOs(consumeChains);
+        return getConsumeChainResponseDTOSlice(consumeChains);
     }
 
     @Override
-    public List<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id) {
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("终点ID不能为空");
         }
@@ -185,13 +188,13 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
 
-        List<ConsumeChain> consumeChains = consumeChainRepository.findByEnd(endNode);
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEnd(endNode, pageable);
 
-        return getConsumeChainResponseDTOs(consumeChains);
+        return getConsumeChainResponseDTOSlice(consumeChains);
     }
 
     @Override
-    public List<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop) {
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("终点ID不能为空");
         }
@@ -199,9 +202,9 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
 
-        List<ConsumeChain> consumeChains = consumeChainRepository.findByEndAndIsLoop(endNode, isLoop);
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEndAndIsLoop(endNode, isLoop, pageable);
 
-        return getConsumeChainResponseDTOs(consumeChains);
+        return getConsumeChainResponseDTOSlice(consumeChains);
     }
 
     @Override
@@ -270,6 +273,11 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         }
 
         return consumeChainResponseDTOs;
+    }
+
+    private Slice<ConsumeChainResponseDTO> getConsumeChainResponseDTOSlice(Slice<ConsumeChain> consumeChains) {
+        List<ConsumeChainResponseDTO> responseDTOs = getConsumeChainResponseDTOs(consumeChains.getContent());
+        return new SliceImpl<>(responseDTOs, consumeChains.getPageable(), consumeChains.hasNext());
     }
 
     private Map<UUID, List<ConsumeChainEdge>> getEdgesByChainId(List<ConsumeChain> consumeChains) {

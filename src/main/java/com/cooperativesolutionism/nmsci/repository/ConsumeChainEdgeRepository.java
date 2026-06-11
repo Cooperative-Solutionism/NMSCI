@@ -3,6 +3,8 @@ package com.cooperativesolutionism.nmsci.repository;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -17,7 +19,7 @@ public interface ConsumeChainEdgeRepository extends JpaRepository<ConsumeChainEd
     List<ConsumeChainEdge> findByChainInOrderByRelatedTransactionMountTimestampAsc(List<ConsumeChain> chains);
 
     @Query("select distinct e.chain from ConsumeChainEdge e where e.relatedTransactionMount = :relatedTransactionMount")
-    List<ConsumeChain> findDistinctChainsByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount);
+    Slice<ConsumeChain> findDistinctChainsByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount, Pageable pageable);
 
     /**
      * 根据source、target和currencyType查询消费链条边，并且按chain去重，同时related_transaction_mount_timestamp在starttime和endtime之间

@@ -2,6 +2,8 @@ package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Collection;
@@ -12,11 +14,11 @@ public interface TransactionMountMsgRepository extends JpaRepository<Transaction
 
     boolean existsTransactionMountMsgByMountedTransactionRecordId(UUID mountedTransactionRecordId);
 
-    List<TransactionMountMsg> findByConsumeNodePubkey(byte[] consumeNodePubkey);
+    Slice<TransactionMountMsg> findByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable);
 
-    List<TransactionMountMsg> findByFlowNodePubkey(byte[] flowNodePubkey);
+    Slice<TransactionMountMsg> findByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
 
-    List<TransactionMountMsg> findByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey);
+    Slice<TransactionMountMsg> findByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey, Pageable pageable);
 
     TransactionMountMsg findByMountedTransactionRecordId(UUID mountedTransactionRecordId);
 
