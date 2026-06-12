@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -15,7 +16,19 @@ import java.util.UUID;
 
 @Comment("流转节点冻结信息")
 @Entity
-@Table(name = "flow_node_locked_msgs")
+@Table(
+        name = "flow_node_locked_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_flow_node_locked_msgs_flow_node_pubkey",
+                        columnNames = "flow_node_pubkey"
+                ),
+                @UniqueConstraint(
+                        name = "uk_flow_node_locked_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
 public class FlowNodeLockedMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)

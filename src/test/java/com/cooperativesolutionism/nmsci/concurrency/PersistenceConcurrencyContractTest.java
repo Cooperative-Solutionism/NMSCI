@@ -1,14 +1,25 @@
 package com.cooperativesolutionism.nmsci.concurrency;
 
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
+import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
+import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyEmpowerMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.impl.FlowNodeLockedMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.impl.FlowNodeRegisterMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.impl.TransactionMountMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.impl.TransactionRecordMsgServiceImpl;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -67,5 +78,48 @@ class PersistenceConcurrencyContractTest {
 
         assertNotNull(lock, "batched open consume chain reads must use a pessimistic lock");
         assertEquals(LockModeType.PESSIMISTIC_WRITE, lock.value());
+    }
+
+    @Test
+    void messageSavesThatPersistMsgAbstractRunInOneTransaction() throws ReflectiveOperationException {
+        assertTransactional(
+                FlowNodeRegisterMsgServiceImpl.class,
+                "saveFlowNodeRegisterMsg",
+                FlowNodeRegisterMsg.class
+        );
+        assertTransactional(
+                CentralPubkeyEmpowerMsgServiceImpl.class,
+                "saveCentralPubkeyEmpowerMsg",
+                CentralPubkeyEmpowerMsg.class
+        );
+        assertTransactional(
+                FlowNodeLockedMsgServiceImpl.class,
+                "saveFlowNodeLockedMsg",
+                FlowNodeLockedMsg.class
+        );
+        assertTransactional(
+                TransactionRecordMsgServiceImpl.class,
+                "saveTransactionRecordMsg",
+                TransactionRecordMsg.class
+        );
+        assertTransactional(
+                TransactionMountMsgServiceImpl.class,
+                "saveTransactionMountMsg",
+                TransactionMountMsg.class
+        );
+        assertTransactional(
+                Class.forName("com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyLockedMsgPersistenceService"),
+                "save",
+                CentralPubkeyLockedMsg.class
+        );
+    }
+
+    private void assertTransactional(Class<?> serviceClass, String methodName, Class<?> parameterType) throws NoSuchMethodException {
+        Method method = serviceClass.getMethod(methodName, parameterType);
+
+        assertNotNull(
+                method.getAnnotation(Transactional.class),
+                serviceClass.getSimpleName() + "." + methodName + " must persist the business message and msg_abstracts in one transaction"
+        );
     }
 }

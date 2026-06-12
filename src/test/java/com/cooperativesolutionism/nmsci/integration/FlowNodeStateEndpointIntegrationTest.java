@@ -27,8 +27,9 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
         insertFlowNodeLocked(TestKeyPairs.FLOW_NODE_A.pubkey());
         assertState(TestKeyPairs.FLOW_NODE_A.pubkey(), true, true, true, false);
 
-        insertCentralPubkeyEmpower(TestKeyPairs.FLOW_NODE_A.pubkey(), TestKeyPairs.CENTRAL.pubkey());
-        assertState(TestKeyPairs.FLOW_NODE_A.pubkey(), true, true, true, true);
+        insertFlowNodeRegister(TestKeyPairs.FLOW_NODE_B.pubkey());
+        insertCentralPubkeyEmpower(TestKeyPairs.FLOW_NODE_B.pubkey(), TestKeyPairs.CENTRAL.pubkey());
+        assertState(TestKeyPairs.FLOW_NODE_B.pubkey(), true, true, false, true);
     }
 
     private void assertState(
@@ -59,7 +60,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
                 flowNodePubkey,
                 new byte[64],
                 new byte[123],
-                new byte[32]
+                txidFrom(flowNodePubkey)
         );
     }
 
@@ -75,7 +76,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
                 new byte[64],
                 new byte[64],
                 new byte[220],
-                new byte[32]
+                txidFrom(flowNodePubkey)
         );
     }
 
@@ -91,7 +92,13 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
                 new byte[64],
                 new byte[64],
                 new byte[220],
-                new byte[32]
+                txidFrom(flowNodePubkey)
         );
+    }
+
+    private byte[] txidFrom(byte[] seed) {
+        byte[] txid = new byte[32];
+        System.arraycopy(seed, 0, txid, 0, Math.min(seed.length, txid.length));
+        return txid;
     }
 }

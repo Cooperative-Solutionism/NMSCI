@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.Check;
 import org.hibernate.annotations.ColumnDefault;
@@ -18,7 +19,15 @@ import java.util.UUID;
 @Comment("交易记录信息")
 @Check(name = "ck_transaction_record_msgs_amount_positive", constraints = "amount > 0")
 @Entity
-@Table(name = "transaction_record_msgs")
+@Table(
+        name = "transaction_record_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_transaction_record_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
 public class TransactionRecordMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)

@@ -23,6 +23,10 @@ import java.util.UUID;
                 @UniqueConstraint(
                         name = "uk_transaction_mount_msgs_mounted_transaction_record_id",
                         columnNames = "mounted_transaction_record_id"
+                ),
+                @UniqueConstraint(
+                        name = "uk_transaction_mount_msgs_txid",
+                        columnNames = "txid"
                 )
         }
 )

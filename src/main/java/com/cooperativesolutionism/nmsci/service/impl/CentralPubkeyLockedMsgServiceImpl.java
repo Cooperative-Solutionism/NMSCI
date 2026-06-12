@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
-import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -38,7 +37,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
     private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private CentralPubkeyLockedMsgPersistenceService centralPubkeyLockedMsgPersistenceService;
 
     @Resource
     private BlockChainService blockChainService;
@@ -125,8 +124,7 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
             throw new RuntimeException(e);
         }
 
-        centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
-        msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
+        centralPubkeyLockedMsgPersistenceService.save(centralPubkeyLockedMsg);
 
         // 冻结信息一旦确认将进行原中心秘钥最后一次区块生成过程，将所有未装块的信息装块
         blockChainService.generateBlockUntilNoNotInBlockMsgs();

@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -16,7 +17,19 @@ import java.util.UUID;
 
 @Comment("流转节点注册信息")
 @Entity
-@Table(name = "flow_node_register_msgs")
+@Table(
+        name = "flow_node_register_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_flow_node_register_msgs_flow_node_pubkey",
+                        columnNames = "flow_node_pubkey"
+                ),
+                @UniqueConstraint(
+                        name = "uk_flow_node_register_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
 public class FlowNodeRegisterMsg implements Message {
     @Id
     @Column(name = "id", nullable = false)

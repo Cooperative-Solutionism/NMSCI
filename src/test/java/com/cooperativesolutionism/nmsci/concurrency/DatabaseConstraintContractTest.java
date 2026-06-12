@@ -1,6 +1,11 @@
 package com.cooperativesolutionism.nmsci.concurrency;
 
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
+import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
+import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -21,12 +26,43 @@ class DatabaseConstraintContractTest {
     private static final String TRANSACTION_AMOUNT_CHECK = "amount > 0";
     private static final String BLOCK_HEIGHT_UNIQUE_CONSTRAINT = "uk_block_infos_height";
     private static final String BLOCK_PREVIOUS_HASH_UNIQUE_CONSTRAINT = "uk_block_infos_previous_block_hash";
+    private static final UniqueConstraintSpec[] PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS = {
+            new UniqueConstraintSpec(
+                    FlowNodeRegisterMsg.class,
+                    "uk_flow_node_register_msgs_flow_node_pubkey",
+                    "flow_node_pubkey"
+            ),
+            new UniqueConstraintSpec(FlowNodeRegisterMsg.class, "uk_flow_node_register_msgs_txid", "txid"),
+            new UniqueConstraintSpec(
+                    CentralPubkeyEmpowerMsg.class,
+                    "uk_central_pubkey_empower_msgs_flow_node_pubkey",
+                    "flow_node_pubkey"
+            ),
+            new UniqueConstraintSpec(CentralPubkeyEmpowerMsg.class, "uk_central_pubkey_empower_msgs_txid", "txid"),
+            new UniqueConstraintSpec(
+                    CentralPubkeyLockedMsg.class,
+                    "uk_central_pubkey_locked_msgs_central_pubkey",
+                    "central_pubkey"
+            ),
+            new UniqueConstraintSpec(CentralPubkeyLockedMsg.class, "uk_central_pubkey_locked_msgs_txid", "txid"),
+            new UniqueConstraintSpec(
+                    FlowNodeLockedMsg.class,
+                    "uk_flow_node_locked_msgs_flow_node_pubkey",
+                    "flow_node_pubkey"
+            ),
+            new UniqueConstraintSpec(FlowNodeLockedMsg.class, "uk_flow_node_locked_msgs_txid", "txid"),
+            new UniqueConstraintSpec(TransactionRecordMsg.class, "uk_transaction_record_msgs_txid", "txid"),
+            new UniqueConstraintSpec(TransactionMountMsg.class, "uk_transaction_mount_msgs_txid", "txid")
+    };
     private static final Path SCHEMA_SQL = Path.of("src/main/resources/database/schema.sql");
     private static final Path AMOUNT_PATCH_SQL = Path.of(
             "src/main/resources/database/patches/2026-06-12-add-positive-transaction-amount-check.sql"
     );
     private static final Path BLOCK_CHAIN_CONSTRAINT_PATCH_SQL = Path.of(
             "src/main/resources/database/patches/2026-06-12-add-block-chain-unique-constraints.sql"
+    );
+    private static final Path PROTOCOL_MESSAGE_CONSTRAINT_PATCH_SQL = Path.of(
+            "src/main/resources/database/patches/2026-06-12-add-protocol-message-unique-constraints.sql"
     );
 
     @Test
@@ -91,9 +127,48 @@ class DatabaseConstraintContractTest {
         assertTrue(patchSql.contains("unique (previous_block_hash)"));
     }
 
+    @Test
+    void protocolMessageEntitiesDeclareProtocolUniqueConstraints() {
+        for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
+            Table table = spec.entityClass().getAnnotation(Table.class);
+
+            assertNotNull(table, spec.entityClass().getSimpleName() + " must declare table metadata");
+            assertTrue(
+                    hasUniqueConstraint(table, spec.columnName()),
+                    spec.entityClass().getSimpleName() + " must protect " + spec.columnName() + " with a database unique constraint"
+            );
+        }
+    }
+
+    @Test
+    void schemaPreventsDuplicateProtocolMessagesForNewDatabases() throws IOException {
+        String schemaSql = Files.readString(SCHEMA_SQL);
+
+        for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
+            assertSqlContainsUniqueConstraint(schemaSql, spec);
+        }
+    }
+
+    @Test
+    void patchPreventsDuplicateProtocolMessagesForExistingDatabases() throws IOException {
+        String patchSql = Files.readString(PROTOCOL_MESSAGE_CONSTRAINT_PATCH_SQL);
+
+        for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
+            assertSqlContainsUniqueConstraint(patchSql, spec);
+        }
+    }
+
     private boolean hasUniqueConstraint(Table table, String columnName) {
         return Arrays.stream(table.uniqueConstraints())
                 .map(UniqueConstraint::columnNames)
                 .anyMatch(columnNames -> Arrays.asList(columnNames).contains(columnName));
+    }
+
+    private void assertSqlContainsUniqueConstraint(String sql, UniqueConstraintSpec spec) {
+        assertTrue(sql.contains("constraint " + spec.constraintName()));
+        assertTrue(sql.contains("unique (" + spec.columnName() + ")"));
+    }
+
+    private record UniqueConstraintSpec(Class<?> entityClass, String constraintName, String columnName) {
     }
 }

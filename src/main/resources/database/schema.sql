@@ -9,7 +9,11 @@ create table central_pubkey_empower_msgs
     confirm_timestamp   bigint             not null,
     central_signature   bytea              not null,
     raw_bytes           bytea              not null,
-    txid                bytea              not null
+    txid                bytea              not null,
+    constraint uk_central_pubkey_empower_msgs_flow_node_pubkey
+        unique (flow_node_pubkey),
+    constraint uk_central_pubkey_empower_msgs_txid
+        unique (txid)
 );
 
 comment on table central_pubkey_empower_msgs is '中心公钥公证信息';
@@ -43,7 +47,11 @@ create table central_pubkey_locked_msgs
     confirm_timestamp     bigint             not null,
     central_signature     bytea              not null,
     raw_bytes             bytea              not null,
-    txid                  bytea              not null
+    txid                  bytea              not null,
+    constraint uk_central_pubkey_locked_msgs_central_pubkey
+        unique (central_pubkey),
+    constraint uk_central_pubkey_locked_msgs_txid
+        unique (txid)
 );
 
 comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
@@ -75,7 +83,11 @@ create table flow_node_register_msgs
     flow_node_pubkey           bytea              not null,
     flow_node_signature        bytea              not null,
     raw_bytes                  bytea              not null,
-    txid                       bytea              not null
+    txid                       bytea              not null,
+    constraint uk_flow_node_register_msgs_flow_node_pubkey
+        unique (flow_node_pubkey),
+    constraint uk_flow_node_register_msgs_txid
+        unique (txid)
 );
 
 comment on table flow_node_register_msgs is '流转节点注册信息';
@@ -108,7 +120,11 @@ create table flow_node_locked_msgs
     confirm_timestamp   bigint             not null,
     central_signature   bytea              not null,
     raw_bytes           bytea              not null,
-    txid                bytea              not null
+    txid                bytea              not null,
+    constraint uk_flow_node_locked_msgs_flow_node_pubkey
+        unique (flow_node_pubkey),
+    constraint uk_flow_node_locked_msgs_txid
+        unique (txid)
 );
 
 comment on table flow_node_locked_msgs is '流转节点冻结信息';
@@ -151,7 +167,9 @@ create table transaction_record_msgs
     confirm_timestamp             bigint             not null,
     central_signature             bytea              not null,
     raw_bytes                     bytea              not null,
-    txid                          bytea              not null
+    txid                          bytea              not null,
+    constraint uk_transaction_record_msgs_txid
+        unique (txid)
 );
 
 comment on table transaction_record_msgs is '交易记录信息';
@@ -205,7 +223,9 @@ create table transaction_mount_msgs
     raw_bytes                     bytea              not null,
     txid                          bytea              not null,
     constraint uk_transaction_mount_msgs_mounted_transaction_record_id
-        unique (mounted_transaction_record_id)
+        unique (mounted_transaction_record_id),
+    constraint uk_transaction_mount_msgs_txid
+        unique (txid)
 );
 
 comment on table transaction_mount_msgs is '交易挂载信息';

@@ -19,6 +19,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.UUID;
@@ -55,6 +56,7 @@ public class TransactionRecordMsgServiceImpl implements TransactionRecordMsgServ
     private CentralSignatureService centralSignatureService;
 
     @Override
+    @Transactional
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
         if (transactionRecordMsg.getMsgType() != MsgTypeEnum.TransactionRecordMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionRecordMsg.getValue());

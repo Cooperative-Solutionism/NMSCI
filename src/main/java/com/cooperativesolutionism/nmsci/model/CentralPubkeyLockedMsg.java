@@ -7,6 +7,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -15,7 +16,19 @@ import java.util.UUID;
 
 @Comment("中心公钥冻结信息")
 @Entity
-@Table(name = "central_pubkey_locked_msgs")
+@Table(
+        name = "central_pubkey_locked_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_central_pubkey_locked_msgs_central_pubkey",
+                        columnNames = "central_pubkey"
+                ),
+                @UniqueConstraint(
+                        name = "uk_central_pubkey_locked_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
 public class CentralPubkeyLockedMsg implements Message {
     @Id
     @Column(name = "id", nullable = false)

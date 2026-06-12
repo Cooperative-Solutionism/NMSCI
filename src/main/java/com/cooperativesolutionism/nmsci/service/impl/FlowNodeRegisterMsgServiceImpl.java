@@ -39,6 +39,7 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
     private CentralPubkeyValidator centralPubkeyValidator;
 
     @Override
+    @Transactional
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
         if (flowNodeRegisterMsg.getMsgType() != MsgTypeEnum.FlowNodeRegisterMsg.getValue()) {
             throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeRegisterMsg.getValue());
