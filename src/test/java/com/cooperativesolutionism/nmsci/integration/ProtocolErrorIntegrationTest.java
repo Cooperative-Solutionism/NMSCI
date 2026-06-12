@@ -30,8 +30,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-register-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(Arrays.copyOf(valid, valid.length - 1)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("Validation failure")));
     }
 
@@ -46,8 +46,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-register-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.withMsgType(message, (short) 5)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("信息类型错误")));
     }
 
@@ -65,8 +65,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-register-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(secondId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("已被注册")));
     }
 
@@ -84,8 +84,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/transaction-record-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionRecord(recordId, 100L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("未授权")));
     }
 
@@ -111,8 +111,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/transaction-record-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.withBrokenSignature(valid)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("签名")));
     }
 
@@ -120,8 +120,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     void rejectsReturningFlowRateLookupWhenTargetPubkeyIsNotRegistered() throws Exception {
         mockMvc.perform(get("/returning-flow-rate/by-pubkey")
                         .param("target", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("流转节点公钥")))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
@@ -138,8 +138,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(get("/returning-flow-rate/by-pubkey")
                         .param("source", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey()))
                         .param("target", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("源流转节点公钥")))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
@@ -167,16 +167,16 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         UUID mountedRecordId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
         mockMvc.perform(get("/transaction-mount-msg/mounted-transaction-record-id/{id}", mountedRecordId))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
 
     @Test
     void rejectsMissingBlockLookupByHeight() throws Exception {
         mockMvc.perform(get("/block-chain/height/{height}", 999L))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
 }
