@@ -1,20 +1,54 @@
 package com.cooperativesolutionism.nmsci.config.properties;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+import java.util.Base64;
+
+@Validated
 @ConfigurationProperties
 public class NmsciProperties {
 
+    @Valid
+    @NotNull(message = "central-key-pair不能为空")
     private CentralKeyPair centralKeyPair = new CentralKeyPair();
+
+    @Min(value = 1, message = "block-version必须为正数")
     private int blockVersion;
+
+    @Positive(message = "block-header-size必须为正数")
     private int blockHeaderSize;
+
+    @Positive(message = "block-max-size必须为正数")
     private long blockMaxSize;
+
+    @Positive(message = "block-dat-max-size必须为正数")
     private long blockDatMaxSize;
+
+    @Positive(message = "register-difficulty-target-nbits必须为正数")
     private int registerDifficultyTargetNbits;
+
+    @Positive(message = "transaction-difficulty-target-nbits必须为正数")
     private int transactionDifficultyTargetNbits;
+
+    @NotBlank(message = "file-root-dir不能为空")
     private String fileRootDir;
+
+    @NotBlank(message = "file-dat-dir不能为空")
     private String fileDatDir;
+
+    @NotBlank(message = "file-source-code-dir不能为空")
     private String fileSourceCodeDir;
+
+    @NotBlank(message = "source-code-zip-hash不能为空")
+    @Pattern(regexp = "^[0-9a-fA-F]{64}$", message = "source-code-zip-hash必须为64位十六进制字符串")
     private String sourceCodeZipHash;
 
     public CentralKeyPair getCentralKeyPair() {
@@ -113,8 +147,27 @@ public class NmsciProperties {
         this.sourceCodeZipHash = sourceCodeZipHash;
     }
 
+    @AssertTrue(message = "block-max-size必须大于等于block-header-size")
+    public boolean isBlockMaxSizeValid() {
+        if (blockHeaderSize <= 0 || blockMaxSize <= 0) {
+            return true;
+        }
+        return blockMaxSize >= blockHeaderSize;
+    }
+
+    @AssertTrue(message = "block-dat-max-size必须至少能容纳一个完整区块")
+    public boolean isBlockDatMaxSizeValid() {
+        if (blockMaxSize <= 0 || blockDatMaxSize <= 0) {
+            return true;
+        }
+        return blockDatMaxSize - Integer.BYTES - Long.BYTES >= blockMaxSize;
+    }
+
     public static class CentralKeyPair {
+        @NotBlank(message = "central-key-pair.pubkey不能为空")
         private String pubkey;
+
+        @NotBlank(message = "central-key-pair.prikey不能为空")
         private String prikey;
 
         public String getPubkey() {
@@ -131,6 +184,31 @@ public class NmsciProperties {
 
         public void setPrikey(String prikey) {
             this.prikey = prikey;
+        }
+
+        @AssertTrue(message = "central-key-pair.pubkey必须是33字节压缩公钥Base64")
+        public boolean isPubkeyValid() {
+            byte[] decoded = decodeBase64(pubkey);
+            return decoded != null
+                    && decoded.length == 33
+                    && (decoded[0] == 0x02 || decoded[0] == 0x03);
+        }
+
+        @AssertTrue(message = "central-key-pair.prikey必须是32字节私钥Base64")
+        public boolean isPrikeyValid() {
+            byte[] decoded = decodeBase64(prikey);
+            return decoded != null && decoded.length == 32;
+        }
+
+        private static byte[] decodeBase64(String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            try {
+                return Base64.getDecoder().decode(value);
+            } catch (IllegalArgumentException ex) {
+                return null;
+            }
         }
     }
 }
