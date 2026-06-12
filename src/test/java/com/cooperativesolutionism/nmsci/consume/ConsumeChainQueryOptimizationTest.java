@@ -18,6 +18,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -34,8 +35,10 @@ import static org.mockito.Mockito.when;
 
 class ConsumeChainQueryOptimizationTest {
 
+    private static final int EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE = 100;
+
     @Test
-    void saveConsumeChainLoadsMountedChainEdgesInOneBatch() {
+    void saveConsumeChainLocksOpenChainsInBatchesAndLoadsSelectedEdgesInOneBatch() {
         ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
@@ -49,35 +52,54 @@ class ConsumeChainQueryOptimizationTest {
         FlowNodeRegisterMsg source = node("11111111-1111-1111-1111-111111111111", sourcePubkey);
         FlowNodeRegisterMsg target = node("22222222-2222-2222-2222-222222222222", targetPubkey);
         TransactionMountMsg mount = mount(sourcePubkey);
-        TransactionRecordMsg record = record(targetPubkey);
-        ConsumeChain firstChain = chain("33333333-3333-3333-3333-333333333333", source);
-        ConsumeChain secondChain = chain("44444444-4444-4444-4444-444444444444", source);
-        ConsumeChainEdge firstEdge = edge(firstChain, 10L);
-        ConsumeChainEdge secondEdge = edge(secondChain, 20L);
+        TransactionRecordMsg record = record(targetPubkey, 101L);
+        List<ConsumeChain> firstBatch = new ArrayList<>();
+        for (int i = 0; i < EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE; i++) {
+            firstBatch.add(chain(i + 1, source, 1L));
+        }
+        ConsumeChain selectedSecondBatchChain = chain(101, source, 1L);
+        ConsumeChain unusedSecondBatchChain = chain(102, source, 999L);
+        List<ConsumeChain> secondBatch = List.of(selectedSecondBatchChain, unusedSecondBatchChain);
+        List<ConsumeChain> selectedChains = new ArrayList<>(firstBatch);
+        selectedChains.add(selectedSecondBatchChain);
+        ConsumeChainEdge firstEdge = edge(firstBatch.get(0), 10L);
+        ConsumeChainEdge lastEdge = edge(selectedSecondBatchChain, 20L);
         ConsumeChainAllocationPlan plan = new ConsumeChainAllocationPlan();
+        Pageable firstPage = PageRequest.of(0, EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE);
+        Pageable secondPage = PageRequest.of(1, EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE);
 
         when(flowNodeRepository.findFirstByFlowNodePubkey(sourcePubkey)).thenReturn(source);
         when(flowNodeRepository.findFirstByFlowNodePubkey(targetPubkey)).thenReturn(target);
         when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType()))
-                .thenReturn(List.of(firstChain, secondChain));
-        when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain)))
-                .thenReturn(List.of(firstEdge, secondEdge));
+                .thenReturn(List.of());
+        when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), firstPage))
+                .thenReturn(firstBatch);
+        when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), secondPage))
+                .thenReturn(secondBatch);
+        when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains))
+                .thenReturn(List.of(firstEdge, lastEdge));
         when(allocator.allocate(
                 eq(mount),
                 eq(record),
                 eq(source),
                 eq(target),
-                argThat(candidates ->
-                        candidates.size() == 2
-                                && candidates.get(0).edges().equals(List.of(firstEdge))
-                                && candidates.get(1).edges().equals(List.of(secondEdge))
-                )
+                any()
         )).thenReturn(plan);
 
         service.saveConsumeChain(mount, record);
 
-        verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain));
+        verify(chainRepository).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), firstPage);
+        verify(chainRepository).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), secondPage);
+        verify(chainRepository, never()).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType());
+        verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains);
         verify(edgeRepository, never()).findByChain(any());
+        verify(allocator).allocate(
+                eq(mount),
+                eq(record),
+                eq(source),
+                eq(target),
+                argThat(candidatesMatchChains(selectedChains))
+        );
         verify(persistenceService).save(plan);
     }
 
@@ -163,11 +185,19 @@ class ConsumeChainQueryOptimizationTest {
     }
 
     private static ConsumeChain chain(String id, FlowNodeRegisterMsg end) {
+        return chain(id, end, 100L);
+    }
+
+    private static ConsumeChain chain(int suffix, FlowNodeRegisterMsg end, long amount) {
+        return chain("00000000-0000-0000-0000-" + String.format("%012x", suffix), end, amount);
+    }
+
+    private static ConsumeChain chain(String id, FlowNodeRegisterMsg end, long amount) {
         ConsumeChain chain = new ConsumeChain();
         chain.setId(UUID.fromString(id));
         chain.setStart(end);
         chain.setEnd(end);
-        chain.setAmount(100L);
+        chain.setAmount(amount);
         chain.setCurrencyType((short) 1);
         chain.setTailMountTimestamp(1L);
         return chain;
@@ -190,11 +220,29 @@ class ConsumeChainQueryOptimizationTest {
     }
 
     private static TransactionRecordMsg record(byte[] targetPubkey) {
+        return record(targetPubkey, 100L);
+    }
+
+    private static TransactionRecordMsg record(byte[] targetPubkey, long amount) {
         TransactionRecordMsg record = new TransactionRecordMsg();
         record.setFlowNodePubkey(targetPubkey);
         record.setCurrencyType((short) 1);
-        record.setAmount(100L);
+        record.setAmount(amount);
         return record;
+    }
+
+    private static org.mockito.ArgumentMatcher<List<ConsumeChainAllocationCandidate>> candidatesMatchChains(List<ConsumeChain> chains) {
+        return candidates -> {
+            if (candidates == null || candidates.size() != chains.size()) {
+                return false;
+            }
+            for (int i = 0; i < chains.size(); i++) {
+                if (candidates.get(i).chain() != chains.get(i)) {
+                    return false;
+                }
+            }
+            return true;
+        };
     }
 
     private static byte[] pubkey(int seed) {

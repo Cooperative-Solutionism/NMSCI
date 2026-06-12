@@ -19,6 +19,13 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     List<ConsumeChain> findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(@NotNull FlowNodeRegisterMsg end, @NotNull Short currencyType);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<ConsumeChain> findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
+            @NotNull FlowNodeRegisterMsg end,
+            @NotNull Short currencyType,
+            Pageable pageable
+    );
+
     @Query("select c from ConsumeChain c where c.id in (select e.chain.id from ConsumeChainEdge e where e.relatedTransactionMount = :relatedTransactionMount)")
     Slice<ConsumeChain> findDistinctByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount, Pageable pageable);
 

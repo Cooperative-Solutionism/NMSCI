@@ -7,6 +7,7 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 
 import java.lang.reflect.Method;
@@ -51,6 +52,20 @@ class PersistenceConcurrencyContractTest {
         Lock lock = method.getAnnotation(Lock.class);
 
         assertNotNull(lock, "open consume chains must be selected with a pessimistic lock");
+        assertEquals(LockModeType.PESSIMISTIC_WRITE, lock.value());
+    }
+
+    @Test
+    void openConsumeChainsCanBeLockedInBatchesBeforeAllocation() throws NoSuchMethodException {
+        Method method = ConsumeChainRepository.class.getMethod(
+                "findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc",
+                com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg.class,
+                Short.class,
+                Pageable.class
+        );
+        Lock lock = method.getAnnotation(Lock.class);
+
+        assertNotNull(lock, "batched open consume chain reads must use a pessimistic lock");
         assertEquals(LockModeType.PESSIMISTIC_WRITE, lock.value());
     }
 }

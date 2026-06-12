@@ -18,6 +18,7 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,8 @@ import java.util.UUID;
 
 @Service
 public class ConsumeChainServiceImpl implements ConsumeChainService {
+
+    private static final int ALLOCATION_CHAIN_LOCK_BATCH_SIZE = 100;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -57,9 +60,10 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         FlowNodeRegisterMsg source = getFlowNodeRegisterMsgByPubkey(transactionMountMsg.getFlowNodePubkey(), "源");
         FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(transactionRecordMsg.getFlowNodePubkey(), "目标");
 
-        List<ConsumeChain> mountChains = consumeChainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
+        List<ConsumeChain> mountChains = getMountChainsForAllocation(
                 source,
-                transactionRecordMsg.getCurrencyType()
+                transactionRecordMsg.getCurrencyType(),
+                transactionRecordMsg.getAmount()
         );
 
         ConsumeChainAllocationPlan plan = consumeChainAllocator.allocate(
@@ -237,6 +241,42 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         }
 
         return flowNodeRegisterMsg;
+    }
+
+    private List<ConsumeChain> getMountChainsForAllocation(
+            FlowNodeRegisterMsg source,
+            Short currencyType,
+            long transactionAmount
+    ) {
+        List<ConsumeChain> mountChains = new ArrayList<>();
+        long remainingAmount = transactionAmount;
+        int page = 0;
+
+        while (remainingAmount > 0) {
+            List<ConsumeChain> batch = consumeChainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
+                    source,
+                    currencyType,
+                    PageRequest.of(page, ALLOCATION_CHAIN_LOCK_BATCH_SIZE)
+            );
+            if (batch.isEmpty()) {
+                break;
+            }
+
+            for (ConsumeChain mountChain : batch) {
+                mountChains.add(mountChain);
+                remainingAmount -= mountChain.getAmount();
+                if (remainingAmount <= 0) {
+                    break;
+                }
+            }
+
+            if (batch.size() < ALLOCATION_CHAIN_LOCK_BATCH_SIZE) {
+                break;
+            }
+            page++;
+        }
+
+        return mountChains;
     }
 
     private List<ConsumeChainAllocationCandidate> getConsumeChainAllocationCandidates(List<ConsumeChain> mountChains) {
