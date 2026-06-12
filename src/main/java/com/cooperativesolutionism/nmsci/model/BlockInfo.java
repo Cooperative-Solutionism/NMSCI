@@ -7,12 +7,19 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
 @Comment("区块信息")
 @Entity
-@Table(name = "block_infos")
+@Table(
+        name = "block_infos",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_block_infos_height", columnNames = "height"),
+                @UniqueConstraint(name = "uk_block_infos_previous_block_hash", columnNames = "previous_block_hash")
+        }
+)
 public class BlockInfo {
     @Id
     @Comment("本区块头的dblsha256hash")

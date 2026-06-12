@@ -257,7 +257,11 @@ create table block_infos
     central_signature             bytea             not null,
     dat_filepath                  text              not null,
     source_code_zip_filepath      text              not null,
-    raw_bytes                     bytea             not null
+    raw_bytes                     bytea             not null,
+    constraint uk_block_infos_height
+        unique (height),
+    constraint uk_block_infos_previous_block_hash
+        unique (previous_block_hash)
 );
 
 comment on table block_infos is '区块信息';

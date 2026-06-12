@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service.impl;
 import com.cooperativesolutionism.nmsci.block.AssembledBlock;
 import com.cooperativesolutionism.nmsci.block.BlockAssembler;
 import com.cooperativesolutionism.nmsci.block.BlockFileStore;
+import com.cooperativesolutionism.nmsci.block.BlockGenerationLock;
 import com.cooperativesolutionism.nmsci.block.BlockMessageSelector;
 import com.cooperativesolutionism.nmsci.block.SelectedBlockMessages;
 import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
@@ -35,10 +36,14 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Resource
     private SourceCodeArchiveStore sourceCodeArchiveStore;
 
+    @Resource
+    private BlockGenerationLock blockGenerationLock;
+
 
     @Override
     @Transactional
     public void generateBlock() {
+        blockGenerationLock.lock();
         generateSelectedBlock(blockMessageSelector.select());
     }
 
@@ -66,6 +71,7 @@ public class BlockChainServiceImpl implements BlockChainService {
     @Override
     @Transactional
     public void generateBlockUntilNoNotInBlockMsgs() {
+        blockGenerationLock.lock();
         while (generateBlockIfMessagesSelectedForLoop()) {
             // Continue until the selector returns no messages.
         }
