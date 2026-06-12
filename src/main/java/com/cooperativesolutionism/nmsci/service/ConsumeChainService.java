@@ -95,5 +95,22 @@ public interface ConsumeChainService {
      */
     Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable);
 
+    /**
+     * 根据节点ID获取包含该节点的消费链数据
+     *
+     * @param id 节点ID
+     * @return 返回消费链数据
+     */
+    Slice<ConsumeChainResponseDTO> getConsumeChainByNode(UUID id, Pageable pageable);
+
+    /**
+     * 根据节点ID和是否成环获取包含该节点的消费链数据
+     *
+     * @param id 节点ID
+     * @param isLoop 是否成环
+     * @return 返回消费链数据
+     */
+    Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable);
+
     ConsumeChainResponseDTO getConsumeChainById(UUID uuid);
 }

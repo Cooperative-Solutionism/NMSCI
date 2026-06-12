@@ -75,6 +75,23 @@ public class ConsumeChainController {
         return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
     }
 
+    @GetMapping("/by-node")
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByNode(
+            @RequestParam String node,
+            @RequestParam(required = false) Boolean isLoop,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
+        if (isLoop == null) {
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByNode(UUID.fromString(node), pageable(page, size));
+        } else {
+            consumeChainResponseDTOs = consumeChainService.getConsumeChainByNodeAndIsLoop(UUID.fromString(node), isLoop, pageable(page, size));
+        }
+
+        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
+    }
+
     private Pageable pageable(int page, int size) {
         return PageRequestUtil.of(page, size, CONSUME_CHAIN_QUERY_SORT);
     }

@@ -26,10 +26,14 @@ class ConsumeChainPaginationTest {
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByStartAndIsLoop", UUID.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByEnd", UUID.class, Pageable.class);
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByEndAndIsLoop", UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNode", UUID.class, Pageable.class);
+        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNodeAndIsLoop", UUID.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStart", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEndAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainRepository.class, "findDistinctByNode", FlowNodeRegisterMsg.class, Pageable.class);
+        assertSliceMethod(ConsumeChainRepository.class, "findDistinctByNodeAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findDistinctByRelatedTransactionMount", TransactionMountMsg.class, Pageable.class);
     }
 
@@ -38,6 +42,7 @@ class ConsumeChainPaginationTest {
         assertSliceResponseControllerMethod("getConsumeChainByMountedTransaction", String.class, int.class, int.class);
         assertSliceResponseControllerMethod("getConsumeChainByStart", String.class, Boolean.class, int.class, int.class);
         assertSliceResponseControllerMethod("getConsumeChainByEnd", String.class, Boolean.class, int.class, int.class);
+        assertSliceResponseControllerMethod("getConsumeChainByNode", String.class, Boolean.class, int.class, int.class);
     }
 
     private void assertSliceMethod(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {

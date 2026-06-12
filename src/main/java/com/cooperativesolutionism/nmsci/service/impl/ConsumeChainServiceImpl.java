@@ -212,6 +212,34 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     }
 
     @Override
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByNode(UUID id, Pageable pageable) {
+        if (id == null) {
+            throw new IllegalArgumentException("节点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("节点ID不存在"));
+
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNode(node, pageable);
+
+        return getConsumeChainResponseDTOSlice(consumeChains);
+    }
+
+    @Override
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
+        if (id == null) {
+            throw new IllegalArgumentException("节点ID不能为空");
+        }
+
+        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("节点ID不存在"));
+
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
+
+        return getConsumeChainResponseDTOSlice(consumeChains);
+    }
+
+    @Override
     public ConsumeChainResponseDTO getConsumeChainById(UUID uuid) {
         if (uuid == null) {
             throw new IllegalArgumentException("消费链ID不能为空");

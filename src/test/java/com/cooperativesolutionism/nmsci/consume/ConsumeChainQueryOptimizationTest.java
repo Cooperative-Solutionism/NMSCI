@@ -160,6 +160,37 @@ class ConsumeChainQueryOptimizationTest {
         verify(chainRepository, never()).findById(any());
     }
 
+    @Test
+    void getConsumeChainByNodeLoadsAllContainingChainsAndEdgesInOneBatch() {
+        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
+        ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
+        ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
+        inject(service, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class), mock(ConsumeChainAllocator.class), mock(ConsumeChainPersistenceService.class));
+
+        FlowNodeRegisterMsg node = node("11111111-1111-1111-1111-111111111111", pubkey(1));
+        ConsumeChain firstChain = chain("22222222-2222-2222-2222-222222222222", node);
+        ConsumeChain secondChain = chain("33333333-3333-3333-3333-333333333333", node);
+        ConsumeChainEdge firstEdge = edge(firstChain, 10L);
+        ConsumeChainEdge secondEdge = edge(secondChain, 20L);
+        Pageable pageable = PageRequest.of(0, 50);
+
+        when(flowNodeRepository.findById(node.getId())).thenReturn(Optional.of(node));
+        when(chainRepository.findDistinctByNode(node, pageable))
+                .thenReturn(new SliceImpl<>(List.of(firstChain, secondChain), pageable, false));
+        when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain)))
+                .thenReturn(List.of(firstEdge, secondEdge));
+
+        Slice<ConsumeChainResponseDTO> response = service.getConsumeChainByNode(node.getId(), pageable);
+
+        assertEquals(2, response.getNumberOfElements());
+        assertSame(firstEdge, response.getContent().get(0).getConsumeChainEdges().get(0));
+        assertSame(secondEdge, response.getContent().get(1).getConsumeChainEdges().get(0));
+        verify(chainRepository).findDistinctByNode(node, pageable);
+        verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain));
+        verify(edgeRepository, never()).findByChainOrderByRelatedTransactionMountTimestampAsc(any());
+    }
+
     private static void inject(
             ConsumeChainServiceImpl service,
             FlowNodeRegisterMsgRepository flowNodeRepository,

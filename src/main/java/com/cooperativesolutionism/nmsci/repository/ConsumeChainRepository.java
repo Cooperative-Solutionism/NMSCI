@@ -36,4 +36,35 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     Slice<ConsumeChain> findByEnd(FlowNodeRegisterMsg end, Pageable pageable);
 
     Slice<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop, Pageable pageable);
+
+    @Query("""
+            select c
+            from ConsumeChain c
+            where c.start = :node
+                or c.end = :node
+                or exists (
+                    select 1
+                    from ConsumeChainEdge e
+                    where e.chain = c
+                        and (e.source = :node or e.target = :node)
+                )
+            """)
+    Slice<ConsumeChain> findDistinctByNode(FlowNodeRegisterMsg node, Pageable pageable);
+
+    @Query("""
+            select c
+            from ConsumeChain c
+            where c.isLoop = :isLoop
+                and (
+                    c.start = :node
+                    or c.end = :node
+                    or exists (
+                        select 1
+                        from ConsumeChainEdge e
+                        where e.chain = c
+                            and (e.source = :node or e.target = :node)
+                    )
+                )
+            """)
+    Slice<ConsumeChain> findDistinctByNodeAndIsLoop(FlowNodeRegisterMsg node, Boolean isLoop, Pageable pageable);
 }
