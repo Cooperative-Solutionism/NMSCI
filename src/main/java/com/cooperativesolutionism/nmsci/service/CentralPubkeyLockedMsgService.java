@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CentralPubkeyLockedMsgService {
@@ -30,5 +31,13 @@ public interface CentralPubkeyLockedMsgService {
      * @return 中央公钥冻结信息
      */
     CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey);
+
+    /**
+     * 根据中心公钥查询中心公钥冻结信息。未冻结时返回空。
+     *
+     * @param centralPubkey 中央公钥字节数组
+     * @return 中央公钥冻结信息
+     */
+    Optional<CentralPubkeyLockedMsg> findCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey);
 
 }

@@ -17,6 +17,7 @@ import jakarta.validation.Valid;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -90,14 +91,16 @@ public class FlowNodeLockedMsgServiceImpl implements FlowNodeLockedMsgService {
 
     @Override
     public FlowNodeLockedMsg getFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        return findFlowNodeLockedMsgByFlowNodePubkey(flowNodePubkey)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未冻结"));
+    }
+
+    @Override
+    public Optional<FlowNodeLockedMsg> findFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
         }
 
-        if (!flowNodeLockedMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
-            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未冻结");
-        }
-
-        return flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+        return Optional.ofNullable(flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey));
     }
 }

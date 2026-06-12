@@ -22,6 +22,7 @@ import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -148,14 +149,16 @@ public class CentralPubkeyLockedMsgServiceImpl implements CentralPubkeyLockedMsg
 
     @Override
     public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
+        return findCentralPubkeyLockedMsgByCentralPubkey(centralPubkey)
+                .orElseThrow(() -> new IllegalArgumentException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结"));
+    }
+
+    @Override
+    public Optional<CentralPubkeyLockedMsg> findCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
         if (centralPubkey == null || centralPubkey.length != 33) {
             throw new IllegalArgumentException("中心公钥不能为空或长度不为33字节");
         }
 
-        if (!centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkey)) {
-            throw new IllegalArgumentException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结");
-        }
-
-        return centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey);
+        return Optional.ofNullable(centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey));
     }
 }

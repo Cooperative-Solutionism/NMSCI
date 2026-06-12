@@ -145,19 +145,21 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
-    void rejectsMissingFlowNodeLockedLookupByPubkey() throws Exception {
+    void returnsUnlockedStateWhenFlowNodeLockedLookupByPubkeyIsMissing() throws Exception {
         mockMvc.perform(get("/flow-node-locked-msg/flow-node-pubkey/{pubkey}", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("未冻结")));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.locked").value(false))
+                .andExpect(jsonPath("$.data.lockedMsg").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test
-    void rejectsMissingCentralPubkeyLockedLookupByPubkey() throws Exception {
+    void returnsUnlockedStateWhenCentralPubkeyLockedLookupByPubkeyIsMissing() throws Exception {
         mockMvc.perform(get("/central-pubkey-locked-msg/central-pubkey/{pubkey}", ByteArrayUtil.bytesToHex(TestKeyPairs.CENTRAL.pubkey())))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.code").value(500))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("未冻结")));
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.locked").value(false))
+                .andExpect(jsonPath("$.data.lockedMsg").value(org.hamcrest.Matchers.nullValue()));
     }
 
     @Test

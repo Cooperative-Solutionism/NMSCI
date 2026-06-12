@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.FlowNodeLockedMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.LockedMessageResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
@@ -9,6 +10,7 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -31,8 +33,8 @@ public class FlowNodeLockedMsgController {
     }
 
     @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<FlowNodeLockedMsg> getFlowNodeLockedMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgService.getFlowNodeLockedMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(flowNodeLockedMsg);
+    public ResponseResult<LockedMessageResponseDTO<FlowNodeLockedMsg>> getFlowNodeLockedMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
+        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
+        return ResponseResult.success(new LockedMessageResponseDTO<>(flowNodeLockedMsg.isPresent(), flowNodeLockedMsg.orElse(null)));
     }
 }

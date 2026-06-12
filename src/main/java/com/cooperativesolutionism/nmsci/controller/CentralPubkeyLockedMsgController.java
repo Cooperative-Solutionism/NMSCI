@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.LockedMessageResponseDTO;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
@@ -9,6 +10,7 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -30,7 +32,8 @@ public class CentralPubkeyLockedMsgController {
     }
 
     @GetMapping("/central-pubkey/{centralPubkey}")
-    public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
-        return  ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey)));
+    public ResponseResult<LockedMessageResponseDTO<CentralPubkeyLockedMsg>> getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
+        Optional<CentralPubkeyLockedMsg> centralPubkeyLockedMsg = centralPubkeyLockedMsgService.findCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey));
+        return ResponseResult.success(new LockedMessageResponseDTO<>(centralPubkeyLockedMsg.isPresent(), centralPubkeyLockedMsg.orElse(null)));
     }
 }

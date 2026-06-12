@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface FlowNodeLockedMsgService {
@@ -31,5 +32,13 @@ public interface FlowNodeLockedMsgService {
      * @return 流转节点冻结消息
      */
     FlowNodeLockedMsg getFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey);
+
+    /**
+     * 根据流转节点公钥查询流转节点冻结消息。未冻结时返回空。
+     *
+     * @param flowNodePubkey 流转节点公钥
+     * @return 流转节点冻结消息
+     */
+    Optional<FlowNodeLockedMsg> findFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey);
 
 }
