@@ -67,6 +67,15 @@ export CENTRAL_KEY_PAIR_PRIKEY='base64-private-key'
 
 ## 本地运行
 
+开发配置 `application-dev.properties` 不再包含密钥。首次运行前，复制密钥模板并填入本地值：
+
+```bash
+cp application-local.properties.example application-local.properties
+# 编辑 application-local.properties，填入 spring.datasource.password 与 central-key-pair.pubkey/prikey
+```
+
+`application-local.properties` 已被 `.gitignore` 忽略，dev 配置会通过 `spring.config.import` 自动加载它。
+
 启动本地数据库后，使用开发配置运行：
 
 ```bash
