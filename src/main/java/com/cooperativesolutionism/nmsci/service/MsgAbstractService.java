@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.model.ConfirmableMessage;
 import com.cooperativesolutionism.nmsci.model.Message;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
@@ -25,7 +26,11 @@ public class MsgAbstractService {
         msgAbstract.setId(msgAbstractId);
         msgAbstract.setMsgType(message.getMsgType());
         msgAbstract.setMsgId(message.getId());
-        msgAbstract.setConfirmTimestamp(message.getConfirmTimestamp());
+        Long confirmTimestamp = 0L;
+        if (message instanceof ConfirmableMessage confirmable) {
+            confirmTimestamp = confirmable.getConfirmTimestamp();
+        }
+        msgAbstract.setConfirmTimestamp(confirmTimestamp);
         msgAbstractRepository.save(msgAbstract);
     }
 }

@@ -119,13 +119,6 @@ public class FlowNodeRegisterMsg implements Message {
         this.flowNodeSignature = flowNodeSignature;
     }
 
-    public Long getConfirmTimestamp() {
-        return 0L;
-    }
-
-    public void setConfirmTimestamp(Long confirmTimestamp) {
-    }
-
     public byte[] getRawBytes() {
         return rawBytes;
     }
