@@ -112,5 +112,41 @@ public interface ConsumeChainService {
      */
     Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable);
 
+    /**
+     * 根据起点、终点或任意节点ID分页查询消费链数据
+     *
+     * @param start   起点流转节点注册消息ID
+     * @param end     终点流转节点注册消息ID
+     * @param node    任意节点流转节点注册消息ID
+     * @param isLoop  是否成环；null时不过滤
+     * @param pageable 分页参数
+     * @return 返回消费链数据
+     */
+    Slice<ConsumeChainResponseDTO> getConsumeChainByRelatedId(
+            UUID start,
+            UUID end,
+            UUID node,
+            Boolean isLoop,
+            Pageable pageable
+    );
+
+    /**
+     * 根据起点、终点或任意节点公钥分页查询消费链数据
+     *
+     * @param startPubkey 起点流转节点公钥
+     * @param endPubkey   终点流转节点公钥
+     * @param nodePubkey  任意节点公钥
+     * @param isLoop      是否成环；null时不过滤
+     * @param pageable    分页参数
+     * @return 返回消费链数据
+     */
+    Slice<ConsumeChainResponseDTO> getConsumeChainByPubkey(
+            byte[] startPubkey,
+            byte[] endPubkey,
+            byte[] nodePubkey,
+            Boolean isLoop,
+            Pageable pageable
+    );
+
     ConsumeChainResponseDTO getConsumeChainById(UUID uuid);
 }

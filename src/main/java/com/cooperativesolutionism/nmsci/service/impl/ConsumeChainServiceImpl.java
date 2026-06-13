@@ -240,6 +240,70 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
     }
 
     @Override
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByRelatedId(
+            UUID start,
+            UUID end,
+            UUID node,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        if (countProvided(start, end, node) != 1) {
+            throw new IllegalArgumentException("必须且只能提供start、end、node中的一个");
+        }
+
+        if (start != null) {
+            return isLoop == null
+                    ? getConsumeChainByStart(start, pageable)
+                    : getConsumeChainByStartAndIsLoop(start, isLoop, pageable);
+        }
+
+        if (end != null) {
+            return isLoop == null
+                    ? getConsumeChainByEnd(end, pageable)
+                    : getConsumeChainByEndAndIsLoop(end, isLoop, pageable);
+        }
+
+        return isLoop == null
+                ? getConsumeChainByNode(node, pageable)
+                : getConsumeChainByNodeAndIsLoop(node, isLoop, pageable);
+    }
+
+    @Override
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByPubkey(
+            byte[] startPubkey,
+            byte[] endPubkey,
+            byte[] nodePubkey,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        if (countProvided(startPubkey, endPubkey, nodePubkey) != 1) {
+            throw new IllegalArgumentException("必须且只能提供startPubkey、endPubkey、nodePubkey中的一个");
+        }
+
+        if (startPubkey != null) {
+            FlowNodeRegisterMsg start = getFlowNodeRegisterMsgByPubkey(startPubkey, "起点");
+            Slice<ConsumeChain> consumeChains = isLoop == null
+                    ? consumeChainRepository.findByStart(start, pageable)
+                    : consumeChainRepository.findByStartAndIsLoop(start, isLoop, pageable);
+            return getConsumeChainResponseDTOSlice(consumeChains);
+        }
+
+        if (endPubkey != null) {
+            FlowNodeRegisterMsg end = getFlowNodeRegisterMsgByPubkey(endPubkey, "终点");
+            Slice<ConsumeChain> consumeChains = isLoop == null
+                    ? consumeChainRepository.findByEnd(end, pageable)
+                    : consumeChainRepository.findByEndAndIsLoop(end, isLoop, pageable);
+            return getConsumeChainResponseDTOSlice(consumeChains);
+        }
+
+        FlowNodeRegisterMsg node = getFlowNodeRegisterMsgByPubkey(nodePubkey, "节点");
+        Slice<ConsumeChain> consumeChains = isLoop == null
+                ? consumeChainRepository.findDistinctByNode(node, pageable)
+                : consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
+        return getConsumeChainResponseDTOSlice(consumeChains);
+    }
+
+    @Override
     public ConsumeChainResponseDTO getConsumeChainById(UUID uuid) {
         if (uuid == null) {
             throw new IllegalArgumentException("消费链ID不能为空");
@@ -269,6 +333,16 @@ public class ConsumeChainServiceImpl implements ConsumeChainService {
         }
 
         return flowNodeRegisterMsg;
+    }
+
+    private int countProvided(Object... values) {
+        int count = 0;
+        for (Object value : values) {
+            if (value != null) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private List<ConsumeChain> getMountChainsForAllocation(

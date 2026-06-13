@@ -15,6 +15,7 @@ import java.lang.reflect.Method;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConsumeChainPaginationTest {
@@ -28,6 +29,8 @@ class ConsumeChainPaginationTest {
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByEndAndIsLoop", UUID.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNode", UUID.class, Pageable.class);
         assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNodeAndIsLoop", UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByRelatedId", UUID.class, UUID.class, UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByPubkey", byte[].class, byte[].class, byte[].class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStart", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
@@ -40,9 +43,11 @@ class ConsumeChainPaginationTest {
     @Test
     void controllerBatchQueriesReturnSliceResponse() throws NoSuchMethodException {
         assertSliceResponseControllerMethod("getConsumeChainByMountedTransaction", String.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getConsumeChainByStart", String.class, Boolean.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getConsumeChainByEnd", String.class, Boolean.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getConsumeChainByNode", String.class, Boolean.class, int.class, int.class);
+        assertSliceResponseControllerMethod("getConsumeChainByRelatedId", String.class, String.class, String.class, Boolean.class, int.class, int.class);
+        assertSliceResponseControllerMethod("getConsumeChainByPubkey", String.class, String.class, String.class, Boolean.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByStart", String.class, Boolean.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByEnd", String.class, Boolean.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByNode", String.class, Boolean.class, int.class, int.class);
     }
 
     private void assertSliceMethod(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {
@@ -57,5 +62,9 @@ class ConsumeChainPaginationTest {
         assertEquals(ResponseResult.class, method.getReturnType());
         String genericReturnType = method.getGenericReturnType().getTypeName();
         assertTrue(genericReturnType.contains(SliceResponseDTO.class.getName()));
+    }
+
+    private void assertControllerMethodAbsent(String name, Class<?>... parameterTypes) {
+        assertThrows(NoSuchMethodException.class, () -> ConsumeChainController.class.getMethod(name, parameterTypes));
     }
 }

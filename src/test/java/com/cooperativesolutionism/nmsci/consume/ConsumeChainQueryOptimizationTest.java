@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -189,6 +190,69 @@ class ConsumeChainQueryOptimizationTest {
         verify(chainRepository).findDistinctByNode(node, pageable);
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain));
         verify(edgeRepository, never()).findByChainOrderByRelatedTransactionMountTimestampAsc(any());
+    }
+
+    @Test
+    void getConsumeChainByPubkeyUsesExactlyOnePubkeyFilterAndLoadsEdgesInOneBatch() {
+        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
+        ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
+        ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
+        inject(service, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class), mock(ConsumeChainAllocator.class), mock(ConsumeChainPersistenceService.class));
+
+        byte[] startPubkey = pubkey(1);
+        FlowNodeRegisterMsg start = node("11111111-1111-1111-1111-111111111111", startPubkey);
+        ConsumeChain chain = chain("22222222-2222-2222-2222-222222222222", start);
+        ConsumeChainEdge edge = edge(chain, 10L);
+        Pageable pageable = PageRequest.of(0, 50);
+
+        when(flowNodeRepository.findFirstByFlowNodePubkey(startPubkey)).thenReturn(start);
+        when(chainRepository.findByStartAndIsLoop(start, true, pageable))
+                .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
+        when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
+
+        Slice<ConsumeChainResponseDTO> response = service.getConsumeChainByPubkey(startPubkey, null, null, true, pageable);
+
+        assertEquals(1, response.getNumberOfElements());
+        assertSame(edge, response.getContent().get(0).getConsumeChainEdges().get(0));
+        verify(flowNodeRepository).findFirstByFlowNodePubkey(startPubkey);
+        verify(chainRepository).findByStartAndIsLoop(start, true, pageable);
+        verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getConsumeChainByPubkey(startPubkey, pubkey(2), null, null, pageable)
+        );
+    }
+
+    @Test
+    void getConsumeChainByRelatedIdUsesExactlyOneIdFilterAndLoadsEdgesInOneBatch() {
+        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
+        ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
+        ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
+        inject(service, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class), mock(ConsumeChainAllocator.class), mock(ConsumeChainPersistenceService.class));
+
+        FlowNodeRegisterMsg node = node("11111111-1111-1111-1111-111111111111", pubkey(1));
+        ConsumeChain chain = chain("22222222-2222-2222-2222-222222222222", node);
+        ConsumeChainEdge edge = edge(chain, 10L);
+        Pageable pageable = PageRequest.of(0, 50);
+
+        when(flowNodeRepository.findById(node.getId())).thenReturn(Optional.of(node));
+        when(chainRepository.findDistinctByNodeAndIsLoop(node, true, pageable))
+                .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
+        when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
+
+        Slice<ConsumeChainResponseDTO> response = service.getConsumeChainByRelatedId(null, null, node.getId(), true, pageable);
+
+        assertEquals(1, response.getNumberOfElements());
+        assertSame(edge, response.getContent().get(0).getConsumeChainEdges().get(0));
+        verify(flowNodeRepository).findById(node.getId());
+        verify(chainRepository).findDistinctByNodeAndIsLoop(node, true, pageable);
+        verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getConsumeChainByRelatedId(node.getId(), node.getId(), null, null, pageable)
+        );
     }
 
     private static void inject(

@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
@@ -41,58 +42,70 @@ public class ConsumeChainController {
         return ResponseResult.success(consumeChainResponseDTO);
     }
 
-    @GetMapping("/by-start")
-    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByStart(
-            @RequestParam String start,
+    @GetMapping("/by-id")
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByRelatedId(
+            @RequestParam(required = false) String start,
+            @RequestParam(required = false) String end,
+            @RequestParam(required = false) String node,
             @RequestParam(required = false) Boolean isLoop,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
-        if (isLoop == null) {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByStart(UUID.fromString(start), pageable(page, size));
-        } else {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByStartAndIsLoop(UUID.fromString(start), isLoop, pageable(page, size));
-        }
-
-        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
+        return consumeChainByRelatedId(start, end, node, isLoop, page, size);
     }
 
-    @GetMapping("/by-end")
-    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByEnd(
-            @RequestParam String end,
+    @GetMapping("/by-pubkey")
+    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByPubkey(
+            @RequestParam(required = false) String startPubkey,
+            @RequestParam(required = false) String endPubkey,
+            @RequestParam(required = false) String nodePubkey,
             @RequestParam(required = false) Boolean isLoop,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
-        if (isLoop == null) {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByEnd(UUID.fromString(end), pageable(page, size));
-        } else {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByEndAndIsLoop(UUID.fromString(end), isLoop, pageable(page, size));
-        }
-
-        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
-    }
-
-    @GetMapping("/by-node")
-    public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByNode(
-            @RequestParam String node,
-            @RequestParam(required = false) Boolean isLoop,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
-    ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs;
-        if (isLoop == null) {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByNode(UUID.fromString(node), pageable(page, size));
-        } else {
-            consumeChainResponseDTOs = consumeChainService.getConsumeChainByNodeAndIsLoop(UUID.fromString(node), isLoop, pageable(page, size));
-        }
-
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByPubkey(
+                pubkey(startPubkey),
+                pubkey(endPubkey),
+                pubkey(nodePubkey),
+                isLoop,
+                pageable(page, size)
+        );
         return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
     }
 
     private Pageable pageable(int page, int size) {
         return PageRequestUtil.of(page, size, CONSUME_CHAIN_QUERY_SORT);
+    }
+
+    private ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> consumeChainByRelatedId(
+            String start,
+            String end,
+            String node,
+            Boolean isLoop,
+            int page,
+            int size
+    ) {
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByRelatedId(
+                uuid(start),
+                uuid(end),
+                uuid(node),
+                isLoop,
+                pageable(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
+    }
+
+    private UUID uuid(String id) {
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+        return UUID.fromString(id);
+    }
+
+    private byte[] pubkey(String pubkey) {
+        if (pubkey == null || pubkey.isBlank()) {
+            return null;
+        }
+        return ByteArrayUtil.hexToBytes(pubkey);
     }
 }
