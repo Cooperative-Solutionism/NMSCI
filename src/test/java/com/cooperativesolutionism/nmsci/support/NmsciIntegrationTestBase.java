@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,7 @@ import java.security.Security;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @ExtendWith(DockerAvailableCondition.class)
+@Tag("integration")
 @SpringBootTest(classes = NmsciApplication.class)
 public abstract class NmsciIntegrationTestBase {
 

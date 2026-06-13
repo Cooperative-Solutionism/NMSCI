@@ -97,24 +97,30 @@ temp/source-code
 
 ## 测试
 
-运行全量测试：
+快速测试：
 
 ```bash
-./mvnw clean test
+./mvnw test
 ```
 
-集成测试使用 Testcontainers 启动 PostgreSQL，因此需要 Docker 可用。
+全量测试：
+
+```bash
+./mvnw verify
+```
+
+集成测试使用 Testcontainers 启动 PostgreSQL，因此全量测试需要 Docker 可用。更多说明见 [TESTING.md](./TESTING.md)。
 
 只运行单个测试类：
 
 ```bash
-./mvnw -Dtest=ProtocolErrorIntegrationTest test
+./mvnw -Dtest=Sha256UtilTest test
 ```
 
 如果当前环境没有 Docker，可以临时禁用集成测试：
 
 ```bash
-./mvnw clean test -Dnmsci.integration-tests.enabled=false
+./mvnw verify -Dnmsci.integration-tests.enabled=false
 ```
 
 ## 构建
