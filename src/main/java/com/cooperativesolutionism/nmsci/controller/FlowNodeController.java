@@ -1,10 +1,15 @@
 package com.cooperativesolutionism.nmsci.controller;
 
+import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,11 +19,27 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/flow-node")
 public class FlowNodeController {
 
+    private static final Sort FLOW_NODE_QUERY_SORT = Sort.by(Sort.Order.asc("id"));
+
     @Resource
     private FlowNodeRegisterMsgService flowNodeRegisterMsgService;
 
     @GetMapping("/state")
     public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@RequestParam String flowNodePubkey) {
         return ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(ByteArrayUtil.hexToBytes(flowNodePubkey)));
+    }
+
+    @GetMapping("/list")
+    public ResponseResult<SliceResponseDTO<FlowNodeListItemDTO>> listFlowNodes(
+            @RequestParam(required = false, defaultValue = "true") Boolean registered,
+            @RequestParam(required = false) Boolean authorized,
+            @RequestParam(required = false) Boolean locked,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Pageable pageable = PageRequestUtil.of(page, size, FLOW_NODE_QUERY_SORT);
+        return ResponseResult.success(SliceResponseDTO.from(
+                flowNodeRegisterMsgService.listFlowNodes(registered, authorized, locked, pageable)
+        ));
     }
 }

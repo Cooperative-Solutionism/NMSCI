@@ -32,6 +32,51 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
         assertState(TestKeyPairs.FLOW_NODE_B.pubkey(), true, true, false, true);
     }
 
+    @Test
+    void listsFlowNodesByAuthorizationAndLockFilters() throws Exception {
+        insertFlowNodeRegister(TestKeyPairs.FLOW_NODE_A.pubkey());
+        insertCentralPubkeyEmpower(TestKeyPairs.FLOW_NODE_A.pubkey(), TestKeyPairs.CENTRAL.pubkey());
+
+        insertFlowNodeRegister(TestKeyPairs.FLOW_NODE_B.pubkey());
+        insertCentralPubkeyEmpower(TestKeyPairs.FLOW_NODE_B.pubkey(), TestKeyPairs.FLOW_NODE_A.pubkey());
+        insertFlowNodeLocked(TestKeyPairs.FLOW_NODE_B.pubkey());
+
+        insertFlowNodeRegister(TestKeyPairs.CONSUME_NODE_A.pubkey());
+
+        mockMvc.perform(get("/flow-node/list")
+                        .param("registered", "true")
+                        .param("authorized", "true")
+                        .param("locked", "false")
+                        .param("page", "0")
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].flowNodePubkey").value(ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
+                .andExpect(jsonPath("$.data.content[0].registered").value(true))
+                .andExpect(jsonPath("$.data.content[0].authorized").value(true))
+                .andExpect(jsonPath("$.data.content[0].locked").value(false))
+                .andExpect(jsonPath("$.data.content[0].currentCentralPubkeyAuthorized").value(true));
+
+        mockMvc.perform(get("/flow-node/list")
+                        .param("locked", "true")
+                        .param("page", "0")
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].flowNodePubkey").value(ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
+                .andExpect(jsonPath("$.data.content[0].authorized").value(true))
+                .andExpect(jsonPath("$.data.content[0].locked").value(true))
+                .andExpect(jsonPath("$.data.content[0].currentCentralPubkeyAuthorized").value(false));
+
+        mockMvc.perform(get("/flow-node/list")
+                        .param("registered", "false")
+                        .param("page", "0")
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.numberOfElements").value(0));
+    }
+
     private void assertState(
             byte[] flowNodePubkey,
             boolean registered,

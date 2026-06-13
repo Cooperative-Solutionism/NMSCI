@@ -1,9 +1,12 @@
 package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 
 import java.util.UUID;
 
@@ -40,4 +43,15 @@ public interface FlowNodeRegisterMsgService {
      * @return 流转节点状态
      */
     FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey);
+
+    /**
+     * 分页查询流转节点列表
+     *
+     * @param registered 是否已注册；false时返回空页
+     * @param authorized 是否存在任意中心公钥授权；null时不过滤
+     * @param locked     是否已冻结；null时不过滤
+     * @param pageable   分页参数
+     * @return 流转节点列表
+     */
+    Slice<FlowNodeListItemDTO> listFlowNodes(Boolean registered, Boolean authorized, Boolean locked, Pageable pageable);
 }

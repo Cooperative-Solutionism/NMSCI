@@ -1,9 +1,12 @@
 package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
+import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeState;
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateOverview;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,6 +42,57 @@ public interface FlowNodeRegisterMsgRepository extends JpaRepository<FlowNodeReg
     FlowNodeStateOverview findFlowNodeStateOverview(
             @Param("flowNodePubkey") byte[] flowNodePubkey,
             @Param("currentCentralPubkey") byte[] currentCentralPubkey
+    );
+
+    @Query("""
+            select new com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO(
+                f.id,
+                f.flowNodePubkey,
+                true,
+                case when exists (
+                    select 1
+                    from CentralPubkeyEmpowerMsg empower
+                    where empower.flowNodePubkey = f.flowNodePubkey
+                ) then true else false end,
+                case when exists (
+                    select 1
+                    from FlowNodeLockedMsg locked
+                    where locked.flowNodePubkey = f.flowNodePubkey
+                ) then true else false end,
+                case when exists (
+                    select 1
+                    from CentralPubkeyEmpowerMsg currentEmpower
+                    where currentEmpower.flowNodePubkey = f.flowNodePubkey
+                        and currentEmpower.centralPubkey = :currentCentralPubkey
+                ) then true else false end
+            )
+            from FlowNodeRegisterMsg f
+            where (
+                :authorized is null
+                or (
+                    case when exists (
+                        select 1
+                        from CentralPubkeyEmpowerMsg empowerFilter
+                        where empowerFilter.flowNodePubkey = f.flowNodePubkey
+                    ) then true else false end
+                ) = :authorized
+            )
+            and (
+                :locked is null
+                or (
+                    case when exists (
+                        select 1
+                        from FlowNodeLockedMsg lockedFilter
+                        where lockedFilter.flowNodePubkey = f.flowNodePubkey
+                    ) then true else false end
+                ) = :locked
+            )
+            """)
+    Slice<FlowNodeListItemDTO> findFlowNodeList(
+            @Param("authorized") Boolean authorized,
+            @Param("locked") Boolean locked,
+            @Param("currentCentralPubkey") byte[] currentCentralPubkey,
+            Pageable pageable
     );
 
     List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);

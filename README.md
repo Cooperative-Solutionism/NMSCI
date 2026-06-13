@@ -242,6 +242,7 @@ file/source-code
 GET  /block-chain/last
 GET  /block-chain/height/{height}
 GET  /block-chain/hash/{hash}
+GET  /flow-node/list
 GET  /returning-flow-rate/by-id
 GET  /returning-flow-rate/by-pubkey
 POST /flow-node-register-msg/send

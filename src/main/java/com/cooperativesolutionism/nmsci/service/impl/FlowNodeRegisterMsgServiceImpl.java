@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.service.impl;
 
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
@@ -14,12 +15,16 @@ import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -154,5 +159,24 @@ public class FlowNodeRegisterMsgServiceImpl implements FlowNodeRegisterMsgServic
                 flowNodePubkey,
                 centralPubkeyValidator.currentCentralPubkey()
         ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Slice<FlowNodeListItemDTO> listFlowNodes(Boolean registered, Boolean authorized, Boolean locked, Pageable pageable) {
+        if (pageable == null) {
+            throw new IllegalArgumentException("分页参数不能为空");
+        }
+
+        if (Boolean.FALSE.equals(registered)) {
+            return new SliceImpl<>(List.of(), pageable, false);
+        }
+
+        return flowNodeRegisterMsgRepository.findFlowNodeList(
+                authorized,
+                locked,
+                centralPubkeyValidator.currentCentralPubkey(),
+                pageable
+        );
     }
 }
