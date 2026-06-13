@@ -10,7 +10,7 @@ import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
-import com.cooperativesolutionism.nmsci.service.impl.ConsumeChainServiceImpl;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +40,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void saveConsumeChainLocksOpenChainsInBatchesAndLoadsSelectedEdgesInOneBatch() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
@@ -106,7 +106,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByStartLoadsEdgesForAllChainsInOneBatch() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
@@ -136,7 +136,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByMountedTransactionReadsDistinctChainsDirectly() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         TransactionMountMsgRepository mountRepository = mock(TransactionMountMsgRepository.class);
@@ -163,7 +163,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByNodeLoadsAllContainingChainsAndEdgesInOneBatch() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
@@ -194,7 +194,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByPubkeyUsesExactlyOnePubkeyFilterAndLoadsEdgesInOneBatch() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
@@ -226,7 +226,7 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByRelatedIdUsesExactlyOneIdFilterAndLoadsEdgesInOneBatch() {
-        ConsumeChainServiceImpl service = new ConsumeChainServiceImpl();
+        ConsumeChainService service = new ConsumeChainService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
@@ -256,7 +256,7 @@ class ConsumeChainQueryOptimizationTest {
     }
 
     private static void inject(
-            ConsumeChainServiceImpl service,
+            ConsumeChainService service,
             FlowNodeRegisterMsgRepository flowNodeRepository,
             ConsumeChainRepository chainRepository,
             ConsumeChainEdgeRepository edgeRepository,

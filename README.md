@@ -291,8 +291,8 @@ src/main/java/com/cooperativesolutionism/nmsci
 ├── exception       全局异常处理
 ├── model           JPA 实体
 ├── repository      Spring Data Repository
-├── service         业务接口
-├── service/impl    业务实现
+├── service         业务服务实现
+├── service/impl    持久化辅助类
 ├── task            定时任务
 └── util            字节、哈希、签名、PoW 等工具
 ```

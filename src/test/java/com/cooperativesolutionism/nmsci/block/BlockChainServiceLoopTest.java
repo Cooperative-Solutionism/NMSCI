@@ -2,7 +2,7 @@ package com.cooperativesolutionism.nmsci.block;
 
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
-import com.cooperativesolutionism.nmsci.service.impl.BlockChainServiceImpl;
+import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -22,7 +22,7 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateUntilNoMessagesStopsOnEmptySelectionWithoutCounting() {
-        BlockChainServiceImpl service = new BlockChainServiceImpl();
+        BlockChainService service = new BlockChainService();
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
         BlockAssembler assembler = mock(BlockAssembler.class);
@@ -43,7 +43,7 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateBlockLocksBeforeSelectingPreviousState() {
-        BlockChainServiceImpl service = new BlockChainServiceImpl();
+        BlockChainService service = new BlockChainService();
         BlockInfoRepository blockInfoRepository = mock(BlockInfoRepository.class);
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
@@ -76,7 +76,7 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateUntilLocksBeforeCheckingForMoreMessages() {
-        BlockChainServiceImpl service = new BlockChainServiceImpl();
+        BlockChainService service = new BlockChainService();
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
         BlockGenerationLock blockGenerationLock = mock(BlockGenerationLock.class);
         ReflectionTestUtils.setField(service, "blockInfoRepository", mock(BlockInfoRepository.class));

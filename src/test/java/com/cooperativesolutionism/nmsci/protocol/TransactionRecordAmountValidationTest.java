@@ -4,7 +4,7 @@ import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
-import com.cooperativesolutionism.nmsci.service.impl.TransactionRecordMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -24,13 +24,13 @@ class TransactionRecordAmountValidationTest {
     private static final int CURRENT_TRANSACTION_DIFFICULTY = 0x20ffffff;
     private static final int STALE_TRANSACTION_DIFFICULTY = 0x20fffffe;
 
-    private TransactionRecordMsgServiceImpl service;
+    private TransactionRecordMsgService service;
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
     private BlockDifficultyService blockDifficultyService;
 
     @BeforeEach
     void setUp() {
-        service = new TransactionRecordMsgServiceImpl();
+        service = new TransactionRecordMsgService();
         transactionRecordMsgRepository = mock(TransactionRecordMsgRepository.class);
         blockDifficultyService = mock(BlockDifficultyService.class);
         ReflectionTestUtils.setField(service, "transactionRecordMsgRepository", transactionRecordMsgRepository);

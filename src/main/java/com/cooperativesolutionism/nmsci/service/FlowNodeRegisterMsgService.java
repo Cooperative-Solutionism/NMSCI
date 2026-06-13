@@ -2,56 +2,169 @@ package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
+import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
+import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.springframework.data.domain.Pageable;
+import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
+import java.io.IOException;
+import java.math.BigInteger;
+import java.util.List;
 import java.util.UUID;
 
-public interface FlowNodeRegisterMsgService {
+@Service
+@Validated
+public class FlowNodeRegisterMsgService {
 
-    /**
-     * 保存流转节点注册消息
-     *
-     * @param flowNodeRegisterMsg 流转节点注册消息
-     * @return 保存后的流转节点注册消息
-     */
-    FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg);
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
-    /**
-     * 根据ID获取流转节点注册消息
-     *
-     * @param id 流转节点注册消息ID
-     * @return 流转节点注册消息
-     */
-    FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id);
+    @Resource
+    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
-    /**
-     * 根据流转节点公钥获取流转节点注册消息
-     *
-     * @param flowNodePubkey 流转节点公钥
-     * @return 流转节点注册消息
-     */
-    FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey);
+    @Resource
+    private MsgAbstractService msgAbstractService;
 
-    /**
-     * 查询流转节点当前状态
-     *
-     * @param flowNodePubkey 流转节点公钥
-     * @return 流转节点状态
-     */
-    FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey);
+    @Resource
+    private CentralPubkeyValidator centralPubkeyValidator;
+    @Transactional
+    public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
+        if (flowNodeRegisterMsg.getMsgType() != MsgTypeEnum.FlowNodeRegisterMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeRegisterMsg.getValue());
+        }
 
-    /**
-     * 分页查询流转节点列表
-     *
-     * @param registered 是否已注册；false时返回空页
-     * @param authorized 是否存在任意中心公钥授权；null时不过滤
-     * @param locked     是否已冻结；null时不过滤
-     * @param pageable   分页参数
-     * @return 流转节点列表
-     */
-    Slice<FlowNodeListItemDTO> listFlowNodes(Boolean registered, Boolean authorized, Boolean locked, Pageable pageable);
+        if (flowNodeRegisterMsgRepository.existsById(flowNodeRegisterMsg.getId())) {
+            throw new IllegalArgumentException("该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在");
+        }
+
+        BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        int registerDifficultyTargetNbits = newestBlockInfo.getRegisterDifficultyTarget();
+        if (!flowNodeRegisterMsg.getRegisterDifficultyTarget().equals(registerDifficultyTargetNbits)) {
+            throw new IllegalArgumentException("注册难度目标与前区块中的注册难度目标不一致");
+        }
+
+        if (flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeRegisterMsg.getFlowNodePubkey())) {
+            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
+        }
+
+        try {
+            if (Secp256k1EncryptUtil.isNotLowS(flowNodeRegisterMsg.getFlowNodeSignature())) {
+                throw new IllegalArgumentException("流转节点签名不符合低S值要求");
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // 拼接验证数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】
+        byte[] verifyData;
+        verifyData = ArrayUtils.addAll(
+                ByteArrayUtil.shortToBytes(flowNodeRegisterMsg.getMsgType()),
+                ByteArrayUtil.uuidToBytes(flowNodeRegisterMsg.getId())
+        );
+        verifyData = ArrayUtils.addAll(
+                verifyData,
+                ByteArrayUtil.intToBytes(flowNodeRegisterMsg.getRegisterDifficultyTarget())
+        );
+        verifyData = ArrayUtils.addAll(
+                verifyData,
+                ByteArrayUtil.intToBytes(flowNodeRegisterMsg.getNonce())
+        );
+        verifyData = ArrayUtils.addAll(
+                verifyData,
+                flowNodeRegisterMsg.getFlowNodePubkey()
+        );
+
+        BigInteger registerDifficultyTarget = PoWUtil.calculateTargetFromNBits(ByteArrayUtil.intToBytes(registerDifficultyTargetNbits));
+        BigInteger verifyDataHash = new BigInteger(1, Sha256Util.doubleDigest(verifyData));
+        if (verifyDataHash.compareTo(registerDifficultyTarget) > 0) {
+            throw new IllegalArgumentException("前5项数据的hash值不符合注册难度目标要求");
+        }
+
+        try {
+            boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
+                    verifyData,
+                    flowNodeRegisterMsg.getFlowNodeSignature(),
+                    Secp256k1EncryptUtil.compressedToPublicKey(flowNodeRegisterMsg.getFlowNodePubkey())
+            );
+            if (!isValidSignature) {
+                throw new IllegalArgumentException("流转节点签名验证失败");
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // 拼接注册信息原始字节数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【流转节点对信息(前6项数据)签名64字节】
+        byte[] rawBytes;
+        rawBytes = ArrayUtils.addAll(
+                verifyData,
+                flowNodeRegisterMsg.getFlowNodeSignature()
+        );
+
+        flowNodeRegisterMsg.setRawBytes(rawBytes);
+        flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
+
+        msgAbstractService.saveMsgAbstract(flowNodeRegisterMsg);
+
+        return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
+    }
+    public FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("流转节点注册信息id不能为空");
+        }
+
+        return flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点注册信息id(" + id + ")不存在"));
+    }
+    public FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
+            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
+        }
+
+        return flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
+    }
+    @Transactional(readOnly = true)
+    public FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        return FlowNodeStateResponseDTO.from(flowNodeRegisterMsgRepository.findFlowNodeStateOverview(
+                flowNodePubkey,
+                centralPubkeyValidator.currentCentralPubkey()
+        ));
+    }
+    @Transactional(readOnly = true)
+    public Slice<FlowNodeListItemDTO> listFlowNodes(Boolean registered, Boolean authorized, Boolean locked, Pageable pageable) {
+        if (pageable == null) {
+            throw new IllegalArgumentException("分页参数不能为空");
+        }
+
+        if (Boolean.FALSE.equals(registered)) {
+            return new SliceImpl<>(List.of(), pageable, false);
+        }
+
+        return flowNodeRegisterMsgRepository.findFlowNodeList(
+                authorized,
+                locked,
+                centralPubkeyValidator.currentCentralPubkey(),
+                pageable
+        );
+    }
 }

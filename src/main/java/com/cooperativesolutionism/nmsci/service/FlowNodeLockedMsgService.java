@@ -1,44 +1,98 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
+import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
+import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
+import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
+import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
+import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public interface FlowNodeLockedMsgService {
+@Service
+@Validated
+public class FlowNodeLockedMsgService {
+    @Resource
+    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
 
-    /**
-     * 保存流转节点冻结消息
-     *
-     * @param flowNodeLockedMsg 流转节点冻结消息
-     * @return 保存后的流转节点冻结消息
-     */
-    FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg);
+    @Resource
+    private MsgAbstractService msgAbstractService;
 
-    /**
-     * 根据ID获取流转节点冻结消息
-     *
-     * @param id 流转节点冻结消息ID
-     * @return 流转节点冻结消息
-     */
-    FlowNodeLockedMsg getFlowNodeLockedMsgById(UUID id);
+    @Resource
+    private FlowNodeStateValidator flowNodeStateValidator;
 
-    /**
-     * 根据流转节点公钥获取流转节点冻结消息
-     *
-     * @param flowNodePubkey 流转节点公钥
-     * @return 流转节点冻结消息
-     */
-    FlowNodeLockedMsg getFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey);
+    @Resource
+    private CentralPubkeyValidator centralPubkeyValidator;
 
-    /**
-     * 根据流转节点公钥查询流转节点冻结消息。未冻结时返回空。
-     *
-     * @param flowNodePubkey 流转节点公钥
-     * @return 流转节点冻结消息
-     */
-    Optional<FlowNodeLockedMsg> findFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey);
+    @Resource
+    private SignatureValidator signatureValidator;
 
+    @Resource
+    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
+
+    @Resource
+    private CentralSignatureService centralSignatureService;
+    @Transactional
+    public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
+        if (flowNodeLockedMsg.getMsgType() != MsgTypeEnum.FlowNodeLockedMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeLockedMsg.getValue());
+        }
+
+        if (flowNodeLockedMsgRepository.existsById(flowNodeLockedMsg.getId())) {
+            throw new IllegalArgumentException("该流转节点公钥冻结信息id(" + flowNodeLockedMsg.getId() + ")已存在");
+        }
+
+        flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
+                flowNodeLockedMsg.getFlowNodePubkey(),
+                centralPubkeyValidator.currentCentralPubkey()
+        );
+        centralPubkeyValidator.validateCurrentAndNotLocked(flowNodeLockedMsg.getCentralPubkey());
+        signatureValidator.validateLowS(flowNodeLockedMsg.getFlowNodeSignature(), "流转节点签名不符合低S标准");
+
+        byte[] verifyData = protocolRawBytesBuilder.flowNodeLockedVerifyData(flowNodeLockedMsg);
+        signatureValidator.validateSignature(
+                verifyData,
+                flowNodeLockedMsg.getFlowNodeSignature(),
+                flowNodeLockedMsg.getFlowNodePubkey(),
+                "流转节点签名验证失败"
+        );
+        centralSignatureService.signAndPopulate(
+                flowNodeLockedMsg,
+                verifyData,
+                flowNodeLockedMsg.getFlowNodeSignature()
+        );
+
+        msgAbstractService.saveMsgAbstract(flowNodeLockedMsg);
+
+        return flowNodeLockedMsgRepository.save(flowNodeLockedMsg);
+    }
+    public FlowNodeLockedMsg getFlowNodeLockedMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("流转节点冻结消息id不能为空");
+        }
+
+        return flowNodeLockedMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点公钥冻结信息id(" + id + ")不存在"));
+    }
+    public FlowNodeLockedMsg getFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        return findFlowNodeLockedMsgByFlowNodePubkey(flowNodePubkey)
+                .orElseThrow(() -> new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未冻结"));
+    }
+    public Optional<FlowNodeLockedMsg> findFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
+        }
+
+        return Optional.ofNullable(flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey));
+    }
 }

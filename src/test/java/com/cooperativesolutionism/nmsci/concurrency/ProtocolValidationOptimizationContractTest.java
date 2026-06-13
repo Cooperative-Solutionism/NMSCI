@@ -27,8 +27,8 @@ class ProtocolValidationOptimizationContractTest {
 
     @Test
     void transactionServicesUseMeasuredDifficultyLookupService() throws IOException {
-        String recordService = source("src/main/java/com/cooperativesolutionism/nmsci/service/impl/TransactionRecordMsgServiceImpl.java");
-        String mountService = source("src/main/java/com/cooperativesolutionism/nmsci/service/impl/TransactionMountMsgServiceImpl.java");
+        String recordService = source("src/main/java/com/cooperativesolutionism/nmsci/service/TransactionRecordMsgService.java");
+        String mountService = source("src/main/java/com/cooperativesolutionism/nmsci/service/TransactionMountMsgService.java");
 
         assertTrue(recordService.contains("blockDifficultyService.currentTransactionDifficultyTarget()"));
         assertTrue(mountService.contains("blockDifficultyService.currentTransactionDifficultyTarget()"));

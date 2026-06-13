@@ -3,7 +3,6 @@ package com.cooperativesolutionism.nmsci.protocol;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.service.impl.FlowNodeRegisterMsgServiceImpl;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import org.junit.jupiter.api.Test;
@@ -17,6 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,11 +65,11 @@ class FlowNodeStateEndpointTest {
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
 
-        FlowNodeRegisterMsgServiceImpl service = new FlowNodeRegisterMsgServiceImpl();
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
         ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
         ReflectionTestUtils.setField(service, "centralPubkeyValidator", centralPubkeyValidator);
 
-        Object response = FlowNodeRegisterMsgServiceImpl.class
+        Object response = FlowNodeRegisterMsgService.class
                 .getMethod("getFlowNodeState", byte[].class)
                 .invoke(service, flowNodePubkey);
 
@@ -157,17 +157,12 @@ class FlowNodeStateEndpointTest {
     }
 
     private FlowNodeRegisterMsgService serviceProxy(Object dto, AtomicReference<byte[]> serviceFlowNodePubkey) {
-        return (FlowNodeRegisterMsgService) Proxy.newProxyInstance(
-                FlowNodeRegisterMsgService.class.getClassLoader(),
-                new Class<?>[]{FlowNodeRegisterMsgService.class},
-                (proxy, method, args) -> {
-                    if ("getFlowNodeState".equals(method.getName())) {
-                        serviceFlowNodePubkey.set((byte[]) args[0]);
-                        return dto;
-                    }
-                    return objectMethod(proxy, method, args, "FlowNodeRegisterMsgService");
-                }
-        );
+        FlowNodeRegisterMsgService service = mock(FlowNodeRegisterMsgService.class);
+        when(service.getFlowNodeState(any(byte[].class))).thenAnswer(invocation -> {
+            serviceFlowNodePubkey.set(invocation.getArgument(0));
+            return dto;
+        });
+        return service;
     }
 
     private Object objectMethod(Object proxy, Method method, Object[] args, String name) {
