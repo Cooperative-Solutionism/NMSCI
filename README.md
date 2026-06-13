@@ -242,6 +242,8 @@ file/source-code
 GET  /block-chain/last
 GET  /block-chain/height/{height}
 GET  /block-chain/hash/{hash}
+GET  /metadata/msg-types
+GET  /metadata/currency-types
 GET  /flow-node/list
 GET  /consume-chain/by-id
 GET  /consume-chain/by-pubkey
