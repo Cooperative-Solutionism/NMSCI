@@ -163,6 +163,8 @@ file/source-code
 
 这些目录保存历史区块 `.dat` 文件和各版本源码包，不应在升级时清空。
 
+Flyway 会在应用启动时自动执行数据库迁移；已有生产数据库会按 V1 建立基线，新的空数据库会从 V1 初始化完整结构。
+
 应用启动后，`GenerateBlockTask` 会立即执行一次区块生成任务，之后每 10 分钟执行一次。第一次运行还会持续生成区块，直到没有未入块消息。
 
 ## 区块版本升级与重部署流程
@@ -298,8 +300,7 @@ src/main/java/com/cooperativesolutionism/nmsci
 数据库脚本：
 
 ```text
-src/main/resources/database/schema.sql
-src/main/resources/database/patches/
+src/main/resources/db/migration/
 ```
 
 ## 参考资料

@@ -37,8 +37,7 @@ public abstract class NmsciIntegrationTestBase {
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("nmsci_test")
             .withUsername("postgres")
-            .withPassword("postgres")
-            .withInitScript("database/schema.sql");
+            .withPassword("postgres");
 
     private static volatile boolean postgresStarted;
 
