@@ -41,7 +41,7 @@ public class TransactionMountMsgService {
     private MsgAbstractService msgAbstractService;
 
     @Resource
-    private ConsumeChainService consumeChainService;
+    private ConsumeChainAllocationService consumeChainAllocationService;
 
     @Resource
     private FlowNodeStateValidator flowNodeStateValidator;
@@ -110,7 +110,7 @@ public class TransactionMountMsgService {
 
         TransactionMountMsg transactionMountMsgInDb = transactionMountMsgRepository.save(transactionMountMsg);
         msgAbstractService.saveMsgAbstract(transactionMountMsg);
-        consumeChainService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
+        consumeChainAllocationService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
 
         return transactionMountMsgInDb;
     }

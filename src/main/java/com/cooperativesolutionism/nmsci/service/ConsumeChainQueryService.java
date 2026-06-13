@@ -1,39 +1,35 @@
 package com.cooperativesolutionism.nmsci.service;
 
-import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocationCandidate;
-import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocationPlan;
-import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocator;
-import com.cooperativesolutionism.nmsci.consume.ConsumeChainPersistenceService;
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
-import com.cooperativesolutionism.nmsci.model.*;
+import com.cooperativesolutionism.nmsci.model.ConsumeChain;
+import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
+import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 @Service
-public class ConsumeChainService {
+public class ConsumeChainQueryService {
 
-    private static final int ALLOCATION_CHAIN_LOCK_BATCH_SIZE = 100;
+    @Resource
+    private ConsumeChainSupport consumeChainSupport;
 
     @Resource
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
@@ -47,34 +43,9 @@ public class ConsumeChainService {
     @Resource
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
-    @Resource
-    private ConsumeChainAllocator consumeChainAllocator;
-
-    @Resource
-    private ConsumeChainPersistenceService consumeChainPersistenceService;
-    @Transactional
-    public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        FlowNodeRegisterMsg source = getFlowNodeRegisterMsgByPubkey(transactionMountMsg.getFlowNodePubkey(), "源");
-        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(transactionRecordMsg.getFlowNodePubkey(), "目标");
-
-        List<ConsumeChain> mountChains = getMountChainsForAllocation(
-                source,
-                transactionRecordMsg.getCurrencyType(),
-                transactionRecordMsg.getAmount()
-        );
-
-        ConsumeChainAllocationPlan plan = consumeChainAllocator.allocate(
-                transactionMountMsg,
-                transactionRecordMsg,
-                source,
-                target,
-                getConsumeChainAllocationCandidates(mountChains)
-        );
-        consumeChainPersistenceService.save(plan);
-    }
     public ReturningFlowRateResponseDTO getReturningFlowRateById(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
         if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
-            throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
         ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRate(
@@ -96,9 +67,10 @@ public class ConsumeChainService {
                 returningFlowRateRequestDTO.getCurrencyType()
         );
     }
+
     public ReturningFlowRateResponseDTO getReturningFlowRateByTargetId(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
         if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
-            throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
 
         ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRateByTarget(
@@ -114,22 +86,25 @@ public class ConsumeChainService {
                 returningFlowRateRequestDTO.getCurrencyType()
         );
     }
+
     public ReturningFlowRateResponseDTO getReturningFlowRateByPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
-        FlowNodeRegisterMsg source = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getSource(), "源");
-        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
+        FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getSource(), "源");
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
 
         returningFlowRateRequestDTO.setTargetId(target.getId());
         returningFlowRateRequestDTO.setSourceId(source.getId());
 
         return getReturningFlowRateById(returningFlowRateRequestDTO);
     }
+
     public ReturningFlowRateResponseDTO getReturningFlowRateByTargetPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
-        FlowNodeRegisterMsg target = getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
 
         returningFlowRateRequestDTO.setTargetId(target.getId());
 
         return getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("挂载交易ID不能为空");
@@ -141,6 +116,7 @@ public class ConsumeChainService {
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByRelatedTransactionMount(transactionMountMsg, pageable);
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("起点ID不能为空");
@@ -153,6 +129,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("起点ID不能为空");
@@ -165,6 +142,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("终点ID不能为空");
@@ -177,6 +155,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("终点ID不能为空");
@@ -189,6 +168,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByNode(UUID id, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("节点ID不能为空");
@@ -201,6 +181,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
         if (id == null) {
             throw new IllegalArgumentException("节点ID不能为空");
@@ -213,6 +194,7 @@ public class ConsumeChainService {
 
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByRelatedId(
             UUID start,
             UUID end,
@@ -240,6 +222,7 @@ public class ConsumeChainService {
                 ? getConsumeChainByNode(node, pageable)
                 : getConsumeChainByNodeAndIsLoop(node, isLoop, pageable);
     }
+
     public Slice<ConsumeChainResponseDTO> getConsumeChainByPubkey(
             byte[] startPubkey,
             byte[] endPubkey,
@@ -252,7 +235,7 @@ public class ConsumeChainService {
         }
 
         if (startPubkey != null) {
-            FlowNodeRegisterMsg start = getFlowNodeRegisterMsgByPubkey(startPubkey, "起点");
+            FlowNodeRegisterMsg start = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(startPubkey, "起点");
             Slice<ConsumeChain> consumeChains = isLoop == null
                     ? consumeChainRepository.findByStart(start, pageable)
                     : consumeChainRepository.findByStartAndIsLoop(start, isLoop, pageable);
@@ -260,19 +243,20 @@ public class ConsumeChainService {
         }
 
         if (endPubkey != null) {
-            FlowNodeRegisterMsg end = getFlowNodeRegisterMsgByPubkey(endPubkey, "终点");
+            FlowNodeRegisterMsg end = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(endPubkey, "终点");
             Slice<ConsumeChain> consumeChains = isLoop == null
                     ? consumeChainRepository.findByEnd(end, pageable)
                     : consumeChainRepository.findByEndAndIsLoop(end, isLoop, pageable);
             return getConsumeChainResponseDTOSlice(consumeChains);
         }
 
-        FlowNodeRegisterMsg node = getFlowNodeRegisterMsgByPubkey(nodePubkey, "节点");
+        FlowNodeRegisterMsg node = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(nodePubkey, "节点");
         Slice<ConsumeChain> consumeChains = isLoop == null
                 ? consumeChainRepository.findDistinctByNode(node, pageable)
                 : consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
+
     public ConsumeChainResponseDTO getConsumeChainById(UUID uuid) {
         if (uuid == null) {
             throw new IllegalArgumentException("消费链ID不能为空");
@@ -291,19 +275,6 @@ public class ConsumeChainService {
         return consumeChainResponseDTOs.get(0);
     }
 
-    private FlowNodeRegisterMsg getFlowNodeRegisterMsgByPubkey(byte[] flowNodePubkey, String roleName) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
-            throw new IllegalArgumentException(roleName + "流转节点公钥不能为空或长度不为33字节");
-        }
-
-        FlowNodeRegisterMsg flowNodeRegisterMsg = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
-        if (flowNodeRegisterMsg == null) {
-            throw new IllegalArgumentException(roleName + "流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
-        }
-
-        return flowNodeRegisterMsg;
-    }
-
     private int countProvided(Object... values) {
         int count = 0;
         for (Object value : values) {
@@ -314,56 +285,6 @@ public class ConsumeChainService {
         return count;
     }
 
-    private List<ConsumeChain> getMountChainsForAllocation(
-            FlowNodeRegisterMsg source,
-            Short currencyType,
-            long transactionAmount
-    ) {
-        List<ConsumeChain> mountChains = new ArrayList<>();
-        long remainingAmount = transactionAmount;
-        int page = 0;
-
-        while (remainingAmount > 0) {
-            List<ConsumeChain> batch = consumeChainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
-                    source,
-                    currencyType,
-                    PageRequest.of(page, ALLOCATION_CHAIN_LOCK_BATCH_SIZE)
-            );
-            if (batch.isEmpty()) {
-                break;
-            }
-
-            for (ConsumeChain mountChain : batch) {
-                mountChains.add(mountChain);
-                remainingAmount -= mountChain.getAmount();
-                if (remainingAmount <= 0) {
-                    break;
-                }
-            }
-
-            if (batch.size() < ALLOCATION_CHAIN_LOCK_BATCH_SIZE) {
-                break;
-            }
-            page++;
-        }
-
-        return mountChains;
-    }
-
-    private List<ConsumeChainAllocationCandidate> getConsumeChainAllocationCandidates(List<ConsumeChain> mountChains) {
-        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = getEdgesByChainId(mountChains);
-        List<ConsumeChainAllocationCandidate> candidates = new ArrayList<>();
-
-        for (ConsumeChain mountChain : mountChains) {
-            candidates.add(new ConsumeChainAllocationCandidate(
-                    mountChain,
-                    edgesByChainId.getOrDefault(mountChain.getId(), List.of())
-            ));
-        }
-
-        return candidates;
-    }
-
     /**
      * 获取消费链响应DTO列表
      *
@@ -371,7 +292,7 @@ public class ConsumeChainService {
      * @return 返回消费链响应DTO列表
      */
     private List<ConsumeChainResponseDTO> getConsumeChainResponseDTOs(List<ConsumeChain> consumeChains) {
-        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = getEdgesByChainId(consumeChains);
+        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = consumeChainSupport.getEdgesByChainId(consumeChains);
         List<ConsumeChainResponseDTO> consumeChainResponseDTOs = new ArrayList<>();
 
         for (ConsumeChain consumeChain : consumeChains) {
@@ -389,21 +310,6 @@ public class ConsumeChainService {
     private Slice<ConsumeChainResponseDTO> getConsumeChainResponseDTOSlice(Slice<ConsumeChain> consumeChains) {
         List<ConsumeChainResponseDTO> responseDTOs = getConsumeChainResponseDTOs(consumeChains.getContent());
         return new SliceImpl<>(responseDTOs, consumeChains.getPageable(), consumeChains.hasNext());
-    }
-
-    private Map<UUID, List<ConsumeChainEdge>> getEdgesByChainId(List<ConsumeChain> consumeChains) {
-        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = new HashMap<>();
-        if (consumeChains.isEmpty()) {
-            return edgesByChainId;
-        }
-
-        List<ConsumeChainEdge> consumeChainEdges = consumeChainEdgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(consumeChains);
-        for (ConsumeChainEdge consumeChainEdge : consumeChainEdges) {
-            UUID chainId = consumeChainEdge.getChain().getId();
-            edgesByChainId.computeIfAbsent(chainId, unused -> new ArrayList<>()).add(consumeChainEdge);
-        }
-
-        return edgesByChainId;
     }
 
     private double amount(BigDecimal amount) {

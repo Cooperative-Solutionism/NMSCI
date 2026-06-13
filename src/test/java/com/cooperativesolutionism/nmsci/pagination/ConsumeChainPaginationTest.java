@@ -6,7 +6,7 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
-import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -22,15 +22,15 @@ class ConsumeChainPaginationTest {
 
     @Test
     void serviceAndRepositoryQueriesUseSliceAndPageable() throws NoSuchMethodException {
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByMountedTransaction", UUID.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByStart", UUID.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByStartAndIsLoop", UUID.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByEnd", UUID.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByEndAndIsLoop", UUID.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNode", UUID.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByNodeAndIsLoop", UUID.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByRelatedId", UUID.class, UUID.class, UUID.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainService.class, "getConsumeChainByPubkey", byte[].class, byte[].class, byte[].class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByMountedTransaction", UUID.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByStart", UUID.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByStartAndIsLoop", UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByEnd", UUID.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByEndAndIsLoop", UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByNode", UUID.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByNodeAndIsLoop", UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByRelatedId", UUID.class, UUID.class, UUID.class, Boolean.class, Pageable.class);
+        assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByPubkey", byte[].class, byte[].class, byte[].class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStart", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);

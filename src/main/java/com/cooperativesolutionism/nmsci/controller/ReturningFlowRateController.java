@@ -3,7 +3,7 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
-import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -15,7 +15,7 @@ import java.util.UUID;
 public class ReturningFlowRateController {
 
     @Resource
-    private ConsumeChainService consumeChainService;
+    private ConsumeChainQueryService consumeChainQueryService;
 
     @GetMapping("/by-id")
     public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRateByTarget(
@@ -33,10 +33,10 @@ public class ReturningFlowRateController {
 
         ReturningFlowRateResponseDTO responseDTO;
         if (sourceId.isEmpty()) {
-            responseDTO = consumeChainService.getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
+            responseDTO = consumeChainQueryService.getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
         } else {
             returningFlowRateRequestDTO.setSourceId(UUID.fromString(sourceId));
-            responseDTO = consumeChainService.getReturningFlowRateById(returningFlowRateRequestDTO);
+            responseDTO = consumeChainQueryService.getReturningFlowRateById(returningFlowRateRequestDTO);
         }
 
         return ResponseResult.success(responseDTO);
@@ -58,11 +58,11 @@ public class ReturningFlowRateController {
 
         ReturningFlowRateResponseDTO responseDTO;
         if (source.isEmpty()) {
-            responseDTO = consumeChainService.getReturningFlowRateByTargetPubkey(returningFlowRateRequestDTO);
+            responseDTO = consumeChainQueryService.getReturningFlowRateByTargetPubkey(returningFlowRateRequestDTO);
             return ResponseResult.success(responseDTO);
         } else {
             returningFlowRateRequestDTO.setSource(ByteArrayUtil.hexToBytes(source));
-            responseDTO = consumeChainService.getReturningFlowRateByPubkey(returningFlowRateRequestDTO);
+            responseDTO = consumeChainQueryService.getReturningFlowRateByPubkey(returningFlowRateRequestDTO);
         }
 
         return ResponseResult.success(responseDTO);
