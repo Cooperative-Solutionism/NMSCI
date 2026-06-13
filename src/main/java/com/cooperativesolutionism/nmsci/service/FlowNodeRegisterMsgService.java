@@ -6,6 +6,9 @@ import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProofOfWorkValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
+import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.util.*;
@@ -20,8 +23,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.io.IOException;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.UUID;
 
@@ -40,6 +41,15 @@ public class FlowNodeRegisterMsgService {
 
     @Resource
     private CentralPubkeyValidator centralPubkeyValidator;
+
+    @Resource
+    private SignatureValidator signatureValidator;
+
+    @Resource
+    private ProofOfWorkValidator proofOfWorkValidator;
+
+    @Resource
+    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
     @Transactional
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
         if (flowNodeRegisterMsg.getMsgType() != MsgTypeEnum.FlowNodeRegisterMsg.getValue()) {
@@ -60,59 +70,19 @@ public class FlowNodeRegisterMsgService {
             throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
         }
 
-        try {
-            if (Secp256k1EncryptUtil.isNotLowS(flowNodeRegisterMsg.getFlowNodeSignature())) {
-                throw new IllegalArgumentException("流转节点签名不符合低S值要求");
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        signatureValidator.validateLowS(flowNodeRegisterMsg.getFlowNodeSignature(), "流转节点签名不符合低S值要求");
 
-        // 拼接验证数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】
-        byte[] verifyData;
-        verifyData = ArrayUtils.addAll(
-                ByteArrayUtil.shortToBytes(flowNodeRegisterMsg.getMsgType()),
-                ByteArrayUtil.uuidToBytes(flowNodeRegisterMsg.getId())
-        );
-        verifyData = ArrayUtils.addAll(
+        byte[] verifyData = protocolRawBytesBuilder.flowNodeRegisterVerifyData(flowNodeRegisterMsg);
+        proofOfWorkValidator.validate(verifyData, registerDifficultyTargetNbits, "前5项数据的hash值不符合注册难度目标要求");
+        signatureValidator.validateSignature(
                 verifyData,
-                ByteArrayUtil.intToBytes(flowNodeRegisterMsg.getRegisterDifficultyTarget())
-        );
-        verifyData = ArrayUtils.addAll(
-                verifyData,
-                ByteArrayUtil.intToBytes(flowNodeRegisterMsg.getNonce())
-        );
-        verifyData = ArrayUtils.addAll(
-                verifyData,
-                flowNodeRegisterMsg.getFlowNodePubkey()
+                flowNodeRegisterMsg.getFlowNodeSignature(),
+                flowNodeRegisterMsg.getFlowNodePubkey(),
+                "流转节点签名验证失败"
         );
 
-        BigInteger registerDifficultyTarget = PoWUtil.calculateTargetFromNBits(ByteArrayUtil.intToBytes(registerDifficultyTargetNbits));
-        BigInteger verifyDataHash = new BigInteger(1, Sha256Util.doubleDigest(verifyData));
-        if (verifyDataHash.compareTo(registerDifficultyTarget) > 0) {
-            throw new IllegalArgumentException("前5项数据的hash值不符合注册难度目标要求");
-        }
-
-        try {
-            boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
-                    verifyData,
-                    flowNodeRegisterMsg.getFlowNodeSignature(),
-                    Secp256k1EncryptUtil.compressedToPublicKey(flowNodeRegisterMsg.getFlowNodePubkey())
-            );
-            if (!isValidSignature) {
-                throw new IllegalArgumentException("流转节点签名验证失败");
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-
-        // 拼接注册信息原始字节数据 【信息类型2字节(2)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【流转节点对信息(前6项数据)签名64字节】
-        byte[] rawBytes;
-        rawBytes = ArrayUtils.addAll(
-                verifyData,
-                flowNodeRegisterMsg.getFlowNodeSignature()
-        );
-
+        // 拼接注册信息原始字节数据 = 验证数据 + 流转节点对信息签名64字节
+        byte[] rawBytes = ArrayUtils.addAll(verifyData, flowNodeRegisterMsg.getFlowNodeSignature());
         flowNodeRegisterMsg.setRawBytes(rawBytes);
         flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
 
