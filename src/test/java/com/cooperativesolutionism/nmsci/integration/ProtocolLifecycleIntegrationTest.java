@@ -63,6 +63,24 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void systemParamsEndpointReturnsCurrentConfigAndLatestBlock() throws Exception {
+        var newestBlock = blockInfoRepository.findTopByOrderByHeightDesc();
+
+        mockMvc.perform(get("/system/params"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.blockVersion").value(1))
+                .andExpect(jsonPath("$.data.centralPubkey").value(ByteArrayUtil.bytesToHex(TestKeyPairs.CENTRAL.pubkey())))
+                .andExpect(jsonPath("$.data.registerDifficultyTargetNbits").value(REGISTER_DIFFICULTY_NBITS))
+                .andExpect(jsonPath("$.data.registerDifficultyTargetNbitsHex").value("0x20ffffff"))
+                .andExpect(jsonPath("$.data.transactionDifficultyTargetNbits").value(TRANSACTION_DIFFICULTY_NBITS))
+                .andExpect(jsonPath("$.data.transactionDifficultyTargetNbitsHex").value("0x20ffffff"))
+                .andExpect(jsonPath("$.data.sourceCodeZipHash").value("0000000000000000000000000000000000000000000000000000000000000000"))
+                .andExpect(jsonPath("$.data.latestBlockHeight").value(0))
+                .andExpect(jsonPath("$.data.latestBlockHash").value(ByteArrayUtil.bytesToHex(newestBlock.getId())));
+    }
+
+    @Test
     void savesFlowNodeRegisterMessage() throws Exception {
         UUID flowNodeId = UUID.fromString("11111111-1111-1111-1111-111111111111");
 

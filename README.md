@@ -242,6 +242,7 @@ file/source-code
 GET  /block-chain/last
 GET  /block-chain/height/{height}
 GET  /block-chain/hash/{hash}
+GET  /system/params
 GET  /metadata/msg-types
 GET  /metadata/currency-types
 GET  /flow-node/list
