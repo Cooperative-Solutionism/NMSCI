@@ -16,6 +16,9 @@
     <properties>
         <java.version>17</java.version>
         <project.build.outputTimestamp>2025-07-01T00:00:00Z</project.build.outputTimestamp>
+        <bouncycastle.version>1.78</bouncycastle.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <bitcoinj.version>0.17</bitcoinj.version>
     </properties>
     <dependencies>
         <dependency>
@@ -33,18 +36,18 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78</version>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.18.0</version>
+            <version>${commons-lang3.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.bitcoinj/bitcoinj-core -->
         <dependency>
             <groupId>org.bitcoinj</groupId>
             <artifactId>bitcoinj-core</artifactId>
-            <version>0.17</version>
+            <version>${bitcoinj.version}</version>
         </dependency>
 
         <dependency>
