@@ -286,18 +286,35 @@ POST /transaction-mount-msg
 
 ```text
 src/main/java/com/cooperativesolutionism/nmsci
-├── controller      HTTP API
-├── converter       协议字节与模型转换
-├── dto             请求和响应 DTO
-├── enumeration     协议枚举
-├── exception       全局异常处理
-├── model           JPA 实体
-├── repository      Spring Data Repository
-├── service         业务服务实现
-├── service/impl    持久化辅助类
-├── task            定时任务
-└── util            字节、哈希、签名、PoW 等工具
+├── annotation         协议参数约束注解（@ByteArraySize）
+├── block              区块装配、文件存储、消息选择
+├── buildtool          构建期工具（源码包哈希计算，由 Maven antrun 于打包前调起）
+├── config             Spring 配置类
+├── config/properties  配置属性持有者（NmsciProperties）
+├── constant           协议与系统常量
+├── consume            消费链领域逻辑（分配、计划、环检测、持久化）
+├── controller         HTTP API
+├── converter          协议字节与模型转换
+├── dto                请求和响应 DTO
+├── enumeration        协议枚举
+├── exception          全局异常处理与业务异常类型
+├── model              JPA 实体与消息接口
+├── protocol           协议校验器与编解码器（无状态，构建于 util 加密原语之上）
+├── repository         Spring Data Repository
+├── response           统一响应封装
+├── serializer         自定义 Jackson 序列化器
+├── service            业务服务、持久化编排助手、查询编排
+├── task               定时任务
+├── util               字节、哈希、签名、PoW 等工具与加密原语
+└── validator          协议参数约束校验器（@ByteArraySize 实现）
 ```
+
+包边界约定：
+
+- `consume` 持有消费链限界上下文的领域逻辑与其事务持久化；面向 HTTP 的编排入口 `ConsumeChain*Service` 放在 `service`。
+- 持久化编排助手统一命名 `{实体}PersistenceService`，与其所属业务/领域同包（如 `CentralPubkeyLockedMsgPersistenceService` 在 `service`，`ConsumeChainPersistenceService` 在 `consume`）。
+- `protocol` 仅放无状态的协议校验与编解码，加密实现一律在 `util`。
+- `buildtool` 是构建期工具，有意保留在源码树内，以保链上源码归档可自校验。
 
 数据库脚本：
 
