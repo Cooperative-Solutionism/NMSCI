@@ -13,7 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import java.util.Base64;
 
 @Validated
-@ConfigurationProperties
+@ConfigurationProperties(prefix = "nmsci")
 public class NmsciProperties {
 
     @Valid

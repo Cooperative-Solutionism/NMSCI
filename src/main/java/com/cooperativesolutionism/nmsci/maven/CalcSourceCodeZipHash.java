@@ -135,7 +135,7 @@ public class CalcSourceCodeZipHash {
             deleteFiles(staticDir, ".*source_code_v.*\\.zip");
 
             Properties properties = readProperties(propertiesFilePath);
-            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code_v" + properties.getProperty("block-version") + ".zip");
+            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code_v" + properties.getProperty("nmsci.block-version") + ".zip");
 
             // 压缩文件夹为 zip 文件
             String[] excludedDirs = new String[]{
@@ -155,7 +155,7 @@ public class CalcSourceCodeZipHash {
             System.out.println("Calculated file hash value: " + hashValue);
 
             // 将哈希值插入 application.properties 文件
-            insertHashToProperties(hashValue, propertiesFilePath, "source-code-zip-hash");
+            insertHashToProperties(hashValue, propertiesFilePath, "nmsci.source-code-zip-hash");
 
         } catch (Exception e) {
             System.err.println("An error occurred: " + e.getMessage());
