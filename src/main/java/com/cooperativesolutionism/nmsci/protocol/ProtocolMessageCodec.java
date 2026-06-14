@@ -30,8 +30,13 @@ public class ProtocolMessageCodec {
             }
         }
         for (MsgTypeEnum msgType : MsgTypeEnum.values()) {
-            if (!map.containsKey(msgType)) {
+            MessageConverter<?> converter = map.get(msgType);
+            if (converter == null) {
                 throw new IllegalStateException("消息类型 " + msgType + " 缺少转换器");
+            }
+            if (converter.expectedSize() != msgType.getInboundSize()) {
+                throw new IllegalStateException("消息类型 " + msgType + " 的转换器入站字节数("
+                        + converter.expectedSize() + ")与枚举声明的入站字节数(" + msgType.getInboundSize() + ")不一致");
             }
         }
         this.converters = map;
