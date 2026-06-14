@@ -78,9 +78,8 @@ public class CalcSourceCodeZipHash {
 
     /**
      * 将指定目录压缩为 ZIP 文件。
-     * 条目名归一为 '/' 分隔、按条目名排序、并固定时间戳，消除条目命名/顺序/时间戳带来的非确定性。
-     * 注：完整的跨平台字节一致还要求文本文件行尾一致（例如通过 .gitattributes 将文本统一为 LF），
-     * 否则同一逻辑源码在 CRLF/LF 不同的工作区会产生不同内容、进而不同的源码哈希。
+     * 条目名归一为 '/' 分隔、按条目名排序、并固定时间戳；配合仓库 .gitattributes 将文本统一为 LF
+     * （* text=auto eol=lf），相同源码在任意平台/文件系统上产出字节一致的 zip，故上链源码哈希可复现可信。
      *
      * @param sourceDir   源目录
      * @param zipFilePath 压缩后的 ZIP 文件路径
