@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
@@ -49,12 +50,12 @@ public class CentralPubkeyEmpowerMsgService {
         }
 
         if (centralPubkeyEmpowerMsgRepository.existsById(centralPubkeyEmpowerMsg.getId())) {
-            throw new IllegalArgumentException("该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在");
+            throw new ConflictException("该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在");
         }
 
         flowNodeStateValidator.validateRegistered(centralPubkeyEmpowerMsg.getFlowNodePubkey());
         if (centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
+            throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
         }
         centralPubkeyValidator.validateCurrentAndNotLocked(centralPubkeyEmpowerMsg.getCentralPubkey());
         signatureValidator.validateLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature(), "流转节点签名不符合低S标准");
@@ -77,12 +78,7 @@ public class CentralPubkeyEmpowerMsgService {
         return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("中心公钥公证信息id不能为空");
-        }
-
-        return centralPubkeyEmpowerMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("中心公钥公证信息id(" + id + ")不存在"));
+        return EntityLookup.requireById(id, "中心公钥公证信息", centralPubkeyEmpowerMsgRepository::findById);
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgByFlowNodePubkey(byte[] flowNodePubkey) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {

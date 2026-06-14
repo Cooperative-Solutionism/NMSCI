@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service;
 import com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyLockedMsgPersistenceService;
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
@@ -49,11 +50,11 @@ public class CentralPubkeyLockedMsgService {
         }
 
         if (centralPubkeyLockedMsgRepository.existsById(centralPubkeyLockedMsg.getId())) {
-            throw new IllegalArgumentException("该中心公钥冻结信息id(" + centralPubkeyLockedMsg.getId() + ")已存在");
+            throw new ConflictException("该中心公钥冻结信息id(" + centralPubkeyLockedMsg.getId() + ")已存在");
         }
 
         if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyLockedMsg.getCentralPubkey())) {
-            throw new IllegalArgumentException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
+            throw new ConflictException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
         }
 
         byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
@@ -132,12 +133,7 @@ public class CentralPubkeyLockedMsgService {
         System.exit(0);
     }
     public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("中心公钥冻结信息id不能为空");
-        }
-
-        return centralPubkeyLockedMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("中心公钥冻结信息id(" + id + ")不存在"));
+        return EntityLookup.requireById(id, "中心公钥冻结信息", centralPubkeyLockedMsgRepository::findById);
     }
     public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
         return findCentralPubkeyLockedMsgByCentralPubkey(centralPubkey)

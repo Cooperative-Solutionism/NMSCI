@@ -23,10 +23,22 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ResponseResult<String>> handleIllegalArgumentException(IllegalArgumentException e) {
+    @ExceptionHandler({IllegalArgumentException.class, BadRequestException.class})
+    public ResponseEntity<ResponseResult<String>> handleBadRequest(RuntimeException e) {
         logger.warn("Bad request: {}", e.getMessage());
         return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ResponseResult<String>> handleNotFoundException(NotFoundException e) {
+        logger.warn("Not found: {}", e.getMessage());
+        return failure(HttpStatus.NOT_FOUND, ResponseCode.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<ResponseResult<String>> handleConflictException(ConflictException e) {
+        logger.warn("Conflict: {}", e.getMessage());
+        return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, e.getMessage());
     }
 
     @ExceptionHandler({

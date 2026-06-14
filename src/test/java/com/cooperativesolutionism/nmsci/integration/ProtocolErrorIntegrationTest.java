@@ -65,8 +65,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-register-msg/send")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(secondId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(409))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("已被注册")));
     }
 
@@ -120,8 +120,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     void rejectsReturningFlowRateLookupWhenTargetPubkeyIsNotRegistered() throws Exception {
         mockMvc.perform(get("/returning-flow-rate/by-pubkey")
                         .param("target", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("流转节点公钥")))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
@@ -138,8 +138,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(get("/returning-flow-rate/by-pubkey")
                         .param("source", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey()))
                         .param("target", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("源流转节点公钥")))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
@@ -167,16 +167,16 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         UUID mountedRecordId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
         mockMvc.perform(get("/transaction-mount-msg/mounted-transaction-record-id/{id}", mountedRecordId))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
 
     @Test
     void rejectsMissingBlockLookupByHeight() throws Exception {
         mockMvc.perform(get("/block-chain/height/{height}", 999L))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
                 .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
     }
 }
