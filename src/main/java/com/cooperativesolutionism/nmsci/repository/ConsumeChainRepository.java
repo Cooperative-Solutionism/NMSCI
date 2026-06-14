@@ -17,7 +17,7 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     /**
      * 为交易挂载分配锁定开放消费链：在加锁层过滤 is_loop=false，按 tail_mount_timestamp 升序，
      * 用窗口累计和只取「刚好够覆盖 amount」的最小前缀，并对选中行加 FOR UPDATE 悲观写锁。
-     * 不足部分由 {@code ConsumeChainAllocator} 新建链承接（见 docs/concurrency-audit.md）。
+     * 不足部分由 {@code ConsumeChainAllocator} 新建链承接。
      * 相比原分页循环，将 round-trip 从 O(候选链数/批大小) 降为 1，悲观锁与排序语义不变。
      */
     @Query(value = """

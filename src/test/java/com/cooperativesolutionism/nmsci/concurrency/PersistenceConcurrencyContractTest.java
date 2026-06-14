@@ -73,7 +73,7 @@ class PersistenceConcurrencyContractTest {
         assertTrue(
                 StringUtils.countOccurrencesOf(query.value().toLowerCase(), "is_loop = false") >= 2,
                 "is_loop = false must be applied at BOTH the outer (locking) query and the inner window subquery, "
-                        + "so a concurrently-looped row cannot be locked (docs/concurrency-audit.md invariant #2)"
+                        + "so a concurrently-looped row cannot be locked"
         );
     }
 

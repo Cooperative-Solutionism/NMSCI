@@ -63,7 +63,7 @@ public class ConsumeChainAllocationService {
             long transactionAmount
     ) {
         // 单条窗口累计和查询取「刚好够」的开放链最小前缀并加 FOR UPDATE 悲观写锁；
-        // 不足部分由分配器新建链承接（见 docs/concurrency-audit.md）。
+        // 不足部分由分配器新建链承接。
         return consumeChainRepository.lockOpenChainsForAllocation(source.getId(), currencyType, transactionAmount);
     }
 
