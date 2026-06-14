@@ -28,7 +28,7 @@ class ProofOfWorkValidatorTest {
         );
 
         proofOfWorkValidator.validate(
-                rawBytesBuilder.transactionRecordVerifyData(TransactionRecordMsgConverter.fromByteArray(messageBytes)),
+                rawBytesBuilder.transactionRecordVerifyData(new TransactionRecordMsgConverter().fromByteArray(messageBytes)),
                 0x20ffffff,
                 "pow failed"
         );

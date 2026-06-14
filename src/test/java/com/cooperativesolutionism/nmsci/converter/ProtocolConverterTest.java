@@ -19,7 +19,7 @@ class ProtocolConverterTest {
         UUID id = UUID.fromString("11111111-1111-1111-1111-111111111111");
         byte[] bytes = builder.flowNodeRegister(id, TestKeyPairs.FLOW_NODE_A, 0x20ffffff);
 
-        var msg = FlowNodeRegisterMsgConverter.fromByteArray(bytes);
+        var msg = new FlowNodeRegisterMsgConverter().fromByteArray(bytes);
 
         assertEquals((short) 0, msg.getMsgType());
         assertEquals(id, msg.getId());
@@ -33,7 +33,7 @@ class ProtocolConverterTest {
         UUID id = UUID.fromString("22222222-2222-2222-2222-222222222222");
         byte[] bytes = builder.transactionRecord(id, 1234L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A, TestKeyPairs.CENTRAL, 0x20ffffff);
 
-        var msg = TransactionRecordMsgConverter.fromByteArray(bytes);
+        var msg = new TransactionRecordMsgConverter().fromByteArray(bytes);
 
         assertEquals((short) 4, msg.getMsgType());
         assertEquals(id, msg.getId());
@@ -45,8 +45,8 @@ class ProtocolConverterTest {
 
     @Test
     void rejectsInvalidMessageLengths() {
-        assertThrows(IllegalArgumentException.class, () -> FlowNodeRegisterMsgConverter.fromByteArray(new byte[122]));
-        assertThrows(IllegalArgumentException.class, () -> CentralPubkeyEmpowerMsgConverter.fromByteArray(new byte[147]));
-        assertThrows(IllegalArgumentException.class, () -> TransactionMountMsgConverter.fromByteArray(new byte[268]));
+        assertThrows(IllegalArgumentException.class, () -> new FlowNodeRegisterMsgConverter().fromByteArray(new byte[122]));
+        assertThrows(IllegalArgumentException.class, () -> new CentralPubkeyEmpowerMsgConverter().fromByteArray(new byte[147]));
+        assertThrows(IllegalArgumentException.class, () -> new TransactionMountMsgConverter().fromByteArray(new byte[268]));
     }
 }

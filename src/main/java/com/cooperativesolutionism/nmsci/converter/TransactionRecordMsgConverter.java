@@ -1,16 +1,27 @@
 package com.cooperativesolutionism.nmsci.converter;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
-public class TransactionRecordMsgConverter {
-    public static TransactionRecordMsg fromByteArray(byte[] byteData) {
-        if (byteData == null || byteData.length != 263) {
-            throw new IllegalArgumentException("Invalid byte array size, expected 263 bytes.");
-        }
+@Component
+public class TransactionRecordMsgConverter extends AbstractMessageConverter<TransactionRecordMsg> {
 
+    @Override
+    public MsgTypeEnum msgType() {
+        return MsgTypeEnum.TransactionRecordMsg;
+    }
+
+    @Override
+    public int expectedSize() {
+        return 263;
+    }
+
+    @Override
+    protected TransactionRecordMsg decode(byte[] byteData) {
         // 【信息类型2字节(4)】+【uuid16字节】+【金额8字节】+【货币类型2字节】+【交易难度目标4字节】+【随机数4字节】+【消费节点公钥33字节】+【流转节点公钥33字节】+【中心公钥33字节】
         // +【消费节点对信息(前9项数据)签名64字节】+【流转节点对信息(*前9项数据，也是前9项，方便两者同时签名)签名64字节】
         TransactionRecordMsg msg = new TransactionRecordMsg();

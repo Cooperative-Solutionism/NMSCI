@@ -10,7 +10,20 @@ public final class PageRequestUtil {
     public static final int DEFAULT_SIZE = 50;
     public static final int MAX_SIZE = 200;
 
+    /**
+     * 消息分页查询的统一排序：先按中心确认时间戳倒序，再按 id 倒序兜底稳定排序。
+     * 供各消息分页控制器复用，避免重复定义。
+     */
+    public static final Sort MESSAGE_QUERY_SORT = Sort.by(Sort.Order.desc("confirmTimestamp"), Sort.Order.desc("id"));
+
     private PageRequestUtil() {
+    }
+
+    /**
+     * 按 {@link #MESSAGE_QUERY_SORT} 构建消息分页查询的 {@link Pageable}。
+     */
+    public static Pageable ofMessageQuery(int page, int size) {
+        return of(page, size, MESSAGE_QUERY_SORT);
     }
 
     public static Pageable of(int page, int size, Sort sort) {

@@ -18,9 +18,12 @@ public class FlowNodeRegisterMsgController {
     @Resource
     private FlowNodeRegisterMsgService flowNodeRegisterMsgMsgService;
 
+    @Resource
+    private FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter;
+
     @PostMapping("/send")
     public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(123) byte[] byteData) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = FlowNodeRegisterMsgConverter.fromByteArray(byteData);
+        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(flowNodeRegisterMsgMsgService.saveFlowNodeRegisterMsg(flowNodeRegisterMsgMsg));
     }
 

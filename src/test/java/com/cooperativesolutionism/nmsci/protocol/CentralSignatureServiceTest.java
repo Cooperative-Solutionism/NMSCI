@@ -21,7 +21,7 @@ class CentralSignatureServiceTest {
 
     @Test
     void signsRawBytesAndPopulatesMessageFields() throws Exception {
-        CentralPubkeyEmpowerMsg msg = CentralPubkeyEmpowerMsgConverter.fromByteArray(
+        CentralPubkeyEmpowerMsg msg = new CentralPubkeyEmpowerMsgConverter().fromByteArray(
                 messageBuilder.centralPubkeyEmpower(
                         UUID.fromString("66666666-6666-6666-6666-666666666666"),
                         TestKeyPairs.FLOW_NODE_A,

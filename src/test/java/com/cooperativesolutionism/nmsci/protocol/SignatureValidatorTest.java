@@ -48,7 +48,7 @@ class SignatureValidatorTest {
     }
 
     private CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg() {
-        return CentralPubkeyEmpowerMsgConverter.fromByteArray(
+        return new CentralPubkeyEmpowerMsgConverter().fromByteArray(
                 messageBuilder.centralPubkeyEmpower(
                         UUID.fromString("55555555-5555-5555-5555-555555555555"),
                         TestKeyPairs.FLOW_NODE_A,

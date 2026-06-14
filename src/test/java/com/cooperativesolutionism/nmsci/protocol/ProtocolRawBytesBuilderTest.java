@@ -32,7 +32,7 @@ class ProtocolRawBytesBuilderTest {
 
         assertArrayEquals(
                 Arrays.copyOfRange(messageBytes, 0, 135),
-                rawBytesBuilder.transactionRecordVerifyData(TransactionRecordMsgConverter.fromByteArray(messageBytes))
+                rawBytesBuilder.transactionRecordVerifyData(new TransactionRecordMsgConverter().fromByteArray(messageBytes))
         );
     }
 
@@ -49,7 +49,7 @@ class ProtocolRawBytesBuilderTest {
 
         assertArrayEquals(
                 Arrays.copyOfRange(messageBytes, 0, 141),
-                rawBytesBuilder.transactionMountVerifyData(TransactionMountMsgConverter.fromByteArray(messageBytes))
+                rawBytesBuilder.transactionMountVerifyData(new TransactionMountMsgConverter().fromByteArray(messageBytes))
         );
     }
 
@@ -63,7 +63,7 @@ class ProtocolRawBytesBuilderTest {
 
         assertArrayEquals(
                 Arrays.copyOfRange(messageBytes, 0, 84),
-                rawBytesBuilder.centralPubkeyEmpowerVerifyData(CentralPubkeyEmpowerMsgConverter.fromByteArray(messageBytes))
+                rawBytesBuilder.centralPubkeyEmpowerVerifyData(new CentralPubkeyEmpowerMsgConverter().fromByteArray(messageBytes))
         );
     }
 
