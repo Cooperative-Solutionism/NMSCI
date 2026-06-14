@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -70,8 +71,9 @@ class PersistenceConcurrencyContractTest {
                 "allocation chain selection must lock selected rows FOR UPDATE"
         );
         assertTrue(
-                query.value().toLowerCase().contains("is_loop = false"),
-                "allocation chain selection must filter is_loop = false at the locking layer"
+                StringUtils.countOccurrencesOf(query.value().toLowerCase(), "is_loop = false") >= 2,
+                "is_loop = false must be applied at BOTH the outer (locking) query and the inner window subquery, "
+                        + "so a concurrently-looped row cannot be locked (docs/concurrency-audit.md invariant #2)"
         );
     }
 
