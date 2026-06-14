@@ -27,5 +27,22 @@ public interface TransactionRecordMsgRepository extends JpaRepository<Transactio
 
     Slice<TransactionRecordMsg> findByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey, Pageable pageable);
 
+    @Query("""
+            select t from TransactionRecordMsg t
+            where (:consumeNodePubkey is null or t.consumeNodePubkey = :consumeNodePubkey)
+              and (:flowNodePubkey is null or t.flowNodePubkey = :flowNodePubkey)
+              and (:currencyType is null or t.currencyType = :currencyType)
+              and (:startTime is null or t.confirmTimestamp >= :startTime)
+              and (:endTime is null or t.confirmTimestamp <= :endTime)
+            """)
+    Slice<TransactionRecordMsg> search(
+            @Param("consumeNodePubkey") byte[] consumeNodePubkey,
+            @Param("flowNodePubkey") byte[] flowNodePubkey,
+            @Param("currencyType") Short currencyType,
+            @Param("startTime") Long startTime,
+            @Param("endTime") Long endTime,
+            Pageable pageable
+    );
+
     List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
 }

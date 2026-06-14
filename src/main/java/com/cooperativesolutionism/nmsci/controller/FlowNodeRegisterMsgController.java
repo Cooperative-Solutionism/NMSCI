@@ -2,18 +2,25 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.FlowNodeRegisterMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/flow-node-register-msg")
+@RequestMapping("/flow-node-registrations")
 public class FlowNodeRegisterMsgController {
+
+    // FlowNodeRegisterMsg 不是 ConfirmableMessage（无 confirmTimestamp），按 id 排序（与 /flow-nodes 列表一致）。
+    private static final Sort REGISTER_QUERY_SORT = Sort.by(Sort.Order.asc("id"));
 
     @Resource
     private FlowNodeRegisterMsgService flowNodeRegisterMsgMsgService;
@@ -33,9 +40,24 @@ public class FlowNodeRegisterMsgController {
         return ResponseResult.success(flowNodeRegisterMsgMsg);
     }
 
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<FlowNodeRegisterMsg> getFlowNodeRegisterMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(flowNodeRegisterMsgMsg);
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<FlowNodeRegisterMsg>> listFlowNodeRegisterMsgs(
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<FlowNodeRegisterMsg> flowNodeRegisterMsgs = flowNodeRegisterMsgMsgService.listFlowNodeRegisterMsgs(
+                hexToBytesOrNull(flowNodePubkey),
+                PageRequestUtil.of(page, size, REGISTER_QUERY_SORT)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(flowNodeRegisterMsgs));
+    }
+
+    private static byte[] hexToBytesOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return ByteArrayUtil.hexToBytes(value);
     }
 }

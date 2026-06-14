@@ -1,9 +1,16 @@
 package com.cooperativesolutionism.nmsci.controller;
 
+import com.cooperativesolutionism.nmsci.block.BlockFileStore;
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
+import com.cooperativesolutionism.nmsci.dto.StorageStatusDTO;
 import com.cooperativesolutionism.nmsci.dto.SystemParamsDTO;
+import com.cooperativesolutionism.nmsci.dto.SystemStatusDTO;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
+import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,14 +20,55 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/system")
 public class SystemController {
 
+    /** 出块周期：10 分钟，与 GenerateBlockTask 的 fixedRate 一致。 */
+    private static final long BLOCK_INTERVAL_MS = 600_000L;
+
     @Resource
     private NmsciProperties nmsciProperties;
 
     @Resource
     private BlockChainService blockChainService;
 
+    @Resource
+    private MsgAbstractService msgAbstractService;
+
+    @Resource
+    private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+
+    @Resource
+    private BlockFileStore blockFileStore;
+
     @GetMapping("/params")
     public ResponseResult<SystemParamsDTO> getParams() {
         return ResponseResult.success(SystemParamsDTO.from(nmsciProperties, blockChainService.getLastBlock()));
+    }
+
+    @GetMapping("/status")
+    public ResponseResult<SystemStatusDTO> getStatus() {
+        BlockInfo latestBlock = blockChainService.getLastBlock();
+        byte[] currentCentralPubkey = ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPubkeyBase64());
+        boolean currentCentralPubkeyLocked = centralPubkeyLockedMsgService
+                .findCentralPubkeyLockedMsgByCentralPubkey(currentCentralPubkey)
+                .isPresent();
+        return ResponseResult.success(SystemStatusDTO.from(
+                latestBlock,
+                msgAbstractService.countPending(),
+                msgAbstractService.findOldestPendingConfirmTimestamp(),
+                BLOCK_INTERVAL_MS,
+                currentCentralPubkeyLocked
+        ));
+    }
+
+    @GetMapping("/storage")
+    public ResponseResult<StorageStatusDTO> getStorage() {
+        BlockFileStore.DatStorageInfo info = blockFileStore.datStorageInfo();
+        return ResponseResult.success(StorageStatusDTO.from(
+                info.datDirectory(),
+                info.fileCount(),
+                info.currentFileName(),
+                info.currentFileSizeBytes(),
+                info.totalBytes(),
+                info.maxSizePerFileBytes()
+        ));
     }
 }

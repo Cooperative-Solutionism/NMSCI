@@ -21,6 +21,8 @@ public interface FlowNodeRegisterMsgRepository extends JpaRepository<FlowNodeReg
 
     FlowNodeRegisterMsg findFirstByFlowNodePubkey(byte[] flowNodePubkey);
 
+    Slice<FlowNodeRegisterMsg> findByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
+
     @Query(nativeQuery = true, value = """
             select
                 exists(select 1 from flow_node_register_msgs where flow_node_pubkey = :flowNodePubkey) as registered,

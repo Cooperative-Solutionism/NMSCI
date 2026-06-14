@@ -3,18 +3,21 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.FlowNodeLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.dto.LockedMessageResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
+import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/flow-node-locked-msg")
+@RequestMapping("/flow-node-locks")
 public class FlowNodeLockedMsgController {
 
     @Resource
@@ -35,9 +38,28 @@ public class FlowNodeLockedMsgController {
         return ResponseResult.success(flowNodeLockedMsg);
     }
 
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<LockedMessageResponseDTO<FlowNodeLockedMsg>> getFlowNodeLockedMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<FlowNodeLockedMsg>> listFlowNodeLockedMsgs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<FlowNodeLockedMsg> flowNodeLockedMsgs = flowNodeLockedMsgService.listFlowNodeLockedMsgs(
+                PageRequestUtil.ofMessageQuery(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(flowNodeLockedMsgs));
+    }
+
+    @GetMapping("/status")
+    public ResponseResult<LockedMessageResponseDTO<FlowNodeLockedMsg>> getFlowNodeLockStatus(@RequestParam String flowNodePubkey) {
+        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(hexToBytesOrNull(flowNodePubkey));
         return ResponseResult.success(new LockedMessageResponseDTO<>(flowNodeLockedMsg.isPresent(), flowNodeLockedMsg.orElse(null)));
+    }
+
+    private static byte[] hexToBytesOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return ByteArrayUtil.hexToBytes(value);
     }
 }

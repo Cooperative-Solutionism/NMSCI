@@ -14,8 +14,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Component
 public class BlockFileStore {
@@ -57,6 +60,52 @@ public class BlockFileStore {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * 汇总 .dat 存储目录的利用情况：文件数、当前（最高索引）文件名与大小、总字节数、单文件上限。
+     * 复用内部 {@link #datDirectory()}，只读枚举，不修改任何文件。
+     */
+    public DatStorageInfo datStorageInfo() {
+        Path dir = datDirectory();
+        long maxSizePerFile = nmsciProperties.getBlockDatMaxSize();
+        if (!Files.exists(dir)) {
+            return new DatStorageInfo(dir.toString(), 0, null, 0L, 0L, maxSizePerFile);
+        }
+
+        try (Stream<Path> paths = Files.list(dir)) {
+            List<Path> datFiles = paths
+                    .filter(path -> !Files.isDirectory(path))
+                    .filter(path -> {
+                        String name = path.getFileName().toString();
+                        return name.startsWith(BlockConstants.DAT_FILE_PREFIX) && name.endsWith(BlockConstants.DAT_FILE_SUFFIX);
+                    })
+                    .sorted(Comparator.comparing(path -> path.getFileName().toString()))
+                    .toList();
+
+            long totalBytes = 0L;
+            for (Path datFile : datFiles) {
+                totalBytes += Files.size(datFile);
+            }
+
+            Path current = datFiles.isEmpty() ? null : datFiles.get(datFiles.size() - 1);
+            String currentFileName = current == null ? null : current.getFileName().toString();
+            long currentFileSizeBytes = current == null ? 0L : Files.size(current);
+
+            return new DatStorageInfo(dir.toString(), datFiles.size(), currentFileName, currentFileSizeBytes, totalBytes, maxSizePerFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public record DatStorageInfo(
+            String datDirectory,
+            int fileCount,
+            String currentFileName,
+            long currentFileSizeBytes,
+            long totalBytes,
+            long maxSizePerFileBytes
+    ) {
     }
 
     private void registerRollback(Path datFilepath, long originalSize, boolean existedBeforeAppend) {

@@ -21,28 +21,32 @@ import static org.mockito.Mockito.when;
 class TransactionRecordMsgControllerEncodingTest {
 
     @Test
-    void combinedConsumeAndFlowNodePubkeyQueryDecodesPathVariablesAsHex() {
+    void searchDecodesPubkeyQueryParametersAsHex() {
         TransactionRecordMsgController controller = new TransactionRecordMsgController();
         TransactionRecordMsgService service = mock(TransactionRecordMsgService.class);
         ReflectionTestUtils.setField(controller, "transactionRecordMsgService", service);
-        when(service.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                any(byte[].class),
-                any(byte[].class),
-                any(Pageable.class)
+        when(service.searchTransactionRecordMsgs(
+                any(), any(), any(), any(), any(), any(Pageable.class)
         )).thenReturn(new SliceImpl<TransactionRecordMsg>(List.of()));
 
-        controller.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+        controller.searchTransactionRecordMsgs(
                 ByteArrayUtil.bytesToHex(TestKeyPairs.CONSUME_NODE_A.pubkey()),
                 ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey()),
+                null,
+                null,
+                null,
                 0,
                 50
         );
 
         ArgumentCaptor<byte[]> consumeNodePubkeyCaptor = ArgumentCaptor.forClass(byte[].class);
         ArgumentCaptor<byte[]> flowNodePubkeyCaptor = ArgumentCaptor.forClass(byte[].class);
-        verify(service).getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
+        verify(service).searchTransactionRecordMsgs(
                 consumeNodePubkeyCaptor.capture(),
                 flowNodePubkeyCaptor.capture(),
+                any(),
+                any(),
+                any(),
                 any(Pageable.class)
         );
         assertArrayEquals(TestKeyPairs.CONSUME_NODE_A.pubkey(), consumeNodePubkeyCaptor.getValue());

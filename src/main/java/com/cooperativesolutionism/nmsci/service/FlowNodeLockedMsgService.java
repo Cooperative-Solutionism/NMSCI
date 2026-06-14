@@ -13,6 +13,8 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -90,5 +92,9 @@ public class FlowNodeLockedMsgService {
         }
 
         return Optional.ofNullable(flowNodeLockedMsgRepository.findByFlowNodePubkey(flowNodePubkey));
+    }
+    @Transactional(readOnly = true)
+    public Slice<FlowNodeLockedMsg> listFlowNodeLockedMsgs(Pageable pageable) {
+        return flowNodeLockedMsgRepository.findAll(pageable);
     }
 }

@@ -45,7 +45,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         UUID flowNodeId = UUID.fromString("11111111-aaaa-1111-aaaa-111111111111");
         var previousBlock = blockInfoRepository.findTopByOrderByHeightDesc();
 
-        mockMvc.perform(post("/flow-node-register-msg")
+        mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())
@@ -86,7 +86,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         Object originalBlockDatMaxSize = ReflectionTestUtils.getField(nmsciProperties, "blockDatMaxSize");
         ReflectionTestUtils.setField(nmsciProperties, "blockDatMaxSize", 1L);
         try {
-            mockMvc.perform(post("/flow-node-register-msg")
+            mockMvc.perform(post("/flow-node-registrations")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
                             .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
                     .andExpect(status().isOk())
@@ -112,7 +112,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         Object originalBlockMaxSize = ReflectionTestUtils.getField(nmsciProperties, "blockMaxSize");
         ReflectionTestUtils.setField(nmsciProperties, "blockMaxSize", configuredBlockMaxSize);
         try {
-            mockMvc.perform(post("/flow-node-register-msg")
+            mockMvc.perform(post("/flow-node-registrations")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
                             .content(flowNodeRegisterMsg))
                     .andExpect(status().isOk())

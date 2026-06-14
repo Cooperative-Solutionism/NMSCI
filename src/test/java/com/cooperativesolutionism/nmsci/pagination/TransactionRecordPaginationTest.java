@@ -28,9 +28,9 @@ class TransactionRecordPaginationTest {
 
     @Test
     void controllerBatchQueriesReturnSliceResponse() throws NoSuchMethodException {
-        assertSliceResponseControllerMethod("getTransactionRecordMsgByConsumeNodePubkey", String.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getTransactionRecordMsgByFlowNodePubkey", String.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey", String.class, String.class, int.class, int.class);
+        assertSliceResponseControllerMethod(
+                "searchTransactionRecordMsgs",
+                String.class, String.class, Short.class, Long.class, Long.class, int.class, int.class);
     }
 
     private void assertSliceMethod(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {
