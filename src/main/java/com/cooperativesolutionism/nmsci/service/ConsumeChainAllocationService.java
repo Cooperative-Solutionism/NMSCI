@@ -12,7 +12,6 @@ import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +22,6 @@ import java.util.UUID;
 
 @Service
 public class ConsumeChainAllocationService {
-
-    private static final int ALLOCATION_CHAIN_LOCK_BATCH_SIZE = 100;
 
     @Resource
     private ConsumeChainSupport consumeChainSupport;
@@ -64,35 +61,9 @@ public class ConsumeChainAllocationService {
             Short currencyType,
             long transactionAmount
     ) {
-        List<ConsumeChain> mountChains = new ArrayList<>();
-        long remainingAmount = transactionAmount;
-        int page = 0;
-
-        while (remainingAmount > 0) {
-            List<ConsumeChain> batch = consumeChainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(
-                    source,
-                    currencyType,
-                    PageRequest.of(page, ALLOCATION_CHAIN_LOCK_BATCH_SIZE)
-            );
-            if (batch.isEmpty()) {
-                break;
-            }
-
-            for (ConsumeChain mountChain : batch) {
-                mountChains.add(mountChain);
-                remainingAmount -= mountChain.getAmount();
-                if (remainingAmount <= 0) {
-                    break;
-                }
-            }
-
-            if (batch.size() < ALLOCATION_CHAIN_LOCK_BATCH_SIZE) {
-                break;
-            }
-            page++;
-        }
-
-        return mountChains;
+        // 单条窗口累计和查询取「刚好够」的开放链最小前缀并加 FOR UPDATE 悲观写锁；
+        // 不足部分由分配器新建链承接（见 docs/concurrency-audit.md）。
+        return consumeChainRepository.lockOpenChainsForAllocation(source.getId(), currencyType, transactionAmount);
     }
 
     private List<ConsumeChainAllocationCandidate> getConsumeChainAllocationCandidates(List<ConsumeChain> mountChains) {

@@ -17,8 +17,8 @@ import jakarta.persistence.LockModeType;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.lang.reflect.Method;
@@ -54,30 +54,25 @@ class PersistenceConcurrencyContractTest {
     }
 
     @Test
-    void openConsumeChainsAreReadWithWriteLockBeforeSplitOrExtension() throws NoSuchMethodException {
+    void openConsumeChainsAreLockedForUpdateDuringAllocation() throws NoSuchMethodException {
         Method method = ConsumeChainRepository.class.getMethod(
-                "findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc",
-                com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg.class,
-                Short.class
-        );
-        Lock lock = method.getAnnotation(Lock.class);
-
-        assertNotNull(lock, "open consume chains must be selected with a pessimistic lock");
-        assertEquals(LockModeType.PESSIMISTIC_WRITE, lock.value());
-    }
-
-    @Test
-    void openConsumeChainsCanBeLockedInBatchesBeforeAllocation() throws NoSuchMethodException {
-        Method method = ConsumeChainRepository.class.getMethod(
-                "findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc",
-                com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg.class,
+                "lockOpenChainsForAllocation",
+                UUID.class,
                 Short.class,
-                Pageable.class
+                long.class
         );
-        Lock lock = method.getAnnotation(Lock.class);
+        Query query = method.getAnnotation(Query.class);
 
-        assertNotNull(lock, "batched open consume chain reads must use a pessimistic lock");
-        assertEquals(LockModeType.PESSIMISTIC_WRITE, lock.value());
+        assertNotNull(query, "allocation chain selection must be declared as @Query");
+        assertTrue(query.nativeQuery(), "allocation chain selection must be a native query");
+        assertTrue(
+                query.value().toLowerCase().contains("for update"),
+                "allocation chain selection must lock selected rows FOR UPDATE"
+        );
+        assertTrue(
+                query.value().toLowerCase().contains("is_loop = false"),
+                "allocation chain selection must filter is_loop = false at the locking layer"
+        );
     }
 
     @Test
