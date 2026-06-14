@@ -67,6 +67,15 @@ export CENTRAL_KEY_PAIR_PRIKEY='base64-private-key'
 
 ## 本地运行
 
+开发配置 `application-dev.properties` 不再包含密钥。首次运行前，复制密钥模板并填入本地值：
+
+```bash
+cp application-local.properties.example application-local.properties
+# 编辑 application-local.properties，填入 spring.datasource.password 与 central-key-pair.pubkey/prikey
+```
+
+`application-local.properties` 已被 `.gitignore` 忽略，dev 配置会通过 `spring.config.import` 自动加载它。
+
 启动本地数据库后，使用开发配置运行：
 
 ```bash
@@ -88,24 +97,30 @@ temp/source-code
 
 ## 测试
 
-运行全量测试：
+快速测试：
 
 ```bash
-./mvnw clean test
+./mvnw test
 ```
 
-集成测试使用 Testcontainers 启动 PostgreSQL，因此需要 Docker 可用。
+全量测试：
+
+```bash
+./mvnw verify
+```
+
+集成测试使用 Testcontainers 启动 PostgreSQL，因此全量测试需要 Docker 可用。更多说明见 [TESTING.md](./TESTING.md)。
 
 只运行单个测试类：
 
 ```bash
-./mvnw -Dtest=ProtocolErrorIntegrationTest test
+./mvnw -Dtest=Sha256UtilTest test
 ```
 
 如果当前环境没有 Docker，可以临时禁用集成测试：
 
 ```bash
-./mvnw clean test -Dnmsci.integration-tests.enabled=false
+./mvnw verify -Dnmsci.integration-tests.enabled=false
 ```
 
 ## 构建
@@ -147,6 +162,8 @@ file/source-code
 ```
 
 这些目录保存历史区块 `.dat` 文件和各版本源码包，不应在升级时清空。
+
+Flyway 会在应用启动时自动执行数据库迁移；已有生产数据库会按 V1 建立基线，新的空数据库会从 V1 初始化完整结构。
 
 应用启动后，`GenerateBlockTask` 会立即执行一次区块生成任务，之后每 10 分钟执行一次。第一次运行还会持续生成区块，直到没有未入块消息。
 
@@ -274,8 +291,8 @@ src/main/java/com/cooperativesolutionism/nmsci
 ├── exception       全局异常处理
 ├── model           JPA 实体
 ├── repository      Spring Data Repository
-├── service         业务接口
-├── service/impl    业务实现
+├── service         业务服务实现
+├── service/impl    持久化辅助类
 ├── task            定时任务
 └── util            字节、哈希、签名、PoW 等工具
 ```
@@ -283,8 +300,7 @@ src/main/java/com/cooperativesolutionism/nmsci
 数据库脚本：
 
 ```text
-src/main/resources/database/schema.sql
-src/main/resources/database/patches/
+src/main/resources/db/migration/
 ```
 
 ## 参考资料

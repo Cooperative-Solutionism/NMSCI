@@ -1,37 +1,97 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.block.AssembledBlock;
+import com.cooperativesolutionism.nmsci.block.BlockAssembler;
+import com.cooperativesolutionism.nmsci.block.BlockFileStore;
+import com.cooperativesolutionism.nmsci.block.BlockGenerationLock;
+import com.cooperativesolutionism.nmsci.block.BlockMessageSelector;
+import com.cooperativesolutionism.nmsci.block.SelectedBlockMessages;
+import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
+import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import jakarta.annotation.Resource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public interface BlockChainService {
+@Service
+public class BlockChainService {
+    @Resource
+    private BlockInfoRepository blockInfoRepository;
 
-    /**
-     * 生成一个区块
-     */
-    void generateBlock();
+    @Resource
+    private MsgAbstractRepository msgAbstractRepository;
 
-    /**
-     * 不断生成区块，直到没有未打包的消息
-     */
-    void generateBlockUntilNoNotInBlockMsgs();
+    @Resource
+    private BlockMessageSelector blockMessageSelector;
 
-    /**
-     * 获取最新的区块信息
-     */
-    BlockInfo getLastBlock();
+    @Resource
+    private BlockAssembler blockAssembler;
 
-    /**
-     * 根据区块高度获取区块信息
-     *
-     * @param height 区块高度
-     * @return 区块信息
-     */
-    BlockInfo getBlockByHeight(long height);
+    @Resource
+    private BlockFileStore blockFileStore;
 
-    /**
-     * 根据区块哈希获取区块信息
-     *
-     * @param hash 区块哈希
-     * @return 区块信息
-     */
-    BlockInfo getBlockByHash(String hash);
+    @Resource
+    private SourceCodeArchiveStore sourceCodeArchiveStore;
+
+    @Resource
+    private BlockGenerationLock blockGenerationLock;
+    @Transactional
+    public void generateBlock() {
+        blockGenerationLock.lock();
+        generateSelectedBlock(blockMessageSelector.select());
+    }
+
+    private boolean generateBlockIfMessagesSelectedForLoop() {
+        SelectedBlockMessages selectedMessages = blockMessageSelector.select();
+        if (selectedMessages.isEmpty()) {
+            return false;
+        }
+
+        generateSelectedBlock(selectedMessages);
+        return true;
+    }
+
+    private void generateSelectedBlock(SelectedBlockMessages selectedMessages) {
+        BlockInfo previousBlock = blockInfoRepository.findTopByOrderByHeightDesc();
+        AssembledBlock assembledBlock = blockAssembler.assemble(previousBlock, selectedMessages);
+        BlockInfo blockInfo = assembledBlock.getBlockInfo();
+
+        msgAbstractRepository.saveAll(assembledBlock.getSelectedMsgAbstracts());
+        blockInfo.setDatFilepath(blockFileStore.appendBlock(previousDatFilepath(previousBlock), assembledBlock.getDatBytes()));
+        blockInfo.setSourceCodeZipFilepath(sourceCodeArchiveStore.copyArchiveForVersion(blockInfo.getVersion()));
+        blockInfoRepository.save(blockInfo);
+    }
+    @Transactional
+    public void generateBlockUntilNoNotInBlockMsgs() {
+        blockGenerationLock.lock();
+        while (generateBlockIfMessagesSelectedForLoop()) {
+            // Continue until the selector returns no messages.
+        }
+    }
+    public BlockInfo getLastBlock() {
+        return blockInfoRepository.findTopByOrderByHeightDesc();
+    }
+    public BlockInfo getBlockByHeight(long height) {
+        BlockInfo blockInfo = blockInfoRepository.findByHeight(height);
+        if (blockInfo == null) {
+            throw new IllegalArgumentException("区块高度(" + height + ")不存在");
+        }
+
+        return blockInfo;
+    }
+    public BlockInfo getBlockByHash(String hash) {
+        return blockInfoRepository.findById(ByteArrayUtil.hexToBytes(hash)).orElseThrow(
+                () -> new IllegalArgumentException("该区块不存在: " + hash)
+        );
+    }
+
+    private String previousDatFilepath(BlockInfo previousBlock) {
+        if (previousBlock == null) {
+            return null;
+        }
+        return previousBlock.getDatFilepath();
+    }
+
 }

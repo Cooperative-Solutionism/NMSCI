@@ -3,7 +3,7 @@ package com.cooperativesolutionism.nmsci.controller;
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
-import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
@@ -21,7 +21,7 @@ public class ConsumeChainController {
     private static final Sort CONSUME_CHAIN_QUERY_SORT = Sort.by(Sort.Order.desc("tailMountTimestamp"), Sort.Order.desc("id"));
 
     @Resource
-    private ConsumeChainService consumeChainService;
+    private ConsumeChainQueryService consumeChainQueryService;
 
     @GetMapping("/by-mounted-transaction")
     public ResponseResult<SliceResponseDTO<ConsumeChainResponseDTO>> getConsumeChainByMountedTransaction(
@@ -29,7 +29,7 @@ public class ConsumeChainController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByMountedTransaction(
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainQueryService.getConsumeChainByMountedTransaction(
                 UUID.fromString(relatedTransactionMount),
                 pageable(page, size)
         );
@@ -38,7 +38,7 @@ public class ConsumeChainController {
 
     @GetMapping("/id/{id}")
     public ResponseResult<ConsumeChainResponseDTO> getConsumeChainById(@PathVariable String id) {
-        ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainService.getConsumeChainById(UUID.fromString(id));
+        ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainQueryService.getConsumeChainById(UUID.fromString(id));
         return ResponseResult.success(consumeChainResponseDTO);
     }
 
@@ -63,7 +63,7 @@ public class ConsumeChainController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByPubkey(
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainQueryService.getConsumeChainByPubkey(
                 pubkey(startPubkey),
                 pubkey(endPubkey),
                 pubkey(nodePubkey),
@@ -85,7 +85,7 @@ public class ConsumeChainController {
             int page,
             int size
     ) {
-        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainService.getConsumeChainByRelatedId(
+        Slice<ConsumeChainResponseDTO> consumeChainResponseDTOs = consumeChainQueryService.getConsumeChainByRelatedId(
                 uuid(start),
                 uuid(end),
                 uuid(node),

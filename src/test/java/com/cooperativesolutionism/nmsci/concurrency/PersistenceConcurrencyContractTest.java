@@ -8,11 +8,11 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
-import com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyEmpowerMsgServiceImpl;
-import com.cooperativesolutionism.nmsci.service.impl.FlowNodeLockedMsgServiceImpl;
-import com.cooperativesolutionism.nmsci.service.impl.FlowNodeRegisterMsgServiceImpl;
-import com.cooperativesolutionism.nmsci.service.impl.TransactionMountMsgServiceImpl;
-import com.cooperativesolutionism.nmsci.service.impl.TransactionRecordMsgServiceImpl;
+import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
+import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
+import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
+import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
+import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -83,27 +83,27 @@ class PersistenceConcurrencyContractTest {
     @Test
     void messageSavesThatPersistMsgAbstractRunInOneTransaction() throws ReflectiveOperationException {
         assertTransactional(
-                FlowNodeRegisterMsgServiceImpl.class,
+                FlowNodeRegisterMsgService.class,
                 "saveFlowNodeRegisterMsg",
                 FlowNodeRegisterMsg.class
         );
         assertTransactional(
-                CentralPubkeyEmpowerMsgServiceImpl.class,
+                CentralPubkeyEmpowerMsgService.class,
                 "saveCentralPubkeyEmpowerMsg",
                 CentralPubkeyEmpowerMsg.class
         );
         assertTransactional(
-                FlowNodeLockedMsgServiceImpl.class,
+                FlowNodeLockedMsgService.class,
                 "saveFlowNodeLockedMsg",
                 FlowNodeLockedMsg.class
         );
         assertTransactional(
-                TransactionRecordMsgServiceImpl.class,
+                TransactionRecordMsgService.class,
                 "saveTransactionRecordMsg",
                 TransactionRecordMsg.class
         );
         assertTransactional(
-                TransactionMountMsgServiceImpl.class,
+                TransactionMountMsgService.class,
                 "saveTransactionMountMsg",
                 TransactionMountMsg.class
         );

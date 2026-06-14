@@ -7,6 +7,7 @@ import jakarta.annotation.Resource;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,6 +24,7 @@ import java.security.Security;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @ExtendWith(DockerAvailableCondition.class)
+@Tag("integration")
 @SpringBootTest(classes = NmsciApplication.class)
 public abstract class NmsciIntegrationTestBase {
 
@@ -35,8 +37,7 @@ public abstract class NmsciIntegrationTestBase {
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("nmsci_test")
             .withUsername("postgres")
-            .withPassword("postgres")
-            .withInitScript("database/schema.sql");
+            .withPassword("postgres");
 
     private static volatile boolean postgresStarted;
 
@@ -62,6 +63,9 @@ public abstract class NmsciIntegrationTestBase {
         registry.add("central-key-pair.prikey", () -> TestKeyPairs.CENTRAL.prikeyBase64());
         registry.add("register-difficulty-target-nbits", () -> "0x20ffffff");
         registry.add("transaction-difficulty-target-nbits", () -> "0x20ffffff");
+        // 固定上链源码哈希为占位零值，使集成测试与构建期 prepare-package 注入的真实哈希解耦，
+        // 确保 /system/params 回显行为可确定地断言（否则 verify 打包后真实哈希会泄漏进测试运行时）。
+        registry.add("source-code-zip-hash", () -> "0000000000000000000000000000000000000000000000000000000000000000");
         registry.add("file-root-dir", () -> "target/nmsci-test-files");
         registry.add("file-dat-dir", () -> "dat");
         registry.add("file-source-code-dir", () -> "source-code");

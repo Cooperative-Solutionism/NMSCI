@@ -20,9 +20,12 @@ public class CentralPubkeyLockedMsgController {
     @Resource
     private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
 
+    @Resource
+    private CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
+
     @PostMapping("/send")
     public void saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
-        CentralPubkeyLockedMsg centralPubkeyLockedMsg = CentralPubkeyLockedMsgConverter.fromByteArray(byteData);
+        CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
         centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
     }
 

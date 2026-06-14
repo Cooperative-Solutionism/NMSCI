@@ -11,11 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseIndexContractTest {
 
-    private static final Path SCHEMA_SQL = Path.of("src/main/resources/database/schema.sql");
-
-    private static final Path INDEX_PATCH_SQL = Path.of(
-            "src/main/resources/database/patches/2026-06-11-add-query-performance-indexes.sql"
-    );
+    private static final Path SCHEMA_SQL = Path.of("src/main/resources/db/migration/V1__baseline.sql");
 
     private static final List<String> REQUIRED_INDEXES = List.of(
             "idx_flow_node_register_pubkey",
@@ -49,19 +45,7 @@ class DatabaseIndexContractTest {
         for (String indexName : REQUIRED_INDEXES) {
             assertTrue(
                     schemaSql.contains("create index " + indexName),
-                    () -> "schema.sql must create " + indexName
-            );
-        }
-    }
-
-    @Test
-    void patchCreatesAllQueryPerformanceIndexesForExistingDatabases() throws IOException {
-        String patchSql = Files.readString(INDEX_PATCH_SQL);
-
-        for (String indexName : REQUIRED_INDEXES) {
-            assertTrue(
-                    patchSql.contains("create index if not exists " + indexName),
-                    () -> "index patch must create " + indexName + " idempotently"
+                    () -> "V1__baseline.sql must create " + indexName
             );
         }
     }

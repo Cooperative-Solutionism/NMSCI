@@ -20,9 +20,12 @@ public class FlowNodeLockedMsgController {
     @Resource
     private FlowNodeLockedMsgService flowNodeLockedMsgService;
 
+    @Resource
+    private FlowNodeLockedMsgConverter flowNodeLockedMsgConverter;
+
     @PostMapping("/send")
     public ResponseResult<FlowNodeLockedMsg> saveFlowNodeLockedMsg(@RequestBody @ByteArraySize(148) byte[] byteData) {
-        FlowNodeLockedMsg flowNodeLockedMsg = FlowNodeLockedMsgConverter.fromByteArray(byteData);
+        FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(flowNodeLockedMsgService.saveFlowNodeLockedMsg(flowNodeLockedMsg));
     }
 

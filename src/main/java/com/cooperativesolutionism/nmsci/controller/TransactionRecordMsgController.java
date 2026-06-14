@@ -9,9 +9,7 @@ import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -20,14 +18,15 @@ import java.util.UUID;
 @RequestMapping("/transaction-record-msg")
 public class TransactionRecordMsgController {
 
-    private static final Sort MESSAGE_QUERY_SORT = Sort.by(Sort.Order.desc("confirmTimestamp"), Sort.Order.desc("id"));
-
     @Resource
     private TransactionRecordMsgService transactionRecordMsgService;
 
+    @Resource
+    private TransactionRecordMsgConverter transactionRecordMsgConverter;
+
     @PostMapping("/send")
     public ResponseResult<TransactionRecordMsg> saveTransactionRecordMsg(@RequestBody @ByteArraySize(263) byte[] byteData) {
-        TransactionRecordMsg transactionRecordMsg = TransactionRecordMsgConverter.fromByteArray(byteData);
+        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(transactionRecordMsgService.saveTransactionRecordMsg(transactionRecordMsg));
     }
 
@@ -45,7 +44,7 @@ public class TransactionRecordMsgController {
     ) {
         Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(
                 ByteArrayUtil.hexToBytes(consumeNodePubkey),
-                pageable(page, size)
+                PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
@@ -58,7 +57,7 @@ public class TransactionRecordMsgController {
     ) {
         Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(
                 ByteArrayUtil.hexToBytes(flowNodePubkey),
-                pageable(page, size)
+                PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
@@ -73,12 +72,8 @@ public class TransactionRecordMsgController {
         Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
                 ByteArrayUtil.hexToBytes(consumeNodePubkey),
                 ByteArrayUtil.hexToBytes(flowNodePubkey),
-                pageable(page, size)
+                PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
-    }
-
-    private Pageable pageable(int page, int size) {
-        return PageRequestUtil.of(page, size, MESSAGE_QUERY_SORT);
     }
 }

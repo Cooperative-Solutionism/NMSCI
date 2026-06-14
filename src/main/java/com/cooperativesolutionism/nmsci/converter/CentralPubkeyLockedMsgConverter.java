@@ -1,16 +1,27 @@
 package com.cooperativesolutionism.nmsci.converter;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
-public class CentralPubkeyLockedMsgConverter {
-    public static CentralPubkeyLockedMsg fromByteArray(byte[] byteData) {
-        if (byteData == null || byteData.length != 115) {
-            throw new IllegalArgumentException("Invalid byte array size, expected 115 bytes.");
-        }
+@Component
+public class CentralPubkeyLockedMsgConverter extends AbstractMessageConverter<CentralPubkeyLockedMsg> {
 
+    @Override
+    public MsgTypeEnum msgType() {
+        return MsgTypeEnum.CentralPubkeyLockedMsg;
+    }
+
+    @Override
+    public int expectedSize() {
+        return 115;
+    }
+
+    @Override
+    protected CentralPubkeyLockedMsg decode(byte[] byteData) {
         // 【信息类型2字节(2)】+【uuid16字节】+【中心公钥33字节】+【中心对信息(前3项数据)签名64字节】
         CentralPubkeyLockedMsg msg = new CentralPubkeyLockedMsg();
         msg.setMsgType(ByteArrayUtil.bytesToShort(Arrays.copyOfRange(byteData, 0, 2)));

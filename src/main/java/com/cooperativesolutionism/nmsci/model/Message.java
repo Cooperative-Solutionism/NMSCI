@@ -6,10 +6,6 @@ public interface Message extends Identifiable {
 
     void setMsgType(Short msgType);
 
-    Long getConfirmTimestamp();
-
-    void setConfirmTimestamp(Long confirmTimestamp);
-
     byte[] getRawBytes();
 
     void setRawBytes(byte[] rawBytes);

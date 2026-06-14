@@ -1,62 +1,166 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
+import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
+import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
+import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
+import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProofOfWorkValidator;
+import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
+import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
+import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
+import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
+import java.util.Arrays;
 import java.util.UUID;
 
-public interface TransactionMountMsgService {
+@Service
+@Validated
+public class TransactionMountMsgService {
+    @Resource
+    private BlockDifficultyService blockDifficultyService;
 
-    /**
-     * 保存交易挂载消息
-     *
-     * @param transactionMountMsg 交易挂载消息
-     * @return 保存后的交易挂载消息
-     */
-    TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg);
+    @Resource
+    private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
-    /**
-     * 根据ID获取交易挂载消息
-     *
-     * @param id 交易挂载消息ID
-     * @return 交易挂载消息
-     */
-    TransactionMountMsg getTransactionMountMsgById(UUID id);
+    @Resource
+    private TransactionMountMsgRepository transactionMountMsgRepository;
 
-    /**
-     * 根据挂载的交易记录ID获取交易挂载消息
-     *
-     * @param id 挂载的交易记录ID
-     * @return 交易挂载消息
-     */
-    TransactionMountMsg getTransactionMountMsgByMountedTransactionRecordId(UUID id);
+    @Resource
+    private MsgAbstractService msgAbstractService;
 
-    /**
-     * 根据消费节点公钥获取交易挂载消息
-     *
-     * @param consumeNodePubkey 消费节点公钥
-     * @return 交易挂载消息列表
-     */
-    Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable);
+    @Resource
+    private ConsumeChainAllocationService consumeChainAllocationService;
 
-    /**
-     * 根据流转节点公钥获取交易挂载消息
-     *
-     * @param flowNodePubkey 流程节点公钥
-     * @return 交易挂载消息列表
-     */
-    Slice<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
+    @Resource
+    private FlowNodeStateValidator flowNodeStateValidator;
 
-    /**
-     * 根据消费节点公钥和流转节点公钥获取交易挂载消息
-     *
-     * @param consumeNodePubkey 消费节点公钥
-     * @param flowNodePubkey 流转节点公钥
-     * @return 交易挂载消息列表
-     */
-    Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(byte[] consumeNodePubkey, byte[] flowNodePubkey, Pageable pageable);
+    @Resource
+    private CentralPubkeyValidator centralPubkeyValidator;
 
+    @Resource
+    private SignatureValidator signatureValidator;
+
+    @Resource
+    private ProofOfWorkValidator proofOfWorkValidator;
+
+    @Resource
+    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
+
+    @Resource
+    private CentralSignatureService centralSignatureService;
+    @Transactional
+    public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
+        if (transactionMountMsg.getMsgType() != MsgTypeEnum.TransactionMountMsg.getValue()) {
+            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionMountMsg.getValue());
+        }
+
+        if (transactionMountMsgRepository.existsById(transactionMountMsg.getId())) {
+            throw new IllegalArgumentException("该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在");
+        }
+
+        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findByIdForUpdate(transactionMountMsg.getMountedTransactionRecordId())
+                .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
+
+        if (transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(transactionMountMsg.getMountedTransactionRecordId())) {
+            throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
+        }
+
+        int transactionDifficultyTargetNbits = blockDifficultyService.currentTransactionDifficultyTarget();
+        if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
+            throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
+        }
+
+        // 消费节点公钥与要挂载的交易信息中的消费节点公钥需相同
+        byte[] consumeNodePubkey = transactionRecordMsg.getConsumeNodePubkey();
+        if (!Arrays.equals(transactionMountMsg.getConsumeNodePubkey(), consumeNodePubkey)) {
+            String consumeNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(consumeNodePubkey);
+            throw new IllegalArgumentException("挂载的交易记录信息中的消费节点公钥(" + consumeNodePubkeyBase64 + ")与当前交易挂载信息中的消费节点公钥不一致");
+        }
+
+        flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
+                transactionMountMsg.getFlowNodePubkey(),
+                centralPubkeyValidator.currentCentralPubkey()
+        );
+        centralPubkeyValidator.validateCurrentAndNotLocked(transactionMountMsg.getCentralPubkey());
+        signatureValidator.validateLowS(transactionMountMsg.getConsumeNodeSignature(), "消费节点签名不符合低S值要求");
+        signatureValidator.validateLowS(transactionMountMsg.getFlowNodeSignature(), "流转节点签名不符合低S值要求");
+
+        byte[] verifyData = protocolRawBytesBuilder.transactionMountVerifyData(transactionMountMsg);
+        proofOfWorkValidator.validate(verifyData, transactionDifficultyTargetNbits, "前8项数据的hash值不符合注册难度目标要求");
+        signatureValidator.validateSignature(verifyData, transactionMountMsg.getConsumeNodeSignature(), transactionMountMsg.getConsumeNodePubkey(), "消费节点签名验证失败");
+        signatureValidator.validateSignature(verifyData, transactionMountMsg.getFlowNodeSignature(), transactionMountMsg.getFlowNodePubkey(), "流转节点签名验证失败");
+        centralSignatureService.signAndPopulate(
+                transactionMountMsg,
+                verifyData,
+                transactionMountMsg.getConsumeNodeSignature(),
+                transactionMountMsg.getFlowNodeSignature()
+        );
+
+        TransactionMountMsg transactionMountMsgInDb = transactionMountMsgRepository.save(transactionMountMsg);
+        msgAbstractService.saveMsgAbstract(transactionMountMsg);
+        consumeChainAllocationService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
+
+        return transactionMountMsgInDb;
+    }
+    public TransactionMountMsg getTransactionMountMsgById(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("交易挂载信息id不能为空");
+        }
+
+        return transactionMountMsgRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("交易挂载信息id(" + id + ")不存在"));
+    }
+    public TransactionMountMsg getTransactionMountMsgByMountedTransactionRecordId(UUID id) {
+        if (id == null) {
+            throw new IllegalArgumentException("挂载的交易记录信息id不能为空");
+        }
+
+        TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findByMountedTransactionRecordId(id);
+        if (transactionMountMsg == null) {
+            throw new IllegalArgumentException("挂载的交易记录信息id(" + id + ")不存在对应的交易挂载信息");
+        }
+
+        return transactionMountMsg;
+    }
+    public Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkey(consumeNodePubkey, pageable);
+    }
+    public Slice<TransactionMountMsg> getTransactionMountMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable) {
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByFlowNodePubkey(flowNodePubkey, pageable);
+    }
+    public Slice<TransactionMountMsg> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey,
+            Pageable pageable
+    ) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+            throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
+        }
+
+        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
+        }
+
+        return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey, pageable);
+    }
 }

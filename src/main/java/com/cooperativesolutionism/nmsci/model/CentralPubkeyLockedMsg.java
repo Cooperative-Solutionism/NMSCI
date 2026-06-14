@@ -29,7 +29,7 @@ import java.util.UUID;
                 )
         }
 )
-public class CentralPubkeyLockedMsg implements Message {
+public class CentralPubkeyLockedMsg implements ConfirmableMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;

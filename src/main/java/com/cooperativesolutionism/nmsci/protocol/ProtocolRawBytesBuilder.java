@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
+import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import org.springframework.stereotype.Component;
@@ -16,10 +17,21 @@ public class ProtocolRawBytesBuilder {
     private static final int PUBKEY_BYTES = 33;
     private static final int CENTRAL_PUBKEY_EMPOWER_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + PUBKEY_BYTES + PUBKEY_BYTES;
     private static final int FLOW_NODE_LOCKED_VERIFY_DATA_SIZE = CENTRAL_PUBKEY_EMPOWER_VERIFY_DATA_SIZE;
+    private static final int FLOW_NODE_REGISTER_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + Integer.BYTES + Integer.BYTES + PUBKEY_BYTES;
     private static final int TRANSACTION_RECORD_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + Long.BYTES + Short.BYTES
             + Integer.BYTES + Integer.BYTES + PUBKEY_BYTES + PUBKEY_BYTES + PUBKEY_BYTES;
     private static final int TRANSACTION_MOUNT_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + UUID_BYTES
             + Integer.BYTES + Integer.BYTES + PUBKEY_BYTES + PUBKEY_BYTES + PUBKEY_BYTES;
+
+    public byte[] flowNodeRegisterVerifyData(FlowNodeRegisterMsg msg) {
+        return ByteBuffer.allocate(FLOW_NODE_REGISTER_VERIFY_DATA_SIZE)
+                .putShort(msg.getMsgType())
+                .put(uuidBytes(msg.getId()))
+                .putInt(msg.getRegisterDifficultyTarget())
+                .putInt(msg.getNonce())
+                .put(msg.getFlowNodePubkey())
+                .array();
+    }
 
     public byte[] centralPubkeyEmpowerVerifyData(CentralPubkeyEmpowerMsg msg) {
         return ByteBuffer.allocate(CENTRAL_PUBKEY_EMPOWER_VERIFY_DATA_SIZE)

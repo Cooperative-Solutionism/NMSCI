@@ -54,16 +54,7 @@ class DatabaseConstraintContractTest {
             new UniqueConstraintSpec(TransactionRecordMsg.class, "uk_transaction_record_msgs_txid", "txid"),
             new UniqueConstraintSpec(TransactionMountMsg.class, "uk_transaction_mount_msgs_txid", "txid")
     };
-    private static final Path SCHEMA_SQL = Path.of("src/main/resources/database/schema.sql");
-    private static final Path AMOUNT_PATCH_SQL = Path.of(
-            "src/main/resources/database/patches/2026-06-12-add-positive-transaction-amount-check.sql"
-    );
-    private static final Path BLOCK_CHAIN_CONSTRAINT_PATCH_SQL = Path.of(
-            "src/main/resources/database/patches/2026-06-12-add-block-chain-unique-constraints.sql"
-    );
-    private static final Path PROTOCOL_MESSAGE_CONSTRAINT_PATCH_SQL = Path.of(
-            "src/main/resources/database/patches/2026-06-12-add-protocol-message-unique-constraints.sql"
-    );
+    private static final Path SCHEMA_SQL = Path.of("src/main/resources/db/migration/V1__baseline.sql");
 
     @Test
     void transactionRecordEntityDeclaresPositiveAmountCheckConstraint() {
@@ -82,14 +73,6 @@ class DatabaseConstraintContractTest {
 
         assertTrue(schemaSql.contains("constraint " + TRANSACTION_AMOUNT_CONSTRAINT));
         assertTrue(schemaSql.contains("check (" + TRANSACTION_AMOUNT_CHECK + ")"));
-    }
-
-    @Test
-    void patchRejectsNonPositiveTransactionRecordAmountsForExistingDatabases() throws IOException {
-        String patchSql = Files.readString(AMOUNT_PATCH_SQL);
-
-        assertTrue(patchSql.contains("add constraint " + TRANSACTION_AMOUNT_CONSTRAINT));
-        assertTrue(patchSql.contains("check (" + TRANSACTION_AMOUNT_CHECK + ")"));
     }
 
     @Test
@@ -118,16 +101,6 @@ class DatabaseConstraintContractTest {
     }
 
     @Test
-    void patchPreventsDuplicateBlockHeightsAndParentForksForExistingDatabases() throws IOException {
-        String patchSql = Files.readString(BLOCK_CHAIN_CONSTRAINT_PATCH_SQL);
-
-        assertTrue(patchSql.contains("add constraint " + BLOCK_HEIGHT_UNIQUE_CONSTRAINT));
-        assertTrue(patchSql.contains("unique (height)"));
-        assertTrue(patchSql.contains("add constraint " + BLOCK_PREVIOUS_HASH_UNIQUE_CONSTRAINT));
-        assertTrue(patchSql.contains("unique (previous_block_hash)"));
-    }
-
-    @Test
     void protocolMessageEntitiesDeclareProtocolUniqueConstraints() {
         for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
             Table table = spec.entityClass().getAnnotation(Table.class);
@@ -146,15 +119,6 @@ class DatabaseConstraintContractTest {
 
         for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
             assertSqlContainsUniqueConstraint(schemaSql, spec);
-        }
-    }
-
-    @Test
-    void patchPreventsDuplicateProtocolMessagesForExistingDatabases() throws IOException {
-        String patchSql = Files.readString(PROTOCOL_MESSAGE_CONSTRAINT_PATCH_SQL);
-
-        for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
-            assertSqlContainsUniqueConstraint(patchSql, spec);
         }
     }
 

@@ -18,9 +18,12 @@ public class CentralPubkeyEmpowerMsgController {
     @Resource
     private CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService;
 
+    @Resource
+    private CentralPubkeyEmpowerMsgConverter centralPubkeyEmpowerMsgConverter;
+
     @PostMapping("/send")
     public ResponseResult<CentralPubkeyEmpowerMsg> saveCentralPubkeyEmpowerMsg(@RequestBody @ByteArraySize(148) byte[] byteData) {
-        CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg = CentralPubkeyEmpowerMsgConverter.fromByteArray(byteData);
+        CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg = centralPubkeyEmpowerMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(centralPubkeyEmpowerMsgService.saveCentralPubkeyEmpowerMsg(centralPubkeyEmpowerMsg));
     }
 

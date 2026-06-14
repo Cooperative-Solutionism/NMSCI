@@ -3,7 +3,6 @@ package com.cooperativesolutionism.nmsci.protocol;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.service.impl.FlowNodeRegisterMsgServiceImpl;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -123,7 +123,7 @@ class FlowNodeListEndpointTest {
         );
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
-        FlowNodeRegisterMsgServiceImpl service = new FlowNodeRegisterMsgServiceImpl();
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
         ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
         ReflectionTestUtils.setField(service, "centralPubkeyValidator", centralPubkeyValidator);
 
@@ -146,7 +146,7 @@ class FlowNodeListEndpointTest {
                 new AtomicReference<>(),
                 new AtomicReference<>()
         );
-        FlowNodeRegisterMsgServiceImpl service = new FlowNodeRegisterMsgServiceImpl();
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
         ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
 
         Slice<?> result = service.listFlowNodes(false, null, null, pageable);
@@ -162,20 +162,15 @@ class FlowNodeListEndpointTest {
             AtomicReference<Boolean> lockedFilter,
             AtomicReference<Pageable> pageable
     ) {
-        return (FlowNodeRegisterMsgService) Proxy.newProxyInstance(
-                FlowNodeRegisterMsgService.class.getClassLoader(),
-                new Class<?>[]{FlowNodeRegisterMsgService.class},
-                (proxy, method, args) -> {
-                    if ("listFlowNodes".equals(method.getName())) {
-                        registeredFilter.set((Boolean) args[0]);
-                        authorizedFilter.set((Boolean) args[1]);
-                        lockedFilter.set((Boolean) args[2]);
-                        pageable.set((Pageable) args[3]);
-                        return slice;
-                    }
-                    return objectMethod(proxy, method, args, "FlowNodeRegisterMsgService");
-                }
-        );
+        FlowNodeRegisterMsgService service = mock(FlowNodeRegisterMsgService.class);
+        when(service.listFlowNodes(any(), any(), any(), any(Pageable.class))).thenAnswer(invocation -> {
+            registeredFilter.set(invocation.getArgument(0));
+            authorizedFilter.set(invocation.getArgument(1));
+            lockedFilter.set(invocation.getArgument(2));
+            pageable.set(invocation.getArgument(3));
+            return slice;
+        });
+        return service;
     }
 
     private FlowNodeRegisterMsgRepository repositoryProxy(
