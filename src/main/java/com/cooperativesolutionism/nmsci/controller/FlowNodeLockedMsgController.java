@@ -23,13 +23,13 @@ public class FlowNodeLockedMsgController {
     @Resource
     private FlowNodeLockedMsgConverter flowNodeLockedMsgConverter;
 
-    @PostMapping("/send")
+    @PostMapping
     public ResponseResult<FlowNodeLockedMsg> saveFlowNodeLockedMsg(@RequestBody @ByteArraySize(148) byte[] byteData) {
         FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(flowNodeLockedMsgService.saveFlowNodeLockedMsg(flowNodeLockedMsg));
     }
 
-    @GetMapping("/id/{id}")
+    @GetMapping("/{id}")
     public ResponseResult<FlowNodeLockedMsg> getFlowNodeLockedMsgById(@PathVariable("id") String id) {
         FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgService.getFlowNodeLockedMsgById(UUID.fromString(id));
         return ResponseResult.success(flowNodeLockedMsg);

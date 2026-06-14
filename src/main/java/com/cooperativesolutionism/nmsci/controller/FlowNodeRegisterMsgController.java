@@ -21,13 +21,13 @@ public class FlowNodeRegisterMsgController {
     @Resource
     private FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter;
 
-    @PostMapping("/send")
+    @PostMapping
     public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(123) byte[] byteData) {
         FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(flowNodeRegisterMsgMsgService.saveFlowNodeRegisterMsg(flowNodeRegisterMsgMsg));
     }
 
-    @GetMapping("/id/{id}")
+    @GetMapping("/{id}")
     public ResponseResult<FlowNodeRegisterMsg> getFlowNodeRegisterMsgById(@PathVariable("id") String id) {
         FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgById(UUID.fromString(id));
         return ResponseResult.success(flowNodeRegisterMsgMsg);

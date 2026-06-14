@@ -219,7 +219,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendFlowNodeRegister(UUID id, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/flow-node-register-msg/send")
+        mockMvc.perform(post("/flow-node-register-msg")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(id, flowNode, REGISTER_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())
@@ -227,7 +227,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendCentralPubkeyEmpower(UUID id, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/central-pubkey-empower-msg/send")
+        mockMvc.perform(post("/central-pubkey-empower-msg")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.centralPubkeyEmpower(id, flowNode, TestKeyPairs.CENTRAL)))
                 .andExpect(status().isOk())
@@ -236,7 +236,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendTransactionRecord(UUID id, long amount, TestKeyPair consumeNode, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/transaction-record-msg/send")
+        mockMvc.perform(post("/transaction-record-msg")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionRecord(id, amount, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())
@@ -244,7 +244,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendTransactionMount(UUID id, UUID recordId, TestKeyPair consumeNode, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/transaction-mount-msg/send")
+        mockMvc.perform(post("/transaction-mount-msg")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionMount(id, recordId, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())

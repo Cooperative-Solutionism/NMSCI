@@ -267,10 +267,10 @@ GET  /consume-chain/by-id
 GET  /consume-chain/by-pubkey
 GET  /returning-flow-rate/by-id
 GET  /returning-flow-rate/by-pubkey
-POST /flow-node-register-msg/send
-POST /central-pubkey-empower-msg/send
-POST /transaction-record-msg/send
-POST /transaction-mount-msg/send
+POST /flow-node-register-msg
+POST /central-pubkey-empower-msg
+POST /transaction-record-msg
+POST /transaction-mount-msg
 ```
 
 静态文件入口：
