@@ -198,13 +198,36 @@ public class Secp256k1EncryptUtil {
      */
     public static byte[] signData(byte[] data, PrivateKey privateKey) throws Exception {
         byte[] rawPrivateKey = privateKeyToRaw(privateKey);
-        ECKey ecKey = ECKey.fromPrivate(new BigInteger(1, rawPrivateKey));
-        
+        return signData(data, ECKey.fromPrivate(new BigInteger(1, rawPrivateKey)));
+    }
+
+    /**
+     * 使用已构造的 ECKey 对数据进行签名(Low-S签名)。
+     * 供固定中心密钥等场景缓存 ECKey 复用，避免每次签名都由私钥重新派生公钥点。
+     *
+     * @param data  待签名的数据
+     * @param ecKey 已构造的签名密钥
+     * @return 签名(DER格式)
+     */
+    public static byte[] signData(byte[] data, ECKey ecKey) {
         byte[] dataDblDigest = Sha256Util.doubleDigest(data);
         Sha256Hash hash = Sha256Hash.wrap(dataDblDigest);
         ECKey.ECDSASignature ecdsaSignature = ecKey.sign(hash);
-        
         return ecdsaSignature.encodeToDER();
+    }
+
+    /**
+     * 将32字节原始私钥转换为可复用的 ECKey（范围校验与 {@link #rawToPrivateKey} 一致）。
+     */
+    public static ECKey rawToECKey(byte[] rawPrivateKey) {
+        if (rawPrivateKey == null || rawPrivateKey.length != 32) {
+            throw new IllegalArgumentException("Raw private key must be 32 bytes long");
+        }
+        BigInteger privateKeyValue = new BigInteger(1, rawPrivateKey);
+        if (privateKeyValue.compareTo(BigInteger.ZERO) <= 0 || privateKeyValue.compareTo(CURVE_ORDER) >= 0) {
+            throw new IllegalArgumentException("Invalid private key value");
+        }
+        return ECKey.fromPrivate(privateKeyValue);
     }
 
     /**

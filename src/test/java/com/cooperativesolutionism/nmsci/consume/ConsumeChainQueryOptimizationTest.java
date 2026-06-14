@@ -20,7 +20,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,10 +37,8 @@ import static org.mockito.Mockito.when;
 
 class ConsumeChainQueryOptimizationTest {
 
-    private static final int EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE = 100;
-
     @Test
-    void saveConsumeChainLocksOpenChainsInBatchesAndLoadsSelectedEdgesInOneBatch() {
+    void saveConsumeChainLocksOpenChainsInOneWindowedQueryAndLoadsSelectedEdgesInOneBatch() {
         ConsumeChainAllocationService service = new ConsumeChainAllocationService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
@@ -57,29 +54,17 @@ class ConsumeChainQueryOptimizationTest {
         FlowNodeRegisterMsg target = node("22222222-2222-2222-2222-222222222222", targetPubkey);
         TransactionMountMsg mount = mount(sourcePubkey);
         TransactionRecordMsg record = record(targetPubkey, 101L);
-        List<ConsumeChain> firstBatch = new ArrayList<>();
-        for (int i = 0; i < EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE; i++) {
-            firstBatch.add(chain(i + 1, source, 1L));
-        }
-        ConsumeChain selectedSecondBatchChain = chain(101, source, 1L);
-        ConsumeChain unusedSecondBatchChain = chain(102, source, 999L);
-        List<ConsumeChain> secondBatch = List.of(selectedSecondBatchChain, unusedSecondBatchChain);
-        List<ConsumeChain> selectedChains = new ArrayList<>(firstBatch);
-        selectedChains.add(selectedSecondBatchChain);
-        ConsumeChainEdge firstEdge = edge(firstBatch.get(0), 10L);
-        ConsumeChainEdge lastEdge = edge(selectedSecondBatchChain, 20L);
+        ConsumeChain firstChain = chain(1, source, 100L);
+        ConsumeChain secondChain = chain(2, source, 1L);
+        List<ConsumeChain> selectedChains = List.of(firstChain, secondChain);
+        ConsumeChainEdge firstEdge = edge(firstChain, 10L);
+        ConsumeChainEdge lastEdge = edge(secondChain, 20L);
         ConsumeChainAllocationPlan plan = new ConsumeChainAllocationPlan();
-        Pageable firstPage = PageRequest.of(0, EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE);
-        Pageable secondPage = PageRequest.of(1, EXPECTED_ALLOCATION_CHAIN_LOCK_BATCH_SIZE);
 
         when(flowNodeRepository.findFirstByFlowNodePubkey(sourcePubkey)).thenReturn(source);
         when(flowNodeRepository.findFirstByFlowNodePubkey(targetPubkey)).thenReturn(target);
-        when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType()))
-                .thenReturn(List.of());
-        when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), firstPage))
-                .thenReturn(firstBatch);
-        when(chainRepository.findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), secondPage))
-                .thenReturn(secondBatch);
+        when(chainRepository.lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount()))
+                .thenReturn(selectedChains);
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains))
                 .thenReturn(List.of(firstEdge, lastEdge));
         when(allocator.allocate(
@@ -92,9 +77,7 @@ class ConsumeChainQueryOptimizationTest {
 
         service.saveConsumeChain(mount, record);
 
-        verify(chainRepository).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), firstPage);
-        verify(chainRepository).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType(), secondPage);
-        verify(chainRepository, never()).findByIsLoopFalseAndEndAndCurrencyTypeOrderByTailMountTimestampAsc(source, record.getCurrencyType());
+        verify(chainRepository).lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount());
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains);
         verify(edgeRepository, never()).findByChain(any());
         verify(allocator).allocate(

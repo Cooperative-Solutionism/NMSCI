@@ -9,6 +9,7 @@ import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,7 +17,12 @@ import java.util.Map;
 @Component
 public class BlockMessageSelector {
 
-    private static final int PAGE_SIZE = 1000;
+    private static final int MIN_BATCH_SIZE = 1000;
+    private static final int MAX_BATCH_SIZE = 10000;
+    private static final int MIN_MESSAGE_SIZE = Arrays.stream(MsgTypeEnum.values())
+            .mapToInt(MsgTypeEnum::getSize)
+            .min()
+            .orElse(1);
 
     @Resource
     private NmsciProperties nmsciProperties;
@@ -28,6 +34,7 @@ public class BlockMessageSelector {
         long blockSize = nmsciProperties.getBlockHeaderSize();
         blockSize += MsgTypeEnum.values().length * BlockConstants.MESSAGE_COUNT_FIELD_SIZE;
 
+        int batchSize = selectionBatchSize(blockSize);
         long maxMsgTimestamp = 0L;
         Map<MsgTypeEnum, List<MsgAbstract>> selectedMessages = new LinkedHashMap<>();
         for (MsgTypeEnum msgType : MsgTypeEnum.values()) {
@@ -38,7 +45,7 @@ public class BlockMessageSelector {
         byte[] lastId = null;
         outerLoop:
         while (true) {
-            List<MsgAbstract> msgAbstracts = msgAbstractRepository.findNextNotInBlockBatch(lastConfirmTimestamp, lastId, PAGE_SIZE);
+            List<MsgAbstract> msgAbstracts = msgAbstractRepository.findNextNotInBlockBatch(lastConfirmTimestamp, lastId, batchSize);
             if (msgAbstracts.isEmpty()) {
                 break;
             }
@@ -64,5 +71,19 @@ public class BlockMessageSelector {
         }
 
         return new SelectedBlockMessages(selectedMessages, maxMsgTimestamp);
+    }
+
+    /**
+     * 按区块体可用字节预算估算单次取数批量：一个区块最多容纳 预算/最小消息字节 条消息，
+     * 多取 1 条用于触发溢出判定，使典型区块一次取数即可选满，减少大区块时的 round-trip；
+     * 下限 {@value #MIN_BATCH_SIZE} 保证小 block-max-size 配置下与既有分批行为一致。
+     */
+    private int selectionBatchSize(long reservedBytes) {
+        long budget = nmsciProperties.getBlockMaxSize() - reservedBytes;
+        if (budget <= 0) {
+            return MIN_BATCH_SIZE;
+        }
+        long maxMessages = budget / MIN_MESSAGE_SIZE + 1;
+        return (int) Math.max(MIN_BATCH_SIZE, Math.min(MAX_BATCH_SIZE, maxMessages));
     }
 }
