@@ -15,6 +15,8 @@ import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -144,5 +146,8 @@ public class CentralPubkeyLockedMsgService {
         }
 
         return Optional.ofNullable(centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey));
+    }
+    public Slice<CentralPubkeyLockedMsg> listCentralPubkeyLockedMsgs(Pageable pageable) {
+        return centralPubkeyLockedMsgRepository.findAll(pageable);
     }
 }

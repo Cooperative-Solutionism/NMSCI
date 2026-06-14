@@ -277,6 +277,38 @@ public class ConsumeChainQueryService {
         return consumeChainResponseDTOs.get(0);
     }
 
+    /**
+     * 按 id 查询消费链边：source 缺省时返回流入 target 的全部边（按 chain 去重）；
+     * source、target 均提供时返回 source→target 之间的边。
+     */
+    public List<ConsumeChainEdge> getConsumeChainEdgesById(UUID sourceId, UUID targetId, short currencyType, long startTime, long endTime) {
+        if (!CurrencyTypeEnum.containsValue(currencyType)) {
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+        }
+        if (targetId == null) {
+            throw new IllegalArgumentException("targetId 不能为空");
+        }
+
+        if (sourceId == null) {
+            return consumeChainEdgeRepository.findConsumeChainEdgesByTarget(targetId, currencyType, startTime, endTime);
+        }
+        return consumeChainEdgeRepository.findConsumeChainEdges(sourceId, targetId, currencyType, startTime, endTime);
+    }
+
+    /**
+     * 按 pubkey 查询消费链边：先把 pubkey 解析为流转节点 id，再委托 {@link #getConsumeChainEdgesById}。
+     */
+    public List<ConsumeChainEdge> getConsumeChainEdgesByPubkey(byte[] sourcePubkey, byte[] targetPubkey, short currencyType, long startTime, long endTime) {
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(targetPubkey, "目标");
+
+        if (sourcePubkey == null) {
+            return getConsumeChainEdgesById(null, target.getId(), currencyType, startTime, endTime);
+        }
+
+        FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(sourcePubkey, "源");
+        return getConsumeChainEdgesById(source.getId(), target.getId(), currencyType, startTime, endTime);
+    }
+
     private int countProvided(Object... values) {
         int count = 0;
         for (Object value : values) {

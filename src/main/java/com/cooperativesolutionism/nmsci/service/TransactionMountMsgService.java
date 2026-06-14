@@ -160,4 +160,21 @@ public class TransactionMountMsgService {
 
         return transactionMountMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey, pageable);
     }
+    public Slice<TransactionMountMsg> searchTransactionMountMsgs(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey,
+            UUID mountedTransactionRecordId,
+            Long startTime,
+            Long endTime,
+            Pageable pageable
+    ) {
+        return transactionMountMsgRepository.search(
+                consumeNodePubkey,
+                flowNodePubkey,
+                mountedTransactionRecordId,
+                startTime,
+                endTime,
+                pageable
+        );
+    }
 }

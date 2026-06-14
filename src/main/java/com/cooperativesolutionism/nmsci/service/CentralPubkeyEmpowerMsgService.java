@@ -13,6 +13,8 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -90,5 +92,13 @@ public class CentralPubkeyEmpowerMsgService {
         }
 
         return centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+    }
+    @Transactional(readOnly = true)
+    public Slice<CentralPubkeyEmpowerMsg> listCentralPubkeyEmpowerMsgs(byte[] flowNodePubkey, Pageable pageable) {
+        if (flowNodePubkey == null) {
+            return centralPubkeyEmpowerMsgRepository.findAll(pageable);
+        }
+
+        return centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey, pageable);
     }
 }

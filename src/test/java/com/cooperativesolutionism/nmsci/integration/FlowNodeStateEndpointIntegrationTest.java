@@ -43,7 +43,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
 
         insertFlowNodeRegister(TestKeyPairs.CONSUME_NODE_A.pubkey());
 
-        mockMvc.perform(get("/flow-node/list")
+        mockMvc.perform(get("/flow-nodes")
                         .param("registered", "true")
                         .param("authorized", "true")
                         .param("locked", "false")
@@ -58,7 +58,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(jsonPath("$.data.content[0].locked").value(false))
                 .andExpect(jsonPath("$.data.content[0].currentCentralPubkeyAuthorized").value(true));
 
-        mockMvc.perform(get("/flow-node/list")
+        mockMvc.perform(get("/flow-nodes")
                         .param("locked", "true")
                         .param("page", "0")
                         .param("size", "50"))
@@ -69,7 +69,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(jsonPath("$.data.content[0].locked").value(true))
                 .andExpect(jsonPath("$.data.content[0].currentCentralPubkeyAuthorized").value(false));
 
-        mockMvc.perform(get("/flow-node/list")
+        mockMvc.perform(get("/flow-nodes")
                         .param("registered", "false")
                         .param("page", "0")
                         .param("size", "50"))
@@ -84,8 +84,7 @@ class FlowNodeStateEndpointIntegrationTest extends NmsciIntegrationTestBase {
             boolean locked,
             boolean currentCentralPubkeyAuthorized
     ) throws Exception {
-        mockMvc.perform(get("/flow-node/state")
-                        .param("flowNodePubkey", ByteArrayUtil.bytesToHex(flowNodePubkey)))
+        mockMvc.perform(get("/flow-nodes/{flowNodePubkey}", ByteArrayUtil.bytesToHex(flowNodePubkey)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.registered").value(registered))

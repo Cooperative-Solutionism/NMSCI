@@ -89,7 +89,7 @@ public class BlockInfo {
 
     @Comment("原始字节格式")
     // rawBytes 为整块原始字节（最大可达 block-max-size，约 MB 级），与 .dat 文件内容重复，
-    // 不属于 /block-chain/* 的对外契约字段；以 @JsonIgnore 排除序列化，避免每次元数据查询返回 MB 级响应体。
+    // 不属于 /blocks/* 的对外契约字段；以 @JsonIgnore 排除序列化，避免每次元数据查询返回 MB 级响应体。
     // 字段保留在 DB 与实体上，供装块写入与内部读取使用。
     @Column(name = "raw_bytes", nullable = false)
     @JsonIgnore

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/transaction-mount-msg")
+@RequestMapping("/transaction-mounts")
 public class TransactionMountMsgController {
 
     @Resource
@@ -36,50 +36,40 @@ public class TransactionMountMsgController {
         return ResponseResult.success(transactionMountMsg);
     }
 
-    @GetMapping("/mounted-transaction-record-id/{id}")
-    public ResponseResult<TransactionMountMsg> getTransactionMountMsgByMountedTransactionRecordId(@PathVariable String id) {
-        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgByMountedTransactionRecordId(UUID.fromString(id));
-        return ResponseResult.success(transactionMountMsg);
-    }
-
-    @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionMountMsg>> getTransactionMountMsgByConsumeNodePubkey(
-            @PathVariable String consumeNodePubkey,
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<TransactionMountMsg>> searchTransactionMountMsgs(
+            @RequestParam(required = false) String consumeNodePubkey,
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(required = false) String mountedTransactionRecordId,
+            @RequestParam(required = false) Long startTime,
+            @RequestParam(required = false) Long endTime,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkey(
-                ByteArrayUtil.hexToBytes(consumeNodePubkey),
+        Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.searchTransactionMountMsgs(
+                hexToBytesOrNull(consumeNodePubkey),
+                hexToBytesOrNull(flowNodePubkey),
+                uuidOrNull(mountedTransactionRecordId),
+                startTime,
+                endTime,
                 PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionMountMsgs));
     }
 
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionMountMsg>> getTransactionMountMsgByFlowNodePubkey(
-            @PathVariable String flowNodePubkey,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
-    ) {
-        Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByFlowNodePubkey(
-                ByteArrayUtil.hexToBytes(flowNodePubkey),
-                PageRequestUtil.ofMessageQuery(page, size)
-        );
-        return ResponseResult.success(SliceResponseDTO.from(transactionMountMsgs));
+    private static byte[] hexToBytesOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return ByteArrayUtil.hexToBytes(value);
     }
 
-    @GetMapping("/{consumeNodePubkey}/{flowNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionMountMsg>> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
-            @PathVariable String consumeNodePubkey,
-            @PathVariable String flowNodePubkey,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
-    ) {
-        Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.hexToBytes(consumeNodePubkey),
-                ByteArrayUtil.hexToBytes(flowNodePubkey),
-                PageRequestUtil.ofMessageQuery(page, size)
-        );
-        return ResponseResult.success(SliceResponseDTO.from(transactionMountMsgs));
+    private static UUID uuidOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return UUID.fromString(value);
     }
 }

@@ -42,12 +42,14 @@ class ConsumeChainPaginationTest {
 
     @Test
     void controllerBatchQueriesReturnSliceResponse() throws NoSuchMethodException {
-        assertSliceResponseControllerMethod("getConsumeChainByMountedTransaction", String.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getConsumeChainByRelatedId", String.class, String.class, String.class, Boolean.class, int.class, int.class);
-        assertSliceResponseControllerMethod("getConsumeChainByPubkey", String.class, String.class, String.class, Boolean.class, int.class, int.class);
-        assertControllerMethodAbsent("getConsumeChainByStart", String.class, Boolean.class, int.class, int.class);
-        assertControllerMethodAbsent("getConsumeChainByEnd", String.class, Boolean.class, int.class, int.class);
-        assertControllerMethodAbsent("getConsumeChainByNode", String.class, Boolean.class, int.class, int.class);
+        assertSliceResponseControllerMethod(
+                "queryConsumeChains",
+                String.class, String.class, String.class,
+                String.class, String.class, String.class,
+                Boolean.class, String.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByMountedTransaction", String.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByRelatedId", String.class, String.class, String.class, Boolean.class, int.class, int.class);
+        assertControllerMethodAbsent("getConsumeChainByPubkey", String.class, String.class, String.class, Boolean.class, int.class, int.class);
     }
 
     private void assertSliceMethod(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {

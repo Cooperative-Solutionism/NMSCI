@@ -11,12 +11,13 @@ import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/flow-node")
+@RequestMapping("/flow-nodes")
 public class FlowNodeController {
 
     private static final Sort FLOW_NODE_QUERY_SORT = Sort.by(Sort.Order.asc("id"));
@@ -24,12 +25,12 @@ public class FlowNodeController {
     @Resource
     private FlowNodeRegisterMsgService flowNodeRegisterMsgService;
 
-    @GetMapping("/state")
-    public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@RequestParam String flowNodePubkey) {
+    @GetMapping("/{flowNodePubkey}")
+    public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@PathVariable String flowNodePubkey) {
         return ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(ByteArrayUtil.hexToBytes(flowNodePubkey)));
     }
 
-    @GetMapping("/list")
+    @GetMapping
     public ResponseResult<SliceResponseDTO<FlowNodeListItemDTO>> listFlowNodes(
             @RequestParam(required = false, defaultValue = "true") Boolean registered,
             @RequestParam(required = false) Boolean authorized,

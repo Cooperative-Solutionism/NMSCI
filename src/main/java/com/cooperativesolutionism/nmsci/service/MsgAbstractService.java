@@ -12,11 +12,28 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
+
 @Service
 @Validated
 public class MsgAbstractService {
     @Resource
     private MsgAbstractRepository msgAbstractRepository;
+
+    /**
+     * 待入块（未装入区块）消息数量。
+     */
+    public long countPending() {
+        return msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc();
+    }
+
+    /**
+     * 最旧的待入块消息的确认时间戳（微秒，UTC+0）；无待入块消息时返回 null。
+     */
+    public Long findOldestPendingConfirmTimestamp() {
+        List<MsgAbstract> oldest = msgAbstractRepository.findNextNotInBlockBatch(null, null, 1);
+        return oldest.isEmpty() ? null : oldest.get(0).getConfirmTimestamp();
+    }
     public void saveMsgAbstract(@Valid @Nonnull Message message) {
         MsgAbstract msgAbstract = new MsgAbstract();
         byte[] msgAbstractId = ArrayUtils.addAll(

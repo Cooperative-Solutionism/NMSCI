@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/transaction-record-msg")
+@RequestMapping("/transaction-records")
 public class TransactionRecordMsgController {
 
     @Resource
@@ -36,44 +36,32 @@ public class TransactionRecordMsgController {
         return ResponseResult.success(transactionRecordMsg);
     }
 
-    @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkey(
-            @PathVariable("consumeNodePubkey") String consumeNodePubkey,
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> searchTransactionRecordMsgs(
+            @RequestParam(required = false) String consumeNodePubkey,
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(required = false) Short currencyType,
+            @RequestParam(required = false) Long startTime,
+            @RequestParam(required = false) Long endTime,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(
-                ByteArrayUtil.hexToBytes(consumeNodePubkey),
+        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.searchTransactionRecordMsgs(
+                hexToBytesOrNull(consumeNodePubkey),
+                hexToBytesOrNull(flowNodePubkey),
+                currencyType,
+                startTime,
+                endTime,
                 PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
 
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByFlowNodePubkey(
-            @PathVariable("flowNodePubkey") String flowNodePubkey,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
-    ) {
-        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(
-                ByteArrayUtil.hexToBytes(flowNodePubkey),
-                PageRequestUtil.ofMessageQuery(page, size)
-        );
-        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
-    }
+    private static byte[] hexToBytesOrNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
 
-    @GetMapping("/{consumeNodePubkey}/{flowNodePubkey}")
-    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-            @PathVariable("consumeNodePubkey") String consumeNodePubkey,
-            @PathVariable("flowNodePubkey") String flowNodePubkey,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "50") int size
-    ) {
-        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.hexToBytes(consumeNodePubkey),
-                ByteArrayUtil.hexToBytes(flowNodePubkey),
-                PageRequestUtil.ofMessageQuery(page, size)
-        );
-        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
+        return ByteArrayUtil.hexToBytes(value);
     }
 }

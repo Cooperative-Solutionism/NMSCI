@@ -84,7 +84,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     void blockChainLastEndpointOmitsRawBytesButKeepsHexMetadata() throws Exception {
         var newestBlock = blockInfoRepository.findTopByOrderByHeightDesc();
 
-        mockMvc.perform(get("/block-chain/last"))
+        mockMvc.perform(get("/blocks/latest"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.height").exists())
@@ -139,8 +139,8 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
         sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
 
-        mockMvc.perform(get("/consume-chain/by-mounted-transaction")
-                        .param("relatedTransactionMount", mountId.toString()))
+        mockMvc.perform(get("/consume-chains")
+                        .param("mountedTransactionId", mountId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.numberOfElements").value(1));
@@ -158,7 +158,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
         sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
 
-        mockMvc.perform(get("/consume-chain/by-pubkey")
+        mockMvc.perform(get("/consume-chains")
                         .param("nodePubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey()))
                         .param("isLoop", "true")
                         .param("page", "0")
@@ -180,8 +180,8 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
         sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
 
-        mockMvc.perform(get("/consume-chain/by-id")
-                        .param("node", flowNodeId.toString())
+        mockMvc.perform(get("/consume-chains")
+                        .param("nodeId", flowNodeId.toString())
                         .param("isLoop", "true")
                         .param("page", "0")
                         .param("size", "50"))
@@ -202,7 +202,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
         sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
 
-        mockMvc.perform(get("/returning-flow-rate/by-id")
+        mockMvc.perform(get("/returning-flow-rates")
                         .param("sourceId", flowNodeId.toString())
                         .param("targetId", flowNodeId.toString()))
                 .andExpect(status().isOk())
@@ -211,7 +211,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(jsonPath("$.data.loopedAmount").value(1200.0))
                 .andExpect(jsonPath("$.data.unloopedAmount").value(0.0));
 
-        mockMvc.perform(get("/returning-flow-rate/by-id")
+        mockMvc.perform(get("/returning-flow-rates")
                         .param("targetId", flowNodeId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -224,14 +224,16 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         UUID flowNodeId = UUID.fromString("55555555-5555-5555-5555-555555555555");
         sendFlowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A);
 
-        mockMvc.perform(get("/flow-node-register-msg/flow-node-pubkey/{pubkey}", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
+        mockMvc.perform(get("/flow-node-registrations")
+                        .param("flowNodePubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
-                .andExpect(jsonPath("$.data.id").value(flowNodeId.toString()));
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.content[0].id").value(flowNodeId.toString()));
     }
 
     private void sendFlowNodeRegister(UUID id, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/flow-node-register-msg")
+        mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(id, flowNode, REGISTER_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())
@@ -239,7 +241,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendCentralPubkeyEmpower(UUID id, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/central-pubkey-empower-msg")
+        mockMvc.perform(post("/central-pubkey-empowerments")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.centralPubkeyEmpower(id, flowNode, TestKeyPairs.CENTRAL)))
                 .andExpect(status().isOk())
@@ -248,7 +250,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendTransactionRecord(UUID id, long amount, TestKeyPair consumeNode, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/transaction-record-msg")
+        mockMvc.perform(post("/transaction-records")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionRecord(id, amount, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())
@@ -256,7 +258,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     private void sendTransactionMount(UUID id, UUID recordId, TestKeyPair consumeNode, TestKeyPair flowNode) throws Exception {
-        mockMvc.perform(post("/transaction-mount-msg")
+        mockMvc.perform(post("/transaction-mounts")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionMount(id, recordId, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
                 .andExpect(status().isOk())

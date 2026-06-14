@@ -107,6 +107,14 @@ public class FlowNodeRegisterMsgService {
         return flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
     }
     @Transactional(readOnly = true)
+    public Slice<FlowNodeRegisterMsg> listFlowNodeRegisterMsgs(byte[] flowNodePubkey, Pageable pageable) {
+        if (flowNodePubkey == null) {
+            return flowNodeRegisterMsgRepository.findAll(pageable);
+        }
+
+        return flowNodeRegisterMsgRepository.findByFlowNodePubkey(flowNodePubkey, pageable);
+    }
+    @Transactional(readOnly = true)
     public FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");

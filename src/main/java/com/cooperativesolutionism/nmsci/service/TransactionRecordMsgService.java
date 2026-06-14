@@ -131,5 +131,22 @@ public class TransactionRecordMsgService {
 
         return transactionRecordMsgRepository.findByConsumeNodePubkeyAndFlowNodePubkey(consumeNodePubkey, flowNodePubkey, pageable);
     }
+    public Slice<TransactionRecordMsg> searchTransactionRecordMsgs(
+            byte[] consumeNodePubkey,
+            byte[] flowNodePubkey,
+            Short currencyType,
+            Long startTime,
+            Long endTime,
+            Pageable pageable
+    ) {
+        return transactionRecordMsgRepository.search(
+                consumeNodePubkey,
+                flowNodePubkey,
+                currencyType,
+                startTime,
+                endTime,
+                pageable
+        );
+    }
 
 }

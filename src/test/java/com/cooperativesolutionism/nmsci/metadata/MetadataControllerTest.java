@@ -31,7 +31,7 @@ class MetadataControllerTest {
         Method msgTypesMethod = controllerType.getMethod("getMsgTypes");
         assertEquals(ResponseResult.class, msgTypesMethod.getReturnType());
         assertTrue(msgTypesMethod.getGenericReturnType().getTypeName().contains(msgTypeDto.getName()));
-        assertEquals("/msg-types", msgTypesMethod.getAnnotation(GetMapping.class).value()[0]);
+        assertEquals("/message-types", msgTypesMethod.getAnnotation(GetMapping.class).value()[0]);
 
         Method currencyTypesMethod = controllerType.getMethod("getCurrencyTypes");
         assertEquals(ResponseResult.class, currencyTypesMethod.getReturnType());
