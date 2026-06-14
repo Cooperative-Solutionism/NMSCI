@@ -23,7 +23,7 @@
 
 ## 技术栈
 
-- Java 17
+- Java 21
 - Spring Boot 3.5
 - Spring Web
 - Spring Data JPA
@@ -34,7 +34,7 @@
 
 ## 环境要求
 
-- JDK 17 或更高版本。
+- JDK 21 或更高版本。
 - PostgreSQL。
 - Docker。运行集成测试时需要 Testcontainers。
 - Bash 或兼容 shell。Windows 环境建议使用 WSL 或 Git Bash 执行 Maven Wrapper。
