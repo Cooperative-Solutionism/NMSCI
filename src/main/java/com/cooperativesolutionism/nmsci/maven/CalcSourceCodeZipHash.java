@@ -17,9 +17,10 @@ public class CalcSourceCodeZipHash {
     private static final Set<String> EXCLUDED_DIRECTORIES = Set.of(".git", ".idea", "logs", "temp", "target");
 
     /**
-     * 需要排除的生成物：static 目录下的历史版本源码包（避免自包含与非确定性）。
+     * 需要排除的生成物标记：static 目录下的历史版本源码包（避免自包含与非确定性）。
+     * 以子串匹配——相对路径（'/' 归一）含该标记即排除。
      */
-    private static final String EXCLUDED_GENERATED_ARCHIVE_PREFIX = "static/source_code_v";
+    private static final String EXCLUDED_GENERATED_ARCHIVE_MARKER = "static/source_code_v";
 
     /**
      * 删除指定目录下的某些文件
@@ -58,7 +59,7 @@ public class CalcSourceCodeZipHash {
                 return true;
             }
         }
-        if (relativePath.contains(EXCLUDED_GENERATED_ARCHIVE_PREFIX)) {
+        if (relativePath.contains(EXCLUDED_GENERATED_ARCHIVE_MARKER)) {
             return true;
         }
         return relativePath.endsWith(".iml");
@@ -77,8 +78,9 @@ public class CalcSourceCodeZipHash {
 
     /**
      * 将指定目录压缩为 ZIP 文件。
-     * 条目名归一为 '/' 分隔且按条目名排序，配合固定时间戳，使相同源码在任意平台/文件系统上产出字节一致的 zip，
-     * 从而上链源码哈希可复现可信。
+     * 条目名归一为 '/' 分隔、按条目名排序、并固定时间戳，消除条目命名/顺序/时间戳带来的非确定性。
+     * 注：完整的跨平台字节一致还要求文本文件行尾一致（例如通过 .gitattributes 将文本统一为 LF），
+     * 否则同一逻辑源码在 CRLF/LF 不同的工作区会产生不同内容、进而不同的源码哈希。
      *
      * @param sourceDir   源目录
      * @param zipFilePath 压缩后的 ZIP 文件路径

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -45,6 +46,11 @@ class CalcSourceCodeZipHashContractTest {
                         .resolve("com").resolve("cooperativesolutionism").resolve("nmsci").resolve("NmsciApplication.java")));
         assertFalse(CalcSourceCodeZipHash.isExcluded(
                 ROOT, ROOT.resolve("src").resolve("main").resolve("resources").resolve("static").resolve("banner.txt")));
+        // 路径段仅「包含」排除词但不相等的合法源码不应被排除（按段相等而非子串判定）
+        assertFalse(CalcSourceCodeZipHash.isExcluded(
+                ROOT, ROOT.resolve("src").resolve("main").resolve("java").resolve("targeting").resolve("X.java")));
+        assertFalse(CalcSourceCodeZipHash.isExcluded(
+                ROOT, ROOT.resolve("src").resolve("main").resolve("resources").resolve("templates").resolve("x.html")));
     }
 
     @Test
@@ -91,6 +97,25 @@ class CalcSourceCodeZipHashContractTest {
         List<String> sorted = new ArrayList<>(entries);
         Collections.sort(sorted);
         assertEquals(sorted, entries, "zip entries must be emitted in sorted order for reproducible hashing");
+    }
+
+    @Test
+    void zipBytesAreReproducibleAcrossRepeatedRuns(@TempDir Path projectDir) throws IOException {
+        writeFile(projectDir.resolve("pom.xml"), "<project/>");
+        writeFile(projectDir.resolve("PROTOCOL.md"), "protocol");
+        writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App {}");
+
+        Path zip1 = projectDir.resolve("target").resolve("a.zip");
+        Path zip2 = projectDir.resolve("target").resolve("b.zip");
+        Files.createDirectories(zip1.getParent());
+        CalcSourceCodeZipHash.zipDirectory(projectDir, zip1);
+        CalcSourceCodeZipHash.zipDirectory(projectDir, zip2);
+
+        assertArrayEquals(
+                Files.readAllBytes(zip1),
+                Files.readAllBytes(zip2),
+                "相同源码重复打包应产出字节一致的 zip（固定时间戳 + 排序），否则上链源码哈希不可复现"
+        );
     }
 
     private static void writeFile(Path file, String content) throws IOException {
