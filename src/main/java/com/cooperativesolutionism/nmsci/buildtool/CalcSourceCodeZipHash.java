@@ -1,4 +1,4 @@
-package com.cooperativesolutionism.nmsci.maven;
+package com.cooperativesolutionism.nmsci.buildtool;
 
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 
