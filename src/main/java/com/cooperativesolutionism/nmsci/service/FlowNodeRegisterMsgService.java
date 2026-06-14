@@ -3,6 +3,8 @@ package com.cooperativesolutionism.nmsci.service;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
@@ -57,7 +59,7 @@ public class FlowNodeRegisterMsgService {
         }
 
         if (flowNodeRegisterMsgRepository.existsById(flowNodeRegisterMsg.getId())) {
-            throw new IllegalArgumentException("该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在");
+            throw new ConflictException("该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在");
         }
 
         BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
@@ -67,7 +69,7 @@ public class FlowNodeRegisterMsgService {
         }
 
         if (flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeRegisterMsg.getFlowNodePubkey())) {
-            throw new IllegalArgumentException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
+            throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
         }
 
         signatureValidator.validateLowS(flowNodeRegisterMsg.getFlowNodeSignature(), "流转节点签名不符合低S值要求");
@@ -91,12 +93,7 @@ public class FlowNodeRegisterMsgService {
         return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
     }
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("流转节点注册信息id不能为空");
-        }
-
-        return flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("流转节点注册信息id(" + id + ")不存在"));
+        return EntityLookup.requireById(id, "流转节点注册信息", flowNodeRegisterMsgRepository::findById);
     }
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey) {
         if (flowNodePubkey == null || flowNodePubkey.length != 33) {
@@ -104,7 +101,7 @@ public class FlowNodeRegisterMsgService {
         }
 
         if (!flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
-            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
+            throw new NotFoundException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
         }
 
         return flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);

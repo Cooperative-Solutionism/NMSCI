@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
@@ -31,7 +32,7 @@ public class ConsumeChainSupport {
 
         FlowNodeRegisterMsg flowNodeRegisterMsg = flowNodeRegisterMsgRepository.findFirstByFlowNodePubkey(flowNodePubkey);
         if (flowNodeRegisterMsg == null) {
-            throw new IllegalArgumentException(roleName + "流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
+            throw new NotFoundException(roleName + "流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")不存在");
         }
 
         return flowNodeRegisterMsg;

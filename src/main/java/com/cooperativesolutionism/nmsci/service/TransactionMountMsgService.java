@@ -1,6 +1,8 @@
 package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
@@ -67,14 +69,14 @@ public class TransactionMountMsgService {
         }
 
         if (transactionMountMsgRepository.existsById(transactionMountMsg.getId())) {
-            throw new IllegalArgumentException("该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在");
+            throw new ConflictException("该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在");
         }
 
         TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findByIdForUpdate(transactionMountMsg.getMountedTransactionRecordId())
                 .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
 
         if (transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(transactionMountMsg.getMountedTransactionRecordId())) {
-            throw new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
+            throw new ConflictException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
         }
 
         int transactionDifficultyTargetNbits = blockDifficultyService.currentTransactionDifficultyTarget();
@@ -115,12 +117,7 @@ public class TransactionMountMsgService {
         return transactionMountMsgInDb;
     }
     public TransactionMountMsg getTransactionMountMsgById(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("交易挂载信息id不能为空");
-        }
-
-        return transactionMountMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("交易挂载信息id(" + id + ")不存在"));
+        return EntityLookup.requireById(id, "交易挂载信息", transactionMountMsgRepository::findById);
     }
     public TransactionMountMsg getTransactionMountMsgByMountedTransactionRecordId(UUID id) {
         if (id == null) {
@@ -129,7 +126,7 @@ public class TransactionMountMsgService {
 
         TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findByMountedTransactionRecordId(id);
         if (transactionMountMsg == null) {
-            throw new IllegalArgumentException("挂载的交易记录信息id(" + id + ")不存在对应的交易挂载信息");
+            throw new NotFoundException("挂载的交易记录信息id(" + id + ")不存在对应的交易挂载信息");
         }
 
         return transactionMountMsg;

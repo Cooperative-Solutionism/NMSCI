@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
@@ -63,7 +64,7 @@ public class TransactionRecordMsgService {
         }
 
         if (transactionRecordMsgRepository.existsById(transactionRecordMsg.getId())) {
-            throw new IllegalArgumentException("该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在");
+            throw new ConflictException("该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在");
         }
 
         if (!CurrencyTypeEnum.containsValue(transactionRecordMsg.getCurrencyType())) {
@@ -99,12 +100,7 @@ public class TransactionRecordMsgService {
         return transactionRecordMsgRepository.save(transactionRecordMsg);
     }
     public TransactionRecordMsg getTransactionRecordMsgById(UUID id) {
-        if (id == null) {
-            throw new IllegalArgumentException("交易记录信息id不能为空");
-        }
-
-        return transactionRecordMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("交易记录信息id(" + id + ")不存在"));
+        return EntityLookup.requireById(id, "交易记录信息", transactionRecordMsgRepository::findById);
     }
     public Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable) {
         if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {

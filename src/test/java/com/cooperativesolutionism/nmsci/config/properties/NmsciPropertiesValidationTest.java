@@ -28,59 +28,59 @@ class NmsciPropertiesValidationTest {
     @Test
     void failsFastWhenCentralPubkeyIsInvalid() {
         contextRunner
-                .withPropertyValues("central-key-pair.pubkey=not-base64")
+                .withPropertyValues("nmsci.central-key-pair.pubkey=not-base64")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void failsFastWhenSourceCodeHashIsInvalid() {
         contextRunner
-                .withPropertyValues("source-code-zip-hash=bad")
+                .withPropertyValues("nmsci.source-code-zip-hash=bad")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void failsFastWhenBlockSizeIsNotPositive() {
         contextRunner
-                .withPropertyValues("block-max-size=0")
+                .withPropertyValues("nmsci.block-max-size=0")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void failsFastWhenBlockMaxSizeCannotFitHeader() {
         contextRunner
-                .withPropertyValues("block-header-size=229", "block-max-size=128")
+                .withPropertyValues("nmsci.block-header-size=229", "nmsci.block-max-size=128")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void failsFastWhenDatMaxSizeCannotFitOneBlock() {
         contextRunner
-                .withPropertyValues("block-max-size=1048576", "block-dat-max-size=1048576")
+                .withPropertyValues("nmsci.block-max-size=1048576", "nmsci.block-dat-max-size=1048576")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     @Test
     void failsFastWhenPathIsBlank() {
         contextRunner
-                .withPropertyValues("file-root-dir=   ")
+                .withPropertyValues("nmsci.file-root-dir=   ")
                 .run(context -> assertThat(context).hasFailed());
     }
 
     private static String[] validProperties() {
         return new String[]{
-                "central-key-pair.pubkey=" + TestKeyPairs.CENTRAL.pubkeyBase64(),
-                "central-key-pair.prikey=" + TestKeyPairs.CENTRAL.prikeyBase64(),
-                "block-version=1",
-                "block-header-size=229",
-                "block-max-size=1048576",
-                "block-dat-max-size=134217728",
-                "register-difficulty-target-nbits=0x20ffffff",
-                "transaction-difficulty-target-nbits=0x20ffffff",
-                "file-root-dir=target/nmsci-test-files",
-                "file-dat-dir=dat",
-                "file-source-code-dir=source-code",
-                "source-code-zip-hash=0000000000000000000000000000000000000000000000000000000000000000"
+                "nmsci.central-key-pair.pubkey=" + TestKeyPairs.CENTRAL.pubkeyBase64(),
+                "nmsci.central-key-pair.prikey=" + TestKeyPairs.CENTRAL.prikeyBase64(),
+                "nmsci.block-version=1",
+                "nmsci.block-header-size=229",
+                "nmsci.block-max-size=1048576",
+                "nmsci.block-dat-max-size=134217728",
+                "nmsci.register-difficulty-target-nbits=0x20ffffff",
+                "nmsci.transaction-difficulty-target-nbits=0x20ffffff",
+                "nmsci.file-root-dir=target/nmsci-test-files",
+                "nmsci.file-dat-dir=dat",
+                "nmsci.file-source-code-dir=source-code",
+                "nmsci.source-code-zip-hash=0000000000000000000000000000000000000000000000000000000000000000"
         };
     }
 

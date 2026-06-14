@@ -36,7 +36,7 @@ public class ConsumeChainController {
         return ResponseResult.success(SliceResponseDTO.from(consumeChainResponseDTOs));
     }
 
-    @GetMapping("/id/{id}")
+    @GetMapping("/{id}")
     public ResponseResult<ConsumeChainResponseDTO> getConsumeChainById(@PathVariable String id) {
         ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainQueryService.getConsumeChainById(UUID.fromString(id));
         return ResponseResult.success(consumeChainResponseDTO);

@@ -23,13 +23,14 @@ public class CentralPubkeyLockedMsgController {
     @Resource
     private CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
 
-    @PostMapping("/send")
-    public void saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
+    @PostMapping
+    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
         CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
         centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+        return ResponseResult.success(centralPubkeyLockedMsg);
     }
 
-    @GetMapping("/id/{id}")
+    @GetMapping("/{id}")
     public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgById(@PathVariable String id) {
         return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id)));
     }

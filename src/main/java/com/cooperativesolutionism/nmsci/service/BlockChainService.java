@@ -7,6 +7,7 @@ import com.cooperativesolutionism.nmsci.block.BlockGenerationLock;
 import com.cooperativesolutionism.nmsci.block.BlockMessageSelector;
 import com.cooperativesolutionism.nmsci.block.SelectedBlockMessages;
 import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
@@ -76,14 +77,14 @@ public class BlockChainService {
     public BlockInfo getBlockByHeight(long height) {
         BlockInfo blockInfo = blockInfoRepository.findByHeight(height);
         if (blockInfo == null) {
-            throw new IllegalArgumentException("区块高度(" + height + ")不存在");
+            throw new NotFoundException("区块高度(" + height + ")不存在");
         }
 
         return blockInfo;
     }
     public BlockInfo getBlockByHash(String hash) {
         return blockInfoRepository.findById(ByteArrayUtil.hexToBytes(hash)).orElseThrow(
-                () -> new IllegalArgumentException("该区块不存在: " + hash)
+                () -> new NotFoundException("该区块不存在: " + hash)
         );
     }
 

@@ -35,6 +35,32 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void mapsBadRequestExceptionToBadRequest() throws Exception {
+        mockMvc.perform(get("/failure/bad-request"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data").value("请求参数非法"));
+    }
+
+    @Test
+    void mapsNotFoundExceptionToNotFound() throws Exception {
+        mockMvc.perform(get("/failure/not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.message").value("Not Found"))
+                .andExpect(jsonPath("$.data").value("资源不存在"));
+    }
+
+    @Test
+    void mapsConflictExceptionToConflict() throws Exception {
+        mockMvc.perform(get("/failure/conflict"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value(409))
+                .andExpect(jsonPath("$.message").value("Conflict"))
+                .andExpect(jsonPath("$.data").value("资源冲突"));
+    }
+
+    @Test
     void mapsDataIntegrityViolationToConflictWithoutLeakingSql() throws Exception {
         mockMvc.perform(get("/failure/data-integrity"))
                 .andExpect(status().isConflict())
@@ -60,6 +86,21 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/failure/illegal-argument")
         void illegalArgument() {
             throw new IllegalArgumentException("参数错误");
+        }
+
+        @GetMapping("/failure/bad-request")
+        void badRequest() {
+            throw new BadRequestException("请求参数非法");
+        }
+
+        @GetMapping("/failure/not-found")
+        void notFound() {
+            throw new NotFoundException("资源不存在");
+        }
+
+        @GetMapping("/failure/conflict")
+        void conflict() {
+            throw new ConflictException("资源冲突");
         }
 
         @GetMapping("/failure/data-integrity")

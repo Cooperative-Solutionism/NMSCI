@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
@@ -111,7 +112,7 @@ public class ConsumeChainQueryService {
         }
 
         TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("挂载交易ID不存在"));
+                .orElseThrow(() -> new NotFoundException("挂载交易ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByRelatedTransactionMount(transactionMountMsg, pageable);
         return getConsumeChainResponseDTOSlice(consumeChains);
@@ -123,7 +124,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("起点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStart(startNode, pageable);
 
@@ -136,7 +137,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("起点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("起点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStartAndIsLoop(startNode, isLoop, pageable);
 
@@ -149,7 +150,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("终点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEnd(endNode, pageable);
 
@@ -162,7 +163,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("终点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("终点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEndAndIsLoop(endNode, isLoop, pageable);
 
@@ -175,7 +176,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("节点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("节点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNode(node, pageable);
 
@@ -188,7 +189,7 @@ public class ConsumeChainQueryService {
         }
 
         FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("节点ID不存在"));
+                .orElseThrow(() -> new NotFoundException("节点ID不存在"));
 
         Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
 
@@ -263,13 +264,13 @@ public class ConsumeChainQueryService {
         }
 
         ConsumeChain consumeChain = consumeChainRepository.findById(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("消费链ID不存在"));
+                .orElseThrow(() -> new NotFoundException("消费链ID不存在"));
 
         List<ConsumeChain> consumeChains = List.of(consumeChain);
 
         List<ConsumeChainResponseDTO> consumeChainResponseDTOs = getConsumeChainResponseDTOs(consumeChains);
         if (consumeChainResponseDTOs.isEmpty()) {
-            throw new IllegalArgumentException("消费链ID不存在");
+            throw new NotFoundException("消费链ID不存在");
         }
 
         return consumeChainResponseDTOs.get(0);

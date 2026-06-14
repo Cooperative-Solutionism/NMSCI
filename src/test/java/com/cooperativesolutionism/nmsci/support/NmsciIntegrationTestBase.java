@@ -59,16 +59,16 @@ public abstract class NmsciIntegrationTestBase {
         registry.add("spring.sql.init.mode", () -> "never");
         registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
         registry.add("spring.task.scheduling.enabled", () -> "false");
-        registry.add("central-key-pair.pubkey", () -> TestKeyPairs.CENTRAL.pubkeyBase64());
-        registry.add("central-key-pair.prikey", () -> TestKeyPairs.CENTRAL.prikeyBase64());
-        registry.add("register-difficulty-target-nbits", () -> "0x20ffffff");
-        registry.add("transaction-difficulty-target-nbits", () -> "0x20ffffff");
+        registry.add("nmsci.central-key-pair.pubkey", () -> TestKeyPairs.CENTRAL.pubkeyBase64());
+        registry.add("nmsci.central-key-pair.prikey", () -> TestKeyPairs.CENTRAL.prikeyBase64());
+        registry.add("nmsci.register-difficulty-target-nbits", () -> "0x20ffffff");
+        registry.add("nmsci.transaction-difficulty-target-nbits", () -> "0x20ffffff");
         // 固定上链源码哈希为占位零值，使集成测试与构建期 prepare-package 注入的真实哈希解耦，
         // 确保 /system/params 回显行为可确定地断言（否则 verify 打包后真实哈希会泄漏进测试运行时）。
-        registry.add("source-code-zip-hash", () -> "0000000000000000000000000000000000000000000000000000000000000000");
-        registry.add("file-root-dir", () -> "target/nmsci-test-files");
-        registry.add("file-dat-dir", () -> "dat");
-        registry.add("file-source-code-dir", () -> "source-code");
+        registry.add("nmsci.source-code-zip-hash", () -> "0000000000000000000000000000000000000000000000000000000000000000");
+        registry.add("nmsci.file-root-dir", () -> "target/nmsci-test-files");
+        registry.add("nmsci.file-dat-dir", () -> "dat");
+        registry.add("nmsci.file-source-code-dir", () -> "source-code");
     }
 
     @BeforeAll

@@ -24,13 +24,13 @@ public class TransactionMountMsgController {
     @Resource
     private TransactionMountMsgConverter transactionMountMsgConverter;
 
-    @PostMapping("/send")
+    @PostMapping
     public ResponseResult<TransactionMountMsg> saveTransactionMountMsg(@RequestBody @ByteArraySize(269) byte[] byteData) {
         TransactionMountMsg transactionMountMsg = transactionMountMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(transactionMountMsgService.saveTransactionMountMsg(transactionMountMsg));
     }
 
-    @GetMapping("/id/{id}")
+    @GetMapping("/{id}")
     public ResponseResult<TransactionMountMsg> getTransactionMountMsgById(@PathVariable String id) {
         TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgById(UUID.fromString(id));
         return ResponseResult.success(transactionMountMsg);

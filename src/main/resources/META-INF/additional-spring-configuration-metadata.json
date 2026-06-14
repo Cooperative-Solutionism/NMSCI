@@ -1,62 +1,62 @@
 {
   "properties": [
     {
-      "name": "central-key-pair.pubkey",
+      "name": "nmsci.central-key-pair.pubkey",
       "type": "java.lang.String",
       "description": "中心压缩公钥的Base64字符串。"
     },
     {
-      "name": "central-key-pair.prikey",
+      "name": "nmsci.central-key-pair.prikey",
       "type": "java.lang.String",
       "description": "中心私钥原始字节的Base64字符串。"
     },
     {
-      "name": "register-difficulty-target-nbits",
+      "name": "nmsci.register-difficulty-target-nbits",
       "type": "java.lang.Integer",
       "description": "流转节点注册消息使用的nBits难度目标。"
     },
     {
-      "name": "transaction-difficulty-target-nbits",
+      "name": "nmsci.transaction-difficulty-target-nbits",
       "type": "java.lang.Integer",
       "description": "交易记录和交易挂载消息使用的nBits难度目标。"
     },
     {
-      "name": "block-version",
+      "name": "nmsci.block-version",
       "type": "java.lang.Integer",
       "description": "区块版本."
     },
     {
-      "name": "block-header-size",
+      "name": "nmsci.block-header-size",
       "type": "java.lang.Integer",
       "description": "区块头字节数."
     },
     {
-      "name": "block-max-size",
+      "name": "nmsci.block-max-size",
       "type": "java.lang.Long",
       "description": "区块最大字节数."
     },
     {
-      "name": "block-dat-max-size",
+      "name": "nmsci.block-dat-max-size",
       "type": "java.lang.Long",
       "description": "单个区块dat文件最大字节数。"
     },
     {
-      "name": "source-code-zip-hash",
+      "name": "nmsci.source-code-zip-hash",
       "type": "java.lang.String",
       "description": "相应版本全代码压缩包(包含协议内容)的sha256hash的hex字符串."
     },
     {
-      "name": "file-root-dir",
+      "name": "nmsci.file-root-dir",
       "type": "java.lang.String",
       "description": "文件存储根目录。"
     },
     {
-      "name": "file-dat-dir",
+      "name": "nmsci.file-dat-dir",
       "type": "java.lang.String",
       "description": "区块.dat文件目录."
     },
     {
-      "name": "file-source-code-dir",
+      "name": "nmsci.file-source-code-dir",
       "type": "java.lang.String",
       "description": "相应版本全代码压缩包(包含协议内容)目录."
     }
