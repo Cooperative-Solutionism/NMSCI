@@ -55,8 +55,15 @@ class MetadataControllerTest {
         assertEquals((short) 0x0000, value(flowNodeRegisterMsg, "getValue"));
         assertEquals("0x0000", value(flowNodeRegisterMsg, "getHexValue"));
         assertEquals(123, value(flowNodeRegisterMsg, "getSize"));
+        assertEquals(123, value(flowNodeRegisterMsg, "getInboundSize"));
         assertEquals("字节", value(flowNodeRegisterMsg, "getSizeUnit"));
         assertEquals("流转节点注册信息", value(flowNodeRegisterMsg, "getName"));
+
+        // 可中心签名类型：存储字节数（含中心签名 + 确认时间戳）与入站 POST 字节数不同
+        Object transactionRecordMsg = data.get(4);
+        assertEquals("TransactionRecordMsg", value(transactionRecordMsg, "getCode"));
+        assertEquals(335, value(transactionRecordMsg, "getSize"));
+        assertEquals(263, value(transactionRecordMsg, "getInboundSize"));
     }
 
     @Test

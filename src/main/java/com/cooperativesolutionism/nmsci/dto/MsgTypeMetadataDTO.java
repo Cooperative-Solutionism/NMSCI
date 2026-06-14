@@ -10,7 +10,11 @@ public class MsgTypeMetadataDTO {
 
     private String hexValue;
 
+    /** 落库/上链时的最终字节数（含中心签名与确认时间戳）。 */
     private int size;
+
+    /** 入站 POST 请求体的字节数（中心签名之前）。对不可中心签名的注册类型，与 {@code size} 相等。 */
+    private int inboundSize;
 
     private String sizeUnit;
 
@@ -22,6 +26,7 @@ public class MsgTypeMetadataDTO {
         dto.setValue(msgType.getValue());
         dto.setHexValue(String.format("0x%04X", msgType.getValue() & 0xFFFF));
         dto.setSize(msgType.getSize());
+        dto.setInboundSize(msgType.getInboundSize());
         dto.setSizeUnit("字节");
         dto.setName(msgType.getName());
         return dto;
@@ -57,6 +62,14 @@ public class MsgTypeMetadataDTO {
 
     public void setSize(int size) {
         this.size = size;
+    }
+
+    public int getInboundSize() {
+        return inboundSize;
+    }
+
+    public void setInboundSize(int inboundSize) {
+        this.inboundSize = inboundSize;
     }
 
     public String getSizeUnit() {
