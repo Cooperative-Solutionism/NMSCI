@@ -1,9 +1,22 @@
 package com.cooperativesolutionism.nmsci.util;
 
-import org.bouncycastle.crypto.Digest;
-import org.bouncycastle.crypto.digests.SHA256Digest;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class Sha256Util {
+
+    /**
+     * 每线程复用一个 SHA-256 的 {@link MessageDigest} 实例。
+     * MessageDigest 非线程安全，故以 ThreadLocal 做线程隔离；复用实例可避免每次 getInstance 的 provider 查找开销，
+     * 从而真正受益于 HotSpot 的 SHA-256 intrinsic。使用默认（SUN）provider，输出为标准 SHA-256，与原 BouncyCastle 实现逐字节一致。
+     */
+    private static final ThreadLocal<MessageDigest> SHA_256 = ThreadLocal.withInitial(() -> {
+        try {
+            return MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 算法不可用", e);
+        }
+    });
 
     /**
      * 计算给定数据的SHA-256哈希值。
@@ -12,12 +25,9 @@ public class Sha256Util {
      * @return 计算得到的SHA-256哈希值
      */
     public static byte[] digest(byte[] data) {
-        Digest digest = new SHA256Digest();
-        digest.update(data, 0, data.length);
-
-        byte[] hash = new byte[digest.getDigestSize()];
-        digest.doFinal(hash, 0);
-        return hash;
+        MessageDigest digest = SHA_256.get();
+        digest.reset();
+        return digest.digest(data);
     }
 
     /**
