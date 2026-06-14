@@ -1,4 +1,4 @@
-package com.cooperativesolutionism.nmsci.service;
+package com.cooperativesolutionism.nmsci.consume;
 
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;

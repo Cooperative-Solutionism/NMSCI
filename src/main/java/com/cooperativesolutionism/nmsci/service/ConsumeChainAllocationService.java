@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocationCandidate;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocationPlan;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocator;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainPersistenceService;
+import com.cooperativesolutionism.nmsci.consume.ConsumeChainSupport;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;

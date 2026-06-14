@@ -105,7 +105,7 @@ class PersistenceConcurrencyContractTest {
                 TransactionMountMsg.class
         );
         assertTransactional(
-                Class.forName("com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyLockedMsgPersistenceService"),
+                Class.forName("com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgPersistenceService"),
                 "save",
                 CentralPubkeyLockedMsg.class
         );

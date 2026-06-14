@@ -12,7 +12,6 @@ import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainAllocationService;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
-import com.cooperativesolutionism.nmsci.service.ConsumeChainSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

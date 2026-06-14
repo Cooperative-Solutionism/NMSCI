@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import com.cooperativesolutionism.nmsci.consume.ConsumeChainSupport;
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;

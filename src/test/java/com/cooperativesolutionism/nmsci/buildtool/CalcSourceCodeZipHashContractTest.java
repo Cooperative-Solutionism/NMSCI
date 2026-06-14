@@ -1,4 +1,4 @@
-package com.cooperativesolutionism.nmsci.maven;
+package com.cooperativesolutionism.nmsci.buildtool;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
