@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.model;
 
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
 import com.cooperativesolutionism.nmsci.serializer.IntToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -87,8 +88,11 @@ public class BlockInfo {
     private String sourceCodeZipFilepath;
 
     @Comment("原始字节格式")
+    // rawBytes 为整块原始字节（最大可达 block-max-size，约 MB 级），与 .dat 文件内容重复，
+    // 不属于 /block-chain/* 的对外契约字段；以 @JsonIgnore 排除序列化，避免每次元数据查询返回 MB 级响应体。
+    // 字段保留在 DB 与实体上，供装块写入与内部读取使用。
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     public byte[] getRawBytes() {

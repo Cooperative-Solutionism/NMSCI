@@ -81,6 +81,18 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void blockChainLastEndpointOmitsRawBytesButKeepsHexMetadata() throws Exception {
+        var newestBlock = blockInfoRepository.findTopByOrderByHeightDesc();
+
+        mockMvc.perform(get("/block-chain/last"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.height").exists())
+                .andExpect(jsonPath("$.data.id").value(ByteArrayUtil.bytesToHex(newestBlock.getId())))
+                .andExpect(jsonPath("$.data.rawBytes").doesNotExist());
+    }
+
+    @Test
     void savesFlowNodeRegisterMessage() throws Exception {
         UUID flowNodeId = UUID.fromString("11111111-1111-1111-1111-111111111111");
 
