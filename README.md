@@ -100,6 +100,33 @@ temp/dat
 temp/source-code
 ```
 
+## Docker 运行
+
+镜像采用「多阶段从源码构建」：构建阶段用项目自带的 Maven Wrapper 从源码打包，因此任何人 `docker build` 都能复现出与 CI 一致的上链源码哈希（`nmsci.source-code-zip-hash`）；运行阶段仅含 JRE 21 与可执行 jar，并以非 root 用户运行。
+
+> **复现性约定：** [.dockerignore](./.dockerignore) 的排除项与构建期 `CalcSourceCodeZipHash` 严格对齐（仅排除 `.git`、`target`、`logs`、`temp`、IDE 文件，以及未跟踪的 `application-local.properties`/`.env`）。**请勿在 `.dockerignore` 中排除任何被 git 跟踪的源码/配置文件**，否则 Docker 构建算出的源码哈希会与 CI 不一致。注意：`Dockerfile`、`docker-compose.yml` 等一旦提交即纳入源码哈希。
+
+### 一键启动（含 PostgreSQL）
+
+```bash
+cp .env.example .env          # 填入数据库口令与中心密钥对（prod profile 必需）
+docker compose up -d --build
+```
+
+服务监听 `http://localhost:8080`，健康检查 `GET /actuator/health`。区块文件与日志分别持久化到命名卷 `nmsci-data`（容器内 `/app/file`）、`nmsci-logs`（`/app/logs`），数据库数据在 `pgdata` 卷。
+
+### 仅构建 / 运行镜像
+
+```bash
+docker build -t nmsci:1.0.0 .
+docker run --rm -p 8080:8080 --env-file .env \
+  -e DB_URL='jdbc:postgresql://<db-host>:5432/nmsci' \
+  -v nmsci-data:/app/file -v nmsci-logs:/app/logs \
+  nmsci:1.0.0
+```
+
+容器默认 `SPRING_PROFILES_ACTIVE=prod`；JVM 参数可经 `JAVA_TOOL_OPTIONS` 注入（如 `-e JAVA_TOOL_OPTIONS='-Xmx512m'`）。
+
 ## 测试
 
 快速测试：

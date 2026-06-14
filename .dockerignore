@@ -1,0 +1,24 @@
+# 此文件的排除项必须与构建期 CalcSourceCodeZipHash 的排除项保持一致，
+# 以保证 docker build 算出的上链源码哈希与 CI 干净检出一致。
+#
+# 规则：只排除 (1) CalcSourceCodeZipHash 本就排除的目录/文件，
+#       (2) 未被 git 跟踪、且不应进入源码哈希的本地文件。
+# 切勿在此排除任何被 git 跟踪的源码/配置文件（含 Dockerfile、docker-compose.yml、
+# .env.example、application-local.properties.example 等），否则源码哈希会与 CI 不一致。
+
+# 版本控制与 IDE（CalcSourceCodeZipHash 也排除）
+.git
+.idea
+*.iml
+
+# 构建产物与运行期目录（CalcSourceCodeZipHash 也排除）
+target
+logs
+temp
+
+# static 下的历史源码包（CalcSourceCodeZipHash 也排除）
+src/main/resources/static/source_code_*.zip
+
+# 未跟踪的本地密钥/环境文件（不在 CI 检出中，排除以与 CI 哈希一致）
+application-local.properties
+.env
