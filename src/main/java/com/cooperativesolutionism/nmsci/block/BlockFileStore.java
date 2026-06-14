@@ -67,7 +67,7 @@ public class BlockFileStore {
      * 复用内部 {@link #datDirectory()}，只读枚举，不修改任何文件。
      */
     public DatStorageInfo datStorageInfo() {
-        Path dir = datDirectory();
+        Path dir = Path.of(nmsciProperties.getFileDatDir());
         long maxSizePerFile = nmsciProperties.getBlockDatMaxSize();
         if (!Files.exists(dir)) {
             return new DatStorageInfo(dir.toString(), 0, null, 0L, 0L, maxSizePerFile);
