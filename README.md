@@ -63,6 +63,8 @@ export CENTRAL_KEY_PAIR_PUBKEY='base64-public-key'
 export CENTRAL_KEY_PAIR_PRIKEY='base64-private-key'
 ```
 
+上述环境变量的占位模板见 [.env.example](./.env.example)，复制为 `.env` 后填入真实值（`.env` 已被 `.gitignore` 忽略）。
+
 `nmsci.source-code-zip-hash` 不应手工维护。它会在 Maven 打包阶段由 `CalcSourceCodeZipHash` 计算后写入构建产物中的 `application.properties`。
 
 ## 本地运行

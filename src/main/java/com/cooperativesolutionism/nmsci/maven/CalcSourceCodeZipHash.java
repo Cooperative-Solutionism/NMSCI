@@ -5,12 +5,22 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import java.io.*;
 import java.nio.file.*;
 import java.security.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import java.util.zip.*;
 import java.util.*;
 
 public class CalcSourceCodeZipHash {
+
+    /**
+     * 需要排除在上链源码包之外的目录段（按相对路径的「路径段」匹配，与平台分隔符无关）。
+     */
+    private static final Set<String> EXCLUDED_DIRECTORIES = Set.of(".git", ".idea", "logs", "temp", "target");
+
+    /**
+     * 需要排除的生成物标记：static 目录下的历史版本源码包（避免自包含与非确定性）。
+     * 以子串匹配——相对路径（'/' 归一）含该标记即排除。
+     */
+    private static final String EXCLUDED_GENERATED_ARCHIVE_MARKER = "static/source_code_v";
 
     /**
      * 删除指定目录下的某些文件
@@ -35,38 +45,64 @@ public class CalcSourceCodeZipHash {
     }
 
     /**
-     * 将指定目录压缩为 ZIP 文件
+     * 判断给定文件是否应排除在上链源码包之外。
+     * 基于相对路径的「路径段」匹配（目录段命中排除集，或路径含历史源码包前缀，或为 .iml），
+     * 全程归一为 '/' 分隔，不依赖运行平台的分隔符，Windows/Linux/macOS 行为一致。
+     */
+    static boolean isExcluded(Path sourceDir, Path path) {
+        String relativePath = toEntryName(sourceDir.relativize(path));
+        if (relativePath.isEmpty()) {
+            return true;
+        }
+        for (String segment : relativePath.split("/")) {
+            if (EXCLUDED_DIRECTORIES.contains(segment)) {
+                return true;
+            }
+        }
+        if (relativePath.contains(EXCLUDED_GENERATED_ARCHIVE_MARKER)) {
+            return true;
+        }
+        return relativePath.endsWith(".iml");
+    }
+
+    /**
+     * 将相对路径归一为以 '/' 分隔的 zip 条目名，保证上链哈希与运行平台的路径分隔符无关。
+     */
+    static String toEntryName(Path relativePath) {
+        List<String> segments = new ArrayList<>();
+        for (Path segment : relativePath) {
+            segments.add(segment.toString());
+        }
+        return String.join("/", segments);
+    }
+
+    /**
+     * 将指定目录压缩为 ZIP 文件。
+     * 条目名归一为 '/' 分隔、按条目名排序、并固定时间戳；配合仓库 .gitattributes 将文本统一为 LF
+     * （* text=auto eol=lf），相同源码在任意平台/文件系统上产出字节一致的 zip，故上链源码哈希可复现可信。
      *
      * @param sourceDir   源目录
      * @param zipFilePath 压缩后的 ZIP 文件路径
-     * @param excludedDir 需要排除的目录列表
      * @throws IOException 如果压缩过程中发生错误
      */
-    public static void zipDirectory(Path sourceDir, Path zipFilePath, String[] excludedDir) throws IOException {
+    public static void zipDirectory(Path sourceDir, Path zipFilePath) throws IOException {
+        List<Path> includedFiles;
+        try (Stream<Path> paths = Files.walk(sourceDir)) {
+            includedFiles = paths
+                    .filter(path -> !Files.isDirectory(path))
+                    .filter(path -> !isExcluded(sourceDir, path))
+                    .sorted(Comparator.comparing(path -> toEntryName(sourceDir.relativize(path))))
+                    .toList();
+        }
+
         try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
              ZipOutputStream zos = new ZipOutputStream(fos)) {
-            try (Stream<Path> paths = Files.walk(sourceDir)) {
-                paths.forEach(path -> {
-                    try {
-                        AtomicBoolean isExcluded = new AtomicBoolean(false);
-                        for (String dir : excludedDir) {
-                            if (path.toString().contains(dir)) {
-                                isExcluded.set(true);
-                                break;
-                            }
-                        }
-
-                        if (!Files.isDirectory(path) && !isExcluded.get()) {
-                            ZipEntry zipEntry = new ZipEntry(sourceDir.relativize(path).toString());
-                            zipEntry.setTime(1L); // 固定时间戳，避免每次打包时间不同导致哈希值不同
-                            zos.putNextEntry(zipEntry);
-                            Files.copy(path, zos);
-                            zos.closeEntry();
-                        }
-                    } catch (IOException e) {
-                        System.err.println("Error while zipping file: " + path + " - " + e.getMessage());
-                    }
-                });
+            for (Path path : includedFiles) {
+                ZipEntry zipEntry = new ZipEntry(toEntryName(sourceDir.relativize(path)));
+                zipEntry.setTime(1L); // 固定时间戳，避免每次打包时间不同导致哈希值不同
+                zos.putNextEntry(zipEntry);
+                Files.copy(path, zos);
+                zos.closeEntry();
             }
         }
     }
@@ -138,16 +174,7 @@ public class CalcSourceCodeZipHash {
             Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code_v" + properties.getProperty("nmsci.block-version") + ".zip");
 
             // 压缩文件夹为 zip 文件
-            String[] excludedDirs = new String[]{
-                    "\\.git\\",
-                    "\\.idea\\",
-                    "\\logs\\",
-                    "\\temp\\",
-                    "\\target\\",
-                    "\\static\\source_code_v",
-                    ".iml"
-            };
-            zipDirectory(sourceDir, zipFilePath, excludedDirs);
+            zipDirectory(sourceDir, zipFilePath);
             System.out.println("The file has been compressed to: " + zipFilePath);
 
             // 计算哈希值

@@ -1,2 +1,7 @@
+# 默认：所有文本文件以 LF 存储并检出，保证跨平台一致（上链源码哈希可复现）；
+# git 自动识别二进制文件并跳过行尾归一。
+* text=auto eol=lf
+
+# 例外：Maven Wrapper 的 shell 脚本必须 LF；Windows 批处理脚本必须 CRLF。
 /mvnw text eol=lf
 *.cmd text eol=crlf
