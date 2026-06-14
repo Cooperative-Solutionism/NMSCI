@@ -264,7 +264,7 @@ public class ConsumeChainQueryService {
         }
 
         ConsumeChain consumeChain = consumeChainRepository.findById(uuid)
-                .orElseThrow(() -> new IllegalArgumentException("消费链ID不存在"));
+                .orElseThrow(() -> new NotFoundException("消费链ID不存在"));
 
         List<ConsumeChain> consumeChains = List.of(consumeChain);
 
