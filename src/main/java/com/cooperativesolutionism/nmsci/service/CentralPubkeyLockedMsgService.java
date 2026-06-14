@@ -1,6 +1,5 @@
 package com.cooperativesolutionism.nmsci.service;
 
-import com.cooperativesolutionism.nmsci.service.impl.CentralPubkeyLockedMsgPersistenceService;
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
