@@ -191,6 +191,32 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void queryConsumeChainEdgesUsesSliceResponseFormat() throws Exception {
+        UUID flowNodeId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        UUID empowerId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        UUID recordId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        UUID mountId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+
+        sendFlowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A);
+        sendCentralPubkeyEmpower(empowerId, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionRecord(recordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionMount(mountId, recordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey()))
+                        .param("page", "0")
+                        .param("size", "50"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].id").exists())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(50))
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.hasPrevious").value(false));
+    }
+
+    @Test
     void returningFlowRateIsAggregatedByDatabase() throws Exception {
         UUID flowNodeId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         UUID empowerId = UUID.fromString("22222222-2222-2222-2222-222222222222");

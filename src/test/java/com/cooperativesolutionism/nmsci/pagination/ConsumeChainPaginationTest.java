@@ -31,6 +31,16 @@ class ConsumeChainPaginationTest {
         assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByNodeAndIsLoop", UUID.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByRelatedId", UUID.class, UUID.class, UUID.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainQueryService.class, "getConsumeChainByPubkey", byte[].class, byte[].class, byte[].class, Boolean.class, Pageable.class);
+        assertSliceMethod(
+                ConsumeChainQueryService.class,
+                "getConsumeChainEdgesById",
+                UUID.class, UUID.class, short.class, long.class, long.class, Pageable.class
+        );
+        assertSliceMethod(
+                ConsumeChainQueryService.class,
+                "getConsumeChainEdgesByPubkey",
+                byte[].class, byte[].class, short.class, long.class, long.class, Pageable.class
+        );
         assertSliceMethod(ConsumeChainRepository.class, "findByStart", FlowNodeRegisterMsg.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
@@ -47,6 +57,11 @@ class ConsumeChainPaginationTest {
                 String.class, String.class, String.class,
                 String.class, String.class, String.class,
                 Boolean.class, String.class, int.class, int.class);
+        assertSliceResponseControllerMethod(
+                "getConsumeChainEdges",
+                String.class, String.class, String.class, String.class,
+                short.class, long.class, long.class, int.class, int.class
+        );
         assertControllerMethodAbsent("getConsumeChainByMountedTransaction", String.class, int.class, int.class);
         assertControllerMethodAbsent("getConsumeChainByRelatedId", String.class, String.class, String.class, Boolean.class, int.class, int.class);
         assertControllerMethodAbsent("getConsumeChainByPubkey", String.class, String.class, String.class, Boolean.class, int.class, int.class);

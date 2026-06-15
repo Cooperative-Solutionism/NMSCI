@@ -14,7 +14,6 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -22,6 +21,10 @@ import java.util.UUID;
 public class ConsumeChainController {
 
     private static final Sort CONSUME_CHAIN_QUERY_SORT = Sort.by(Sort.Order.desc("tailMountTimestamp"), Sort.Order.desc("id"));
+    private static final Sort CONSUME_CHAIN_EDGE_QUERY_SORT = Sort.by(
+            Sort.Order.desc("relatedTransactionMountTimestamp"),
+            Sort.Order.desc("id")
+    );
 
     @Resource
     private ConsumeChainQueryService consumeChainQueryService;
@@ -80,14 +83,16 @@ public class ConsumeChainController {
      * 缺省 source 时返回流入 target 的全部边。id 与 pubkey 参数不可混用。返回按 chain 去重的边列表。
      */
     @GetMapping("/edges")
-    public ResponseResult<List<ConsumeChainEdge>> getConsumeChainEdges(
+    public ResponseResult<SliceResponseDTO<ConsumeChainEdge>> getConsumeChainEdges(
             @RequestParam(required = false) String sourceId,
             @RequestParam(required = false) String targetId,
             @RequestParam(required = false) String sourcePubkey,
             @RequestParam(required = false) String targetPubkey,
             @RequestParam(required = false, defaultValue = "1") short currencyType,
             @RequestParam(required = false, defaultValue = "0") long startTime,
-            @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime
+            @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
         boolean hasId = notBlank(sourceId) || notBlank(targetId);
         boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
@@ -95,21 +100,24 @@ public class ConsumeChainController {
             throw new BadRequestException("id 与 pubkey 查询参数不能混用");
         }
 
-        List<ConsumeChainEdge> edges;
         if (hasPubkey) {
             if (!notBlank(targetPubkey)) {
                 throw new BadRequestException("targetPubkey 不能为空");
             }
-            edges = consumeChainQueryService.getConsumeChainEdgesByPubkey(
-                    pubkey(sourcePubkey), pubkey(targetPubkey), currencyType, startTime, endTime);
-        } else {
-            if (!notBlank(targetId)) {
-                throw new BadRequestException("targetId 不能为空");
-            }
-            edges = consumeChainQueryService.getConsumeChainEdgesById(
-                    uuid(sourceId), uuid(targetId), currencyType, startTime, endTime);
+        } else if (!notBlank(targetId)) {
+            throw new BadRequestException("targetId 不能为空");
         }
-        return ResponseResult.success(edges);
+
+        Pageable pageable = PageRequestUtil.of(page, size, CONSUME_CHAIN_EDGE_QUERY_SORT);
+        Slice<ConsumeChainEdge> edges;
+        if (hasPubkey) {
+            edges = consumeChainQueryService.getConsumeChainEdgesByPubkey(
+                    pubkey(sourcePubkey), pubkey(targetPubkey), currencyType, startTime, endTime, pageable);
+        } else {
+            edges = consumeChainQueryService.getConsumeChainEdgesById(
+                    uuid(sourceId), uuid(targetId), currencyType, startTime, endTime, pageable);
+        }
+        return ResponseResult.success(SliceResponseDTO.from(edges));
     }
 
     private static boolean notBlank(String value) {

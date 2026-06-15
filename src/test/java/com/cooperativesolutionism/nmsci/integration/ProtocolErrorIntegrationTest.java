@@ -145,6 +145,53 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void rejectsConsumeChainEdgesWhenPageSizeExceedsLimit() throws Exception {
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetId", UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").toString())
+                        .param("size", "201"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("分页大小不能超过200")));
+    }
+
+    @Test
+    void rejectsConsumeChainEdgesWhenTargetIsMissing() throws Exception {
+        mockMvc.perform(get("/consume-chains/edges"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("targetId 不能为空")));
+    }
+
+    @Test
+    void rejectsConsumeChainEdgesWhenIdAndPubkeyAreMixed() throws Exception {
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetId", UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").toString())
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("id 与 pubkey 查询参数不能混用")));
+    }
+
+    @Test
+    void rejectsConsumeChainEdgesWhenTargetPubkeyIsNotRegistered() throws Exception {
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("目标流转节点公钥")))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+    }
+
+    @Test
+    void rejectsConsumeChainEdgesWhenTargetPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetPubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("目标流转节点公钥不能为空或长度不为33字节")));
+    }
+
+    @Test
     void returnsUnlockedStateWhenFlowNodeLockedLookupByPubkeyIsMissing() throws Exception {
         mockMvc.perform(get("/flow-node-locks/status")
                         .param("flowNodePubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))

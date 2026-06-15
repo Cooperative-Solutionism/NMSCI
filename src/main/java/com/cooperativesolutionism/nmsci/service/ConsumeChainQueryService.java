@@ -281,7 +281,14 @@ public class ConsumeChainQueryService {
      * 按 id 查询消费链边：source 缺省时返回流入 target 的全部边（按 chain 去重）；
      * source、target 均提供时返回 source→target 之间的边。
      */
-    public List<ConsumeChainEdge> getConsumeChainEdgesById(UUID sourceId, UUID targetId, short currencyType, long startTime, long endTime) {
+    public Slice<ConsumeChainEdge> getConsumeChainEdgesById(
+            UUID sourceId,
+            UUID targetId,
+            short currencyType,
+            long startTime,
+            long endTime,
+            Pageable pageable
+    ) {
         if (!CurrencyTypeEnum.containsValue(currencyType)) {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
         }
@@ -289,24 +296,45 @@ public class ConsumeChainQueryService {
             throw new IllegalArgumentException("targetId 不能为空");
         }
 
+        int limit = pageable.getPageSize() + 1;
+        long offset = pageable.getOffset();
+        List<ConsumeChainEdge> edges;
         if (sourceId == null) {
-            return consumeChainEdgeRepository.findConsumeChainEdgesByTarget(targetId, currencyType, startTime, endTime);
+            edges = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
+                    targetId, currencyType, startTime, endTime, limit, offset);
+        } else {
+            edges = consumeChainEdgeRepository.findConsumeChainEdges(
+                    sourceId, targetId, currencyType, startTime, endTime, limit, offset);
         }
-        return consumeChainEdgeRepository.findConsumeChainEdges(sourceId, targetId, currencyType, startTime, endTime);
+        return toConsumeChainEdgeSlice(edges, pageable);
     }
 
     /**
      * 按 pubkey 查询消费链边：先把 pubkey 解析为流转节点 id，再委托 {@link #getConsumeChainEdgesById}。
      */
-    public List<ConsumeChainEdge> getConsumeChainEdgesByPubkey(byte[] sourcePubkey, byte[] targetPubkey, short currencyType, long startTime, long endTime) {
+    public Slice<ConsumeChainEdge> getConsumeChainEdgesByPubkey(
+            byte[] sourcePubkey,
+            byte[] targetPubkey,
+            short currencyType,
+            long startTime,
+            long endTime,
+            Pageable pageable
+    ) {
         FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(targetPubkey, "目标");
 
         if (sourcePubkey == null) {
-            return getConsumeChainEdgesById(null, target.getId(), currencyType, startTime, endTime);
+            return getConsumeChainEdgesById(null, target.getId(), currencyType, startTime, endTime, pageable);
         }
 
         FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(sourcePubkey, "源");
-        return getConsumeChainEdgesById(source.getId(), target.getId(), currencyType, startTime, endTime);
+        return getConsumeChainEdgesById(source.getId(), target.getId(), currencyType, startTime, endTime, pageable);
+    }
+
+    private Slice<ConsumeChainEdge> toConsumeChainEdgeSlice(List<ConsumeChainEdge> edges, Pageable pageable) {
+        int pageSize = pageable.getPageSize();
+        boolean hasNext = edges.size() > pageSize;
+        List<ConsumeChainEdge> content = hasNext ? edges.subList(0, pageSize) : edges;
+        return new SliceImpl<>(List.copyOf(content), pageable, hasNext);
     }
 
     private int countProvided(Object... values) {
