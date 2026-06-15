@@ -19,6 +19,13 @@
         <bouncycastle.version>1.78</bouncycastle.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <bitcoinj.version>0.17</bitcoinj.version>
+        <gatling.version>3.13.5</gatling.version>
+        <gatling-maven-plugin.version>4.16.3</gatling-maven-plugin.version>
+        <!-- 压测参数默认值；用 mvn -Dgatling.xxx=... 覆盖（经插件 jvmArgs 透传到 fork 的 gatling JVM） -->
+        <gatling.baseUrl>http://localhost:8080</gatling.baseUrl>
+        <gatling.users>50</gatling.users>
+        <gatling.duration>30</gatling.duration>
+        <gatling.amount>1200</gatling.amount>
     </properties>
     <dependencies>
         <dependency>
@@ -87,6 +94,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -171,6 +184,23 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <configuration>
+                    <includes>
+                        <include>com.cooperativesolutionism.nmsci.stress.FullLifecycleSimulation</include>
+                    </includes>
+                    <!-- Maven -D 默认不传入 fork 的 gatling JVM，这里显式透传压测参数；CLI -D 覆盖上面 properties 默认 -->
+                    <jvmArgs>
+                        <jvmArg>-Dgatling.baseUrl=${gatling.baseUrl}</jvmArg>
+                        <jvmArg>-Dgatling.users=${gatling.users}</jvmArg>
+                        <jvmArg>-Dgatling.duration=${gatling.duration}</jvmArg>
+                        <jvmArg>-Dgatling.amount=${gatling.amount}</jvmArg>
+                    </jvmArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>
