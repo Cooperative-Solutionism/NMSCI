@@ -68,6 +68,12 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- 已由 spring-boot-starter-test 传递引入；此处显式声明，使 maven-dependency-plugin 必定为其设置 jar 路径属性，供 argLine 作为 javaagent 引用 -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
@@ -87,9 +93,23 @@
     <build>
         <plugins>
             <plugin>
+                <!-- 将每个依赖的 jar 路径暴露为 ${groupId:artifactId:type} 属性，供下方 argLine 以 -javaagent 引用 Mockito -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <!-- 以 -javaagent 静态加载 Mockito（inline mock-maker），避免 JDK 21 动态挂载 agent 的弃用告警；-Xshare:off 消除随之而来的 CDS 提示 -->
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
                     <excludedGroups>integration</excludedGroups>
                     <systemPropertyVariables>
                         <api.version>1.40</api.version>
@@ -100,6 +120,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
                     <includes>
                         <include>**/*Test.java</include>
                     </includes>
