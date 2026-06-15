@@ -55,7 +55,7 @@
 |---|---|---|
 | 200 | Success | 请求成功 |
 | 400 | Bad Request | 参数非法：id 与 pubkey 混用、必填参数缺失、二进制体长度不符、协议校验失败等 |
-| 404 | Not Found | 按 `{id}`/高度/哈希查询的资源不存在 |
+| 404 | Not Found | 按 `{id}`/高度/哈希/pubkey 查询的资源或状态不存在 |
 | 409 | Conflict | 资源状态冲突（如重复提交） |
 | 500 | Internal Server Error | 服务端异常 |
 | 503 | Service Unavailable | 服务不可用 |
@@ -286,7 +286,7 @@ curl -X POST http://localhost:8080/transaction-records \
 **400**：id 模式与 pubkey 模式混用；`mountedTransactionId` 与节点过滤参数混用。
 
 ### GET `/consume-chains/edges`
-查询「流入某目标节点」的消费链边集合（用于回流分析）。`target` 必填，`source` 可选（缺省=所有流入 target 的边）。响应 `ResponseResult<List<ConsumeChainEdge>>`（非分页）。
+查询「流入某目标节点」的消费链边集合（用于回流分析）。`target` 必填，`source` 可选（缺省=所有流入 target 的边）。响应 `SliceResponseDTO<ConsumeChainEdge>`，不返回总条数。
 
 | 查询参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -294,8 +294,10 @@ curl -X POST http://localhost:8080/transaction-records \
 | `sourceId` 或 `sourcePubkey` | String | — | 可选，指定来源节点 |
 | `currencyType` | short | `1` | 货币类型 |
 | `startTime` / `endTime` | long | `0` / `Long.MAX` | 微秒时间区间（过滤挂载时间） |
+| `page` / `size` | int | `0` / `50` | 见 [§1.3](#13-分页)，`size` 最大 200 |
 
-**400**：id 与 pubkey 混用；目标参数（`targetId`/`targetPubkey`）为空。
+**400**：id 与 pubkey 混用；目标参数（`targetId`/`targetPubkey`）为空；分页参数非法；pubkey 格式或长度非法。
+**404**：按 pubkey 查询时目标或来源流转节点不存在。
 
 > 路由说明：字面量 `/consume-chains/edges` 优先于 `/{id}`（UUID），不会被吞。
 
