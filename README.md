@@ -155,6 +155,37 @@ docker run --rm -p 8080:8080 --env-file .env \
 ./mvnw verify -Dnmsci.integration-tests.enabled=false
 ```
 
+## 压力测试（Gatling）
+
+压测基于 Gatling（Java DSL），对**运行中的实例**施压，覆盖全生命周期写链路（注册 → 授权 → 交易记录 → 交易挂载）与查询读链路。它**不随 `mvn verify` / CI 运行**（插件未绑定生命周期），仅按需经 `mvn gatling:test` 触发。
+
+被压实例需以 `load` profile 启动：trivial PoW 难度、独立的 `nmsci_load` 库、区块文件落在 `temp/load`；中心密钥经环境变量注入，其值必须等于压测脚本默认签名所用的测试中心密钥（见下）。
+
+```bash
+# 1) 压测用 PostgreSQL（一次性，用完即弃）
+docker run --rm -e POSTGRES_DB=nmsci_load -e POSTGRES_PASSWORD=postgres -p 5432:5432 postgres:16-alpine
+
+# 2) 导出测试中心密钥（与压测脚本 TestKeyPairs.CENTRAL 一致）
+export CENTRAL_KEY_PAIR_PUBKEY='A9+yx3Fml7ugoSwhxDH4bUv+O1NrLsC38y5/l7vPsgy+'
+export CENTRAL_KEY_PAIR_PRIKEY='BIVAd26jw2HNo0izjp8YSSf78cmGneReK0PmD48mRns='
+
+# 3) 启动服务（空库启动即生成创世块）
+./mvnw spring-boot:run -Dspring-boot.run.profiles=load
+#    若 8080 被占用：导出 SERVER_PORT=8099 后再启动，并在第 4 步用对应 baseUrl
+
+# 4) 另开终端运行压测
+./mvnw gatling:test -Dgatling.baseUrl=http://localhost:8080 -Dgatling.users=50 -Dgatling.duration=60
+```
+
+可调参数（默认值见 `pom.xml` 的 `gatling.*` 属性，经插件 `jvmArgs` 透传到 fork 的 Gatling JVM；Maven 的 `-D` 默认不会传入 fork）：
+
+- `gatling.baseUrl`：被压实例地址（默认 `http://localhost:8080`）
+- `gatling.users`：注入的虚拟用户数（默认 50）
+- `gatling.duration`：用户注入时长（秒，默认 30）
+- `gatling.amount`：交易金额（默认 1200）
+
+HTML 报告输出到 `target/gatling/fulllifecyclesimulation-<时间戳>/index.html`。脚本内置断言：失败请求数为 0、响应时间 p95 < 2000ms。
+
 ## 构建
 
 标准构建：

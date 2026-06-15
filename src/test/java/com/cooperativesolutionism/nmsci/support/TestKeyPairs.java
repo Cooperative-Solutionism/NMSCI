@@ -34,9 +34,14 @@ public final class TestKeyPairs {
         );
     }
 
-    private static TestKeyPair fromPrivateHex(String privateKeyHex) {
+    public static TestKeyPair fromPrivateHex(String privateKeyHex) {
         byte[] prikey = ByteArrayUtil.hexToBytes(privateKeyHex);
         byte[] pubkey = ECKey.fromPrivate(new BigInteger(1, prikey), true).getPubKey();
         return new TestKeyPair(pubkey, prikey);
+    }
+
+    /** Derive a unique deterministic test key by index (offset avoids the fixed 0x11/0x12/0x13 fixtures). */
+    public static TestKeyPair deriveByIndex(int index) {
+        return fromPrivateHex(String.format("%064x", 0x1000 + index));
     }
 }
