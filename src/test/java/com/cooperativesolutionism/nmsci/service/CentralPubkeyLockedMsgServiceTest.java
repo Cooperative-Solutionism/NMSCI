@@ -16,12 +16,17 @@ import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -44,15 +49,40 @@ class CentralPubkeyLockedMsgServiceTest {
         CentralPubkeyLockedMsgRepository repository = mock(CentralPubkeyLockedMsgRepository.class);
         when(repository.existsById(msg.getId())).thenReturn(false);
         when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
-        when(repository.save(msg)).thenReturn(msg);
 
         MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
         BlockChainService blockChainService = mock(BlockChainService.class);
         CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
+        List<String> phases = new ArrayList<>();
+        AtomicBoolean inTransactionCallback = new AtomicBoolean(false);
+        doAnswer(invocation -> {
+            assertTrue(inTransactionCallback.get(), "lock message must be saved inside TransactionTemplate callback");
+            phases.add("repository.save");
+            return msg;
+        }).when(repository).save(msg);
+        doAnswer(invocation -> {
+            assertTrue(inTransactionCallback.get(), "msg_abstract must be saved inside TransactionTemplate callback");
+            phases.add("msgAbstractService.saveMsgAbstract");
+            return null;
+        }).when(msgAbstractService).saveMsgAbstract(msg);
+        doAnswer(invocation -> {
+            assertFalse(inTransactionCallback.get(), "block draining must run after TransactionTemplate callback");
+            phases.add("blockChainService.generateBlockUntilNoNotInBlockMsgs");
+            return null;
+        }).when(blockChainService).generateBlockUntilNoNotInBlockMsgs();
+        doAnswer(invocation -> {
+            assertFalse(inTransactionCallback.get(), "shutdown request must run after TransactionTemplate callback");
+            phases.add("shutdownService.requestShutdown");
+            return null;
+        }).when(shutdownService).requestShutdown();
         TransactionTemplate transactionTemplate = mock(TransactionTemplate.class);
         doAnswer(invocation -> {
             Consumer<TransactionStatus> action = invocation.getArgument(0);
+            phases.add("transactionTemplate.callback.start");
+            inTransactionCallback.set(true);
             action.accept(new SimpleTransactionStatus());
+            inTransactionCallback.set(false);
+            phases.add("transactionTemplate.callback.end");
             return null;
         }).when(transactionTemplate).executeWithoutResult(any());
 
@@ -78,6 +108,17 @@ class CentralPubkeyLockedMsgServiceTest {
         verify(msgAbstractService).saveMsgAbstract(msg);
         verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
         verify(shutdownService).requestShutdown();
+        assertEquals(
+                List.of(
+                        "transactionTemplate.callback.start",
+                        "repository.save",
+                        "msgAbstractService.saveMsgAbstract",
+                        "transactionTemplate.callback.end",
+                        "blockChainService.generateBlockUntilNoNotInBlockMsgs",
+                        "shutdownService.requestShutdown"
+                ),
+                phases
+        );
     }
 
     @Test
