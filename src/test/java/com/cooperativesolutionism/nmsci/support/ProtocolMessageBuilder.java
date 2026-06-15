@@ -108,6 +108,15 @@ public class ProtocolMessageBuilder {
         return ArrayUtils.addAll(body, signRs(verifyData, flowNode));
     }
 
+    public byte[] centralPubkeyLocked(UUID id, TestKeyPair central) {
+        byte[] verifyData = ArrayUtils.addAll(
+                ByteArrayUtil.shortToBytes(MsgTypeEnum.CentralPubkeyLockedMsg.getValue()),
+                ByteArrayUtil.uuidToBytes(id)
+        );
+        verifyData = ArrayUtils.addAll(verifyData, central.pubkey());
+        return ArrayUtils.addAll(verifyData, signRs(verifyData, central));
+    }
+
     public byte[] withMsgType(byte[] message, short msgType) {
         byte[] copy = message.clone();
         byte[] msgTypeBytes = ByteArrayUtil.shortToBytes(msgType);

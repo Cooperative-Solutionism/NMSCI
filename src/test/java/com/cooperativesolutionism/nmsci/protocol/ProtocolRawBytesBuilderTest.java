@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyEmpowerMsgConverter;
+import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.converter.TransactionMountMsgConverter;
 import com.cooperativesolutionism.nmsci.converter.TransactionRecordMsgConverter;
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
@@ -64,6 +65,19 @@ class ProtocolRawBytesBuilderTest {
         assertArrayEquals(
                 Arrays.copyOfRange(messageBytes, 0, 84),
                 rawBytesBuilder.centralPubkeyEmpowerVerifyData(new CentralPubkeyEmpowerMsgConverter().fromByteArray(messageBytes))
+        );
+    }
+
+    @Test
+    void buildsCentralPubkeyLockedVerifyDataInProtocolFieldOrder() {
+        byte[] messageBytes = messageBuilder.centralPubkeyLocked(
+                UUID.fromString("44444444-4444-4444-4444-444444444444"),
+                TestKeyPairs.CENTRAL
+        );
+
+        assertArrayEquals(
+                Arrays.copyOfRange(messageBytes, 0, 51),
+                rawBytesBuilder.centralPubkeyLockedVerifyData(new CentralPubkeyLockedMsgConverter().fromByteArray(messageBytes))
         );
     }
 

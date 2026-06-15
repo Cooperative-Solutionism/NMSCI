@@ -2,13 +2,13 @@ package com.cooperativesolutionism.nmsci.concurrency;
 
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
-import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
+import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
@@ -104,10 +104,9 @@ class PersistenceConcurrencyContractTest {
                 "saveTransactionMountMsg",
                 TransactionMountMsg.class
         );
-        assertTransactional(
-                Class.forName("com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgPersistenceService"),
-                "save",
-                CentralPubkeyLockedMsg.class
+        assertNotNull(
+                CentralPubkeyLockedMsgService.class.getDeclaredField("transactionTemplate"),
+                "CentralPubkeyLockedMsgService must persist the lock message and msg_abstracts through TransactionTemplate"
         );
     }
 

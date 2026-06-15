@@ -2,7 +2,9 @@ package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyEmpowerMsgConverter;
+import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
@@ -39,6 +41,30 @@ class CentralSignatureServiceTest {
         assertEquals(verifyData.length + msg.getFlowNodeSignature().length + Long.BYTES + 64, msg.getRawBytes().length);
         assertTrue(Secp256k1EncryptUtil.verifySignature(
                 rawBytesBuilder.centralSignData(verifyData, timestamp, msg.getFlowNodeSignature()),
+                msg.getCentralSignature(),
+                Secp256k1EncryptUtil.compressedToPublicKey(TestKeyPairs.CENTRAL.pubkey())
+        ));
+    }
+
+    @Test
+    void signsCentralPubkeyLockedRawBytesInProtocolOrder() throws Exception {
+        CentralPubkeyLockedMsg msg = new CentralPubkeyLockedMsgConverter().fromByteArray(
+                messageBuilder.centralPubkeyLocked(
+                        UUID.fromString("77777777-7777-7777-7777-777777777777"),
+                        TestKeyPairs.CENTRAL
+                )
+        );
+        byte[] verifyData = rawBytesBuilder.centralPubkeyLockedVerifyData(msg);
+        long timestamp = 987654321L;
+
+        centralSignatureService.signAndPopulate(msg, verifyData, timestamp, msg.getCentralSignaturePre());
+
+        assertEquals(timestamp, msg.getConfirmTimestamp());
+        assertEquals(64, msg.getCentralSignature().length);
+        assertEquals(32, msg.getTxid().length);
+        assertEquals(verifyData.length + msg.getCentralSignaturePre().length + Long.BYTES + 64, msg.getRawBytes().length);
+        assertTrue(Secp256k1EncryptUtil.verifySignature(
+                rawBytesBuilder.centralSignData(verifyData, timestamp, msg.getCentralSignaturePre()),
                 msg.getCentralSignature(),
                 Secp256k1EncryptUtil.compressedToPublicKey(TestKeyPairs.CENTRAL.pubkey())
         ));

@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
@@ -16,6 +17,7 @@ public class ProtocolRawBytesBuilder {
     private static final int UUID_BYTES = 16;
     private static final int PUBKEY_BYTES = 33;
     private static final int CENTRAL_PUBKEY_EMPOWER_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + PUBKEY_BYTES + PUBKEY_BYTES;
+    private static final int CENTRAL_PUBKEY_LOCKED_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + PUBKEY_BYTES;
     private static final int FLOW_NODE_LOCKED_VERIFY_DATA_SIZE = CENTRAL_PUBKEY_EMPOWER_VERIFY_DATA_SIZE;
     private static final int FLOW_NODE_REGISTER_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + Integer.BYTES + Integer.BYTES + PUBKEY_BYTES;
     private static final int TRANSACTION_RECORD_VERIFY_DATA_SIZE = Short.BYTES + UUID_BYTES + Long.BYTES + Short.BYTES
@@ -38,6 +40,14 @@ public class ProtocolRawBytesBuilder {
                 .putShort(msg.getMsgType())
                 .put(uuidBytes(msg.getId()))
                 .put(msg.getFlowNodePubkey())
+                .put(msg.getCentralPubkey())
+                .array();
+    }
+
+    public byte[] centralPubkeyLockedVerifyData(CentralPubkeyLockedMsg msg) {
+        return ByteBuffer.allocate(CENTRAL_PUBKEY_LOCKED_VERIFY_DATA_SIZE)
+                .putShort(msg.getMsgType())
+                .put(uuidBytes(msg.getId()))
                 .put(msg.getCentralPubkey())
                 .array();
     }
