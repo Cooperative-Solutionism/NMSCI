@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.validation.ValidationAutoConfigura
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
+import java.util.Base64;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 class NmsciPropertiesValidationTest {
@@ -36,6 +38,20 @@ class NmsciPropertiesValidationTest {
     void failsFastWhenCentralPubkeyDoesNotMatchPrikey() {
         contextRunner
                 .withPropertyValues("nmsci.central-key-pair.pubkey=" + TestKeyPairs.FLOW_NODE_A.pubkeyBase64())
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
+    void failsFastWhenCentralPubkeyPrefixIsInvalid() {
+        String invalidPubkey = pubkeyBase64WithPrefix((byte) 0x04);
+        NmsciProperties.CentralKeyPair keyPair = new NmsciProperties.CentralKeyPair();
+        keyPair.setPubkey(invalidPubkey);
+        keyPair.setPrikey(TestKeyPairs.CENTRAL.prikeyBase64());
+
+        assertThat(keyPair.isPubkeyValid()).isFalse();
+        assertThat(keyPair.isKeyPairMatched()).isTrue();
+        contextRunner
+                .withPropertyValues("nmsci.central-key-pair.pubkey=" + invalidPubkey)
                 .run(context -> assertThat(context).hasFailed());
     }
 
@@ -89,6 +105,12 @@ class NmsciPropertiesValidationTest {
                 "nmsci.file-source-code-dir=source-code",
                 "nmsci.source-code-zip-hash=0000000000000000000000000000000000000000000000000000000000000000"
         };
+    }
+
+    private static String pubkeyBase64WithPrefix(byte prefix) {
+        byte[] pubkey = Base64.getDecoder().decode(TestKeyPairs.CENTRAL.pubkeyBase64());
+        pubkey[0] = prefix;
+        return Base64.getEncoder().encodeToString(pubkey);
     }
 
     @EnableConfigurationProperties(NmsciProperties.class)

@@ -206,7 +206,9 @@ public class NmsciProperties {
         public boolean isKeyPairMatched() {
             byte[] decodedPubkey = decodeBase64(pubkey);
             byte[] decodedPrikey = decodeBase64(prikey);
-            if (decodedPubkey == null || decodedPubkey.length != 33 || decodedPrikey == null || decodedPrikey.length != 32) {
+            if (decodedPubkey == null || decodedPubkey.length != 33
+                    || (decodedPubkey[0] != 0x02 && decodedPubkey[0] != 0x03)
+                    || decodedPrikey == null || decodedPrikey.length != 32) {
                 return true;
             }
             try {
