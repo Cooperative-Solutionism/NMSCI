@@ -21,7 +21,7 @@ public class SystemStatusDTO {
     private long blockIntervalMs;
 
     /**
-     * 当前中心公钥是否已被冻结。运行期通常为 false——中心公钥冻结确认后程序即退出（System.exit），
+     * 当前中心公钥是否已被冻结。运行期通常为 false——中心公钥冻结确认后会补齐待入块消息并请求优雅停机，
      * 故该字段更多用于历史/契约完整性。
      */
     private boolean currentCentralPubkeyLocked;

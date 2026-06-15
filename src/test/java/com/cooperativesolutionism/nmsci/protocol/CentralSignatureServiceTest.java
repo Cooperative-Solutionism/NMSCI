@@ -10,8 +10,10 @@ import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import org.junit.jupiter.api.Test;
 
+import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -63,6 +65,15 @@ class CentralSignatureServiceTest {
         assertEquals(64, msg.getCentralSignature().length);
         assertEquals(32, msg.getTxid().length);
         assertEquals(verifyData.length + msg.getCentralSignaturePre().length + Long.BYTES + 64, msg.getRawBytes().length);
+        assertArrayEquals(
+                ByteBuffer.allocate(verifyData.length + msg.getCentralSignaturePre().length + Long.BYTES + msg.getCentralSignature().length)
+                        .put(verifyData)
+                        .put(msg.getCentralSignaturePre())
+                        .putLong(timestamp)
+                        .put(msg.getCentralSignature())
+                        .array(),
+                msg.getRawBytes()
+        );
         assertTrue(Secp256k1EncryptUtil.verifySignature(
                 rawBytesBuilder.centralSignData(verifyData, timestamp, msg.getCentralSignaturePre()),
                 msg.getCentralSignature(),

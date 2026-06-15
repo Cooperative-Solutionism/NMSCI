@@ -412,7 +412,7 @@ src/main/java/com/cooperativesolutionism/nmsci
 ├── repository         Spring Data Repository
 ├── response           统一响应封装
 ├── serializer         自定义 Jackson 序列化器
-├── service            业务服务、持久化编排助手、查询编排
+├── service            业务服务、事务编排、查询编排
 ├── task               定时任务
 ├── util               字节、哈希、签名、PoW 等工具与加密原语
 └── validator          协议参数约束校验器（@ByteArraySize 实现）
@@ -421,7 +421,7 @@ src/main/java/com/cooperativesolutionism/nmsci
 包边界约定：
 
 - `consume` 持有消费链限界上下文的领域逻辑与其事务持久化；面向 HTTP 的编排入口 `ConsumeChain*Service` 放在 `service`。
-- 持久化编排助手统一命名 `{实体}PersistenceService`，与其所属业务/领域同包（如 `CentralPubkeyLockedMsgPersistenceService` 在 `service`，`ConsumeChainPersistenceService` 在 `consume`）。
+- 需要独立复用的持久化编排助手统一命名 `{实体}PersistenceService`，与其所属业务/领域同包（如 `ConsumeChainPersistenceService` 在 `consume`）。中心公钥冻结流程由 `CentralPubkeyLockedMsgService` 直接通过 `TransactionTemplate` 持久化冻结消息与 `msg_abstracts`，随后再触发区块补齐与优雅停机请求。
 - `protocol` 仅放无状态的协议校验与编解码，加密实现一律在 `util`。
 - `buildtool` 是构建期工具，有意保留在源码树内，以保链上源码归档可自校验。
 
