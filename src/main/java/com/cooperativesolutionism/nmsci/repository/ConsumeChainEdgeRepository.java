@@ -35,7 +35,7 @@ public interface ConsumeChainEdgeRepository extends JpaRepository<ConsumeChainEd
                     AND c.target = :target
                     AND c.currency_type = :currencyType
                     AND c.related_transaction_mount_timestamp BETWEEN :startTime AND :endTime
-                ORDER BY c.chain, c.related_transaction_mount_timestamp
+                ORDER BY c.chain, c.related_transaction_mount_timestamp, c.id
             ) d
             ORDER BY d.related_transaction_mount_timestamp DESC, d.id DESC
             LIMIT :limit OFFSET :offset
@@ -92,7 +92,7 @@ public interface ConsumeChainEdgeRepository extends JpaRepository<ConsumeChainEd
                 WHERE c.target = :target
                     AND c.currency_type = :currencyType
                     AND c.related_transaction_mount_timestamp BETWEEN :startTime AND :endTime
-                ORDER BY c.chain, c.related_transaction_mount_timestamp
+                ORDER BY c.chain, c.related_transaction_mount_timestamp, c.id
             ) d
             ORDER BY d.related_transaction_mount_timestamp DESC, d.id DESC
             LIMIT :limit OFFSET :offset

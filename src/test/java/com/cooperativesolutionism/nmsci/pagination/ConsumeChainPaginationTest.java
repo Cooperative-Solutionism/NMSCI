@@ -4,12 +4,14 @@ import com.cooperativesolutionism.nmsci.controller.ConsumeChainController;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
+import org.springframework.data.jpa.repository.Query;
 
 import java.lang.reflect.Method;
 import java.util.UUID;
@@ -67,6 +69,18 @@ class ConsumeChainPaginationTest {
         assertControllerMethodAbsent("getConsumeChainByPubkey", String.class, String.class, String.class, Boolean.class, int.class, int.class);
     }
 
+    @Test
+    void edgeNativeQueriesUseStableDistinctOnTieBreaker() throws NoSuchMethodException {
+        assertStableEdgeDistinctOnOrder(
+                "findConsumeChainEdges",
+                UUID.class, UUID.class, short.class, Long.class, Long.class, int.class, long.class
+        );
+        assertStableEdgeDistinctOnOrder(
+                "findConsumeChainEdgesByTarget",
+                UUID.class, short.class, Long.class, Long.class, int.class, long.class
+        );
+    }
+
     private void assertSliceMethod(Class<?> type, String name, Class<?>... parameterTypes) throws NoSuchMethodException {
         Method method = type.getMethod(name, parameterTypes);
 
@@ -83,5 +97,11 @@ class ConsumeChainPaginationTest {
 
     private void assertControllerMethodAbsent(String name, Class<?>... parameterTypes) {
         assertThrows(NoSuchMethodException.class, () -> ConsumeChainController.class.getMethod(name, parameterTypes));
+    }
+
+    private void assertStableEdgeDistinctOnOrder(String name, Class<?>... parameterTypes) throws NoSuchMethodException {
+        Query query = ConsumeChainEdgeRepository.class.getMethod(name, parameterTypes).getAnnotation(Query.class);
+
+        assertTrue(query.value().contains("ORDER BY c.chain, c.related_transaction_mount_timestamp, c.id"));
     }
 }
