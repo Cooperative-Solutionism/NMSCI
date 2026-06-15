@@ -63,6 +63,9 @@ public class FlowNodeRegisterMsgService {
         }
 
         BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
+        if (newestBlockInfo == null) {
+            throw new ConflictException("区块链尚未初始化，无法注册流转节点");
+        }
         int registerDifficultyTargetNbits = newestBlockInfo.getRegisterDifficultyTarget();
         if (!flowNodeRegisterMsg.getRegisterDifficultyTarget().equals(registerDifficultyTargetNbits)) {
             throw new IllegalArgumentException("注册难度目标与前区块中的注册难度目标不一致");

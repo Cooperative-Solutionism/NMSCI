@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -20,8 +22,12 @@ public class BlockDifficultyService {
     }
 
     public int currentTransactionDifficultyTarget() {
-        return transactionDifficultyLookupTimer.record(() ->
-                blockInfoRepository.findTopByOrderByHeightDesc().getTransactionDifficultyTarget()
-        );
+        return transactionDifficultyLookupTimer.record(() -> {
+            BlockInfo latestBlock = blockInfoRepository.findTopByOrderByHeightDesc();
+            if (latestBlock == null) {
+                throw new ConflictException("区块链尚未初始化，无法读取交易难度目标");
+            }
+            return latestBlock.getTransactionDifficultyTarget();
+        });
     }
 }
