@@ -96,7 +96,7 @@
 | `byte[]`（公钥、签名、哈希等） | hex 字符串（**无 `0x` 前缀**，小写） | `BytesToHexSerializer` | `"02a1b2…"` |
 | `Integer`（难度 nbits） | hex 字符串（含 `0x`） | `IntToHexSerializer` | `"0x1d00ffff"` |
 | 实体引用（如 `ConsumeChain.start`、`ConsumeChainEdge.source`） | 仅 UUID 字符串 | `IdentifiableToStringSerializer` | `"7c9e…-…"` |
-| `rawBytes`（原始字节缓存） | **不输出**（`@JsonIgnore`） | — | — |
+| `rawBytes`（普通消息原始字节缓存） | 输出（hex） | `BytesToHexSerializer` | 普通消息 rawBytes 长度有限，作为协议调试与追溯字段保留输出。 |
 | `UUID`（如消息 `id`、`mountedTransactionRecordId`） | 标准 UUID 字符串 | 默认 | `"7c9e6679-…"` |
 
 ### 1.5 时间戳与时间区间
@@ -377,7 +377,8 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
         "flowNodeSignature": "…",
         "confirmTimestamp": 1718352000000000,
         "centralSignature": "…",
-        "txid": "9f86d0…"
+        "txid": "9f86d0…",
+        "rawBytes": "0004…"
       }
     ],
     "page": 0, "size": 20, "numberOfElements": 1, "hasNext": false, "hasPrevious": false
@@ -423,7 +424,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
 | `sourceCodeZipFilepath` | String | 源码包文件名 |
 
 ### 10.2 协议消息实体（共有约定）
-所有消息实体：`id`(UUID)、`msgType`(数值类型码)、各公钥/签名为 hex、`txid`(hex)、`rawBytes` 不输出；可中心签名类型含 `confirmTimestamp`(微秒) 与 `centralSignature`(hex)。各类型专有字段：
+所有消息实体：`id`(UUID)、`msgType`(数值类型码)、各公钥/签名为 hex、`txid`(hex)、`rawBytes`(hex)；可中心签名类型含 `confirmTimestamp`(微秒) 与 `centralSignature`(hex)。各类型专有字段：
 
 - **FlowNodeRegisterMsg**（0x0000）：`registerDifficultyTarget`(hex)、`nonce`(int)、`flowNodePubkey`、`flowNodeSignature`。无 `confirmTimestamp`/`centralSignature`。
 - **CentralPubkeyEmpowerMsg**（0x0001）：`flowNodePubkey`、`centralPubkey`、`flowNodeSignature`。

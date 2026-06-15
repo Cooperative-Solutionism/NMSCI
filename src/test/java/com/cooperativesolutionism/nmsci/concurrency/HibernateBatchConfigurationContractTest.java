@@ -18,4 +18,13 @@ class HibernateBatchConfigurationContractTest {
         assertTrue(applicationProperties.contains("spring.jpa.properties.hibernate.order_inserts=true"));
         assertTrue(applicationProperties.contains("spring.jpa.properties.hibernate.order_updates=true"));
     }
+
+    @Test
+    void applicationPropertiesEnableMigrationValidationAndGracefulShutdown() throws IOException {
+        String applicationProperties = Files.readString(Path.of("src/main/resources/application.properties"));
+
+        assertTrue(applicationProperties.contains("spring.flyway.baseline-version=0"));
+        assertTrue(applicationProperties.contains("spring.jpa.hibernate.ddl-auto=validate"));
+        assertTrue(applicationProperties.contains("server.shutdown=graceful"));
+    }
 }
