@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.config.properties;
 
+import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
@@ -10,6 +11,7 @@ import jakarta.validation.constraints.Positive;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.Arrays;
 import java.util.Base64;
 
 @Validated
@@ -198,6 +200,20 @@ public class NmsciProperties {
         public boolean isPrikeyValid() {
             byte[] decoded = decodeBase64(prikey);
             return decoded != null && decoded.length == 32;
+        }
+
+        @AssertTrue(message = "central-key-pair.pubkey与central-key-pair.prikey不匹配")
+        public boolean isKeyPairMatched() {
+            byte[] decodedPubkey = decodeBase64(pubkey);
+            byte[] decodedPrikey = decodeBase64(prikey);
+            if (decodedPubkey == null || decodedPubkey.length != 33 || decodedPrikey == null || decodedPrikey.length != 32) {
+                return true;
+            }
+            try {
+                return Arrays.equals(decodedPubkey, Secp256k1EncryptUtil.rawToECKey(decodedPrikey).getPubKey());
+            } catch (RuntimeException ex) {
+                return false;
+            }
         }
 
         private static byte[] decodeBase64(String value) {

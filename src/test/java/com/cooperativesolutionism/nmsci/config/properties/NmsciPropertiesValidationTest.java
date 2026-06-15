@@ -33,6 +33,13 @@ class NmsciPropertiesValidationTest {
     }
 
     @Test
+    void failsFastWhenCentralPubkeyDoesNotMatchPrikey() {
+        contextRunner
+                .withPropertyValues("nmsci.central-key-pair.pubkey=" + TestKeyPairs.FLOW_NODE_A.pubkeyBase64())
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
     void failsFastWhenSourceCodeHashIsInvalid() {
         contextRunner
                 .withPropertyValues("nmsci.source-code-zip-hash=bad")
