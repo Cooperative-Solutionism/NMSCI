@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.service;
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
 import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
@@ -106,7 +107,7 @@ public class CentralPubkeyLockedMsgService {
     }
     public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
         return findCentralPubkeyLockedMsgByCentralPubkey(centralPubkey)
-                .orElseThrow(() -> new IllegalArgumentException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结"));
+                .orElseThrow(() -> new NotFoundException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结"));
     }
     public Optional<CentralPubkeyLockedMsg> findCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
         if (centralPubkey == null || centralPubkey.length != 33) {

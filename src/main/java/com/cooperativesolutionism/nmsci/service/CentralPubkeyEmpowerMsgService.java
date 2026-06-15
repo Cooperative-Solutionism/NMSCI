@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
@@ -87,11 +88,12 @@ public class CentralPubkeyEmpowerMsgService {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
-        if (!centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(flowNodePubkey)) {
-            throw new IllegalArgumentException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未授权");
+        CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg = centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+        if (centralPubkeyEmpowerMsg == null) {
+            throw new NotFoundException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未授权");
         }
 
-        return centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
+        return centralPubkeyEmpowerMsg;
     }
     @Transactional(readOnly = true)
     public Slice<CentralPubkeyEmpowerMsg> listCentralPubkeyEmpowerMsgs(byte[] flowNodePubkey, Pageable pageable) {
