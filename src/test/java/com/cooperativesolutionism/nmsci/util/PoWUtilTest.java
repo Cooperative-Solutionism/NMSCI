@@ -27,6 +27,9 @@ class PoWUtilTest {
     @Test
     void rejectsInvalidInputs() {
         assertThrows(IllegalArgumentException.class, () -> PoWUtil.calculateTargetFromNBits(new byte[3]));
+        assertThrows(IllegalArgumentException.class, () -> PoWUtil.calculateTargetFromNBits(ByteArrayUtil.hexToBytes("02ffffff")));
+        assertThrows(IllegalArgumentException.class, () -> PoWUtil.calculateTargetFromNBits(ByteArrayUtil.hexToBytes("21ffffff")));
+        assertThrows(IllegalArgumentException.class, () -> PoWUtil.calculateTargetFromNBits(ByteArrayUtil.hexToBytes("20000000")));
         assertThrows(IllegalArgumentException.class, () -> PoWUtil.calculateNBitsFromTarget(BigInteger.ZERO));
     }
 }

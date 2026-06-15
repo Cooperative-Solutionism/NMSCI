@@ -9,6 +9,9 @@ import java.io.IOException;
 public class SignatureValidator {
 
     public void validateLowS(byte[] signature, String errorMessage) {
+        if (signature == null || signature.length != 64) {
+            throw new IllegalArgumentException("签名必须为64字节RS格式");
+        }
         try {
             if (Secp256k1EncryptUtil.isNotLowS(signature)) {
                 throw new IllegalArgumentException(errorMessage);

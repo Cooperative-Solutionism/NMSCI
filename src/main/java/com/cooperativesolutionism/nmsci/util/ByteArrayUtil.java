@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.util;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.UUID;
 
 public class ByteArrayUtil {
@@ -190,11 +191,10 @@ public class ByteArrayUtil {
      * @return 十六进制字符串表示
      */
     public static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            hexString.append(String.format("%02x", b));
+        if (bytes == null) {
+            throw new IllegalArgumentException("字节数组不能为空");
         }
-        return hexString.toString();
+        return HexFormat.of().formatHex(bytes);
     }
 
     /**

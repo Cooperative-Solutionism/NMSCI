@@ -32,6 +32,22 @@ class ByteArrayUtilTest {
     }
 
     @Test
+    void convertsBytesToLowercaseHexWithJdkHexFormat() {
+        assertEquals("000fabff", ByteArrayUtil.bytesToHex(new byte[]{0x00, 0x0f, (byte) 0xab, (byte) 0xff}));
+        assertEquals("", ByteArrayUtil.bytesToHex(new byte[0]));
+    }
+
+    @Test
+    void rejectsNullWhenConvertingBytesToHex() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> ByteArrayUtil.bytesToHex(null)
+        );
+
+        assertEquals("字节数组不能为空", exception.getMessage());
+    }
+
+    @Test
     void rejectsNonHexCharactersWhenConvertingHexToBytes() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,

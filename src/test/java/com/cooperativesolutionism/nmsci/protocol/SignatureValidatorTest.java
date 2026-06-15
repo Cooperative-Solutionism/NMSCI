@@ -47,6 +47,16 @@ class SignatureValidatorTest {
         assertEquals("signature failed", exception.getMessage());
     }
 
+    @Test
+    void rejectsLowSValidationWhenSignatureIsNotRs64Bytes() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> signatureValidator.validateLowS(new byte[63], "签名不符合低S标准")
+        );
+
+        assertEquals("签名必须为64字节RS格式", exception.getMessage());
+    }
+
     private CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg() {
         return new CentralPubkeyEmpowerMsgConverter().fromByteArray(
                 messageBuilder.centralPubkeyEmpower(
