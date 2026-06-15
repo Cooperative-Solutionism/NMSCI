@@ -7,6 +7,7 @@ target/
 /src/main/resources/static/source_code_*.zip
 temp/
 logs/
+.worktrees/
 
 ### STS ###
 .apt_generated
