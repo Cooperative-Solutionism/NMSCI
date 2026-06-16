@@ -12,14 +12,17 @@ import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPair;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.jayway.jsonpath.JsonPath;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -214,6 +217,55 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(jsonPath("$.data.numberOfElements").value(1))
                 .andExpect(jsonPath("$.data.hasNext").value(false))
                 .andExpect(jsonPath("$.data.hasPrevious").value(false));
+    }
+
+    @Test
+    void queryConsumeChainEdgesReportsHasNextForOneItemPage() throws Exception {
+        UUID flowNodeId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        UUID empowerId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        UUID firstRecordId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        UUID firstMountId = UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd");
+        UUID secondRecordId = UUID.fromString("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+        UUID secondMountId = UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+
+        sendFlowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A);
+        sendCentralPubkeyEmpower(empowerId, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionRecord(firstRecordId, 1200L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionMount(firstMountId, firstRecordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionRecord(secondRecordId, 800L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+        sendTransactionMount(secondMountId, secondRecordId, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A);
+
+        MvcResult firstPage = mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey()))
+                        .param("page", "0")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].id").exists())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(true))
+                .andExpect(jsonPath("$.data.hasPrevious").value(false))
+                .andReturn();
+
+        MvcResult secondPage = mockMvc.perform(get("/consume-chains/edges")
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey()))
+                        .param("page", "1")
+                        .param("size", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data.content[0].id").exists())
+                .andExpect(jsonPath("$.data.page").value(1))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.numberOfElements").value(1))
+                .andExpect(jsonPath("$.data.hasNext").value(false))
+                .andExpect(jsonPath("$.data.hasPrevious").value(true))
+                .andReturn();
+
+        String firstEdgeId = JsonPath.read(firstPage.getResponse().getContentAsString(), "$.data.content[0].id");
+        String secondEdgeId = JsonPath.read(secondPage.getResponse().getContentAsString(), "$.data.content[0].id");
+        assertNotEquals(firstEdgeId, secondEdgeId);
     }
 
     @Test

@@ -183,6 +183,24 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void rejectsConsumeChainEdgesWhenSourcePubkeyIsNotRegistered() throws Exception {
+        UUID targetId = UUID.fromString("cccccccc-cccc-cccc-cccc-cccccccccccc");
+        mockMvc.perform(post("/flow-node-registrations")
+                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .content(builder.flowNodeRegister(targetId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200));
+
+        mockMvc.perform(get("/consume-chains/edges")
+                        .param("sourcePubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey()))
+                        .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(404))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("源流转节点公钥")))
+                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+    }
+
+    @Test
     void rejectsConsumeChainEdgesWhenTargetPubkeyHasWrongLength() throws Exception {
         mockMvc.perform(get("/consume-chains/edges")
                         .param("targetPubkey", "00"))

@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -65,6 +66,21 @@ class ConsumeChainQueryServiceTest {
 
         assertEquals(1, result.getNumberOfElements());
         verify(repository).findConsumeChainEdges(sourceId, targetId, (short) 1, 100L, 200L, 3, 2L);
+    }
+
+    @Test
+    void edgeQueryLimitFailsFastWhenPageSizeWouldOverflowExtraRow() {
+        UUID targetId = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        ConsumeChainQueryService service = new ConsumeChainQueryService();
+
+        assertThrows(ArithmeticException.class, () -> service.getConsumeChainEdgesById(
+                null,
+                targetId,
+                (short) 1,
+                0L,
+                Long.MAX_VALUE,
+                PageRequest.of(0, Integer.MAX_VALUE, EDGE_SORT)
+        ));
     }
 
     private ConsumeChainEdge edge(String id) {

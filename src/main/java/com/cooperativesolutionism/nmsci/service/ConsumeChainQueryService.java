@@ -296,7 +296,7 @@ public class ConsumeChainQueryService {
             throw new IllegalArgumentException("targetId 不能为空");
         }
 
-        int limit = pageable.getPageSize() + 1;
+        int limit = edgeQueryLimit(pageable);
         long offset = pageable.getOffset();
         List<ConsumeChainEdge> edges;
         if (sourceId == null) {
@@ -335,6 +335,10 @@ public class ConsumeChainQueryService {
         boolean hasNext = edges.size() > pageSize;
         List<ConsumeChainEdge> content = hasNext ? edges.subList(0, pageSize) : edges;
         return new SliceImpl<>(List.copyOf(content), pageable, hasNext);
+    }
+
+    private int edgeQueryLimit(Pageable pageable) {
+        return Math.addExact(pageable.getPageSize(), 1);
     }
 
     private int countProvided(Object... values) {

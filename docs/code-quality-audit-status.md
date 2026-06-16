@@ -4,7 +4,7 @@
 - **核验基线**：本清单提交所在 HEAD（工作树干净）；本轮消费链接口契约修复包含 `e9d5f7e`、`7f60626`、`a3d9bcd`、`e749633` 及后续文档校正提交。
 - **审计来源**：多智能体并行审计（11 维度 / 100 条保留发现 / 6 条对抗验证证伪）
 - **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），范围定为「快赢 + 唯一 High 止血」
-- **验证手段**：逐条比对当前已提交代码 + targeted surefire（9 tests）+ targeted failsafe `verify`（27 tests）+ full `mvnw test`（147 tests）+ full `mvnw verify`（surefire 147 + failsafe 32 tests），全绿。
+- **验证手段**：逐条比对当前已提交代码 + targeted surefire（10 tests）+ targeted failsafe `verify`（29 tests）+ full `mvnw test`（148 tests）+ full `mvnw verify`（surefire 148 + failsafe 34 tests），全绿。
 
 ## 图例
 
@@ -26,8 +26,8 @@
 | 综合评分（审计时） | 约 65 / 100 |
 | 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 13 + 多个 Low/Info |
 | 本轮有意延后 | 大型重构、源码哈希兜底、并发测试、Secp256k1 原语负路径、多数 Low/Info |
-| 单元测试 | ✅ 通过（surefire / mvnw test，147 tests） |
-| 集成测试 | ✅ 通过（failsafe / mvnw verify，32 tests） |
+| 单元测试 | ✅ 通过（surefire / mvnw test，148 tests） |
+| 集成测试 | ✅ 通过（failsafe / mvnw verify，34 tests） |
 
 **维度评分卡（审计时基线，供下一轮对比）：** Correctness 7 · Concurrency 6 · Security 7 · Persistence 6 · Performance 7 · Architecture 6 · Maintainability 6 · Error Handling 6 · API/REST 7 · Test 6 · Config/Build/Ops 7。
 
@@ -132,10 +132,10 @@
 
 ## 6. 验证记录与待办
 
-- ✅ targeted surefire 通过：`ConsumeChainPaginationTest`、`ConsumeChainQueryServiceTest`、`ProtocolNotFoundSemanticsTest` 共 9 tests passed。
-- ✅ targeted failsafe verify 通过：`ProtocolLifecycleIntegrationTest`、`ProtocolErrorIntegrationTest` 共 27 integration tests passed。
-- ✅ full `mvnw test`（surefire 单元测试）通过：147 tests passed；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、冻结流程停机与事务边界。
-- ✅ full **`mvnw verify`（failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 147 个、failsafe 32 个用例通过。
+- ✅ targeted surefire 通过：`ConsumeChainPaginationTest`、`ConsumeChainQueryServiceTest`、`ProtocolNotFoundSemanticsTest` 共 10 tests passed。
+- ✅ targeted failsafe verify 通过：`ProtocolLifecycleIntegrationTest`、`ProtocolErrorIntegrationTest` 共 29 integration tests passed。
+- ✅ full `mvnw test`（surefire 单元测试）通过：148 tests passed；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、冻结流程停机与事务边界。
+- ✅ full **`mvnw verify`（failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 148 个、failsafe 34 个用例通过。
 
 ---
 
