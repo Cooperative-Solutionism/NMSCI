@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
@@ -159,6 +160,36 @@ class CalcSourceCodeZipHashContractTest {
     }
 
     @Test
+    void zipRejectsTrackedFilesUnderSymbolicLinkDirectoriesBeforeCreatingArchive(
+            @TempDir Path projectDir,
+            @TempDir Path externalDir
+    ) throws Exception {
+        assumeTrue(canCreateDirectorySymlink(projectDir), "directory symbolic links are not supported or permitted");
+
+        initGitRepo(projectDir);
+        git(projectDir, "config", "core.symlinks", "true");
+        Path trackedFile = projectDir.resolve("src/main/java/com/example/App.java");
+        writeFile(trackedFile, "class App { String source = \"repo\"; }");
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "initial");
+
+        Path exampleDir = projectDir.resolve("src/main/java/com/example");
+        deleteRecursively(exampleDir);
+        Path externalExampleDir = externalDir.resolve("example");
+        writeFile(externalExampleDir.resolve("App.java"), "class App { String source = \"outside\"; }");
+        Files.createSymbolicLink(exampleDir, externalExampleDir);
+
+        Path zip = projectDir.resolve("target/out.zip");
+        IOException exception = assertThrows(
+                IOException.class,
+                () -> CalcSourceCodeZipHash.zipTrackedFiles(projectDir, CalcSourceCodeZipHash.trackedFiles(projectDir), zip)
+        );
+
+        assertTrue(exception.getMessage().contains("symbolic link"));
+        assertFalse(Files.exists(zip));
+    }
+
+    @Test
     void runGeneratesSourceZipAndWritesHashIntoTargetProperties(@TempDir Path projectDir) throws Exception {
         initGitRepo(projectDir);
         writeFile(projectDir.resolve("pom.xml"), "<project/>");
@@ -230,6 +261,35 @@ class CalcSourceCodeZipHashContractTest {
         } finally {
             Files.deleteIfExists(link);
             Files.deleteIfExists(target);
+        }
+    }
+
+    private static boolean canCreateDirectorySymlink(Path projectDir) throws IOException {
+        Files.createDirectories(projectDir);
+        Path target = Files.createTempDirectory("nmsci-symlink-target-dir");
+        Path link = projectDir.resolve("symlink-dir-check");
+        try {
+            Files.createSymbolicLink(link, target);
+            return Files.isSymbolicLink(link);
+        } catch (UnsupportedOperationException | IOException | SecurityException e) {
+            return false;
+        } finally {
+            Files.deleteIfExists(link);
+            Files.deleteIfExists(target);
+        }
+    }
+
+    private static void deleteRecursively(Path path) throws IOException {
+        if (!Files.exists(path)) {
+            return;
+        }
+        try (Stream<Path> paths = Files.walk(path)) {
+            List<Path> pathsToDelete = paths
+                    .sorted(Comparator.reverseOrder())
+                    .toList();
+            for (Path pathToDelete : pathsToDelete) {
+                Files.delete(pathToDelete);
+            }
         }
     }
 

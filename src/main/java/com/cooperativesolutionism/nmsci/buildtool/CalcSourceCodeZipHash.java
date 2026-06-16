@@ -129,34 +129,63 @@ public class CalcSourceCodeZipHash {
     public static void zipTrackedFiles(Path root, List<Path> trackedFiles, Path zipFilePath) throws IOException {
         Path normalizedRoot = root.toAbsolutePath().normalize();
         Path normalizedZipPath = zipFilePath.toAbsolutePath().normalize();
+        List<Path> sortedFiles = validatedZipSources(normalizedRoot, trackedFiles);
+
         if (normalizedZipPath.getParent() != null) {
             Files.createDirectories(normalizedZipPath.getParent());
         }
 
-        List<Path> sortedFiles = trackedFiles.stream()
-                .filter(CalcSourceCodeZipHash::shouldIncludeTrackedFile)
-                .sorted(Comparator.comparing(CalcSourceCodeZipHash::toEntryName))
-                .toList();
-
         try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(normalizedZipPath)))) {
             for (Path relativePath : sortedFiles) {
                 Path source = normalizedRoot.resolve(relativePath).normalize();
-                if (!source.startsWith(normalizedRoot)) {
-                    throw new IOException("tracked path escapes source root: " + relativePath);
-                }
-                if (Files.isSymbolicLink(source)) {
-                    throw new IOException("tracked file is a symbolic link: " + relativePath);
-                }
-                if (!Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
-                    throw new IOException("tracked file is missing or not a regular file: " + relativePath);
-                }
-
                 ZipEntry zipEntry = new ZipEntry(toEntryName(relativePath));
                 zipEntry.setTime(1L);
                 zos.putNextEntry(zipEntry);
                 Files.copy(source, zos);
                 zos.closeEntry();
             }
+        }
+    }
+
+    private static List<Path> validatedZipSources(Path normalizedRoot, List<Path> trackedFiles) throws IOException {
+        List<Path> sortedFiles = trackedFiles.stream()
+                .filter(CalcSourceCodeZipHash::shouldIncludeTrackedFile)
+                .sorted(Comparator.comparing(CalcSourceCodeZipHash::toEntryName))
+                .toList();
+
+        for (Path relativePath : sortedFiles) {
+            Path source = normalizedRoot.resolve(relativePath).normalize();
+            validateTrackedSource(normalizedRoot, relativePath, source);
+        }
+        return sortedFiles;
+    }
+
+    private static void validateTrackedSource(Path normalizedRoot, Path relativePath, Path source) throws IOException {
+        if (!source.startsWith(normalizedRoot)) {
+            throw new IOException("tracked path escapes source root: " + relativePath);
+        }
+        assertNoSymbolicLinkInPath(normalizedRoot, relativePath);
+        if (Files.isSymbolicLink(source)) {
+            throw new IOException("tracked file is a symbolic link: " + relativePath);
+        }
+        if (!Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
+            throw new IOException("tracked file is missing or not a regular file: " + relativePath);
+        }
+    }
+
+    private static void assertNoSymbolicLinkInPath(Path normalizedRoot, Path relativePath) throws IOException {
+        Path current = normalizedRoot;
+        int segmentIndex = 0;
+        int fileNameIndex = relativePath.getNameCount() - 1;
+        for (Path segment : relativePath) {
+            if (segmentIndex == fileNameIndex) {
+                return;
+            }
+            current = current.resolve(segment).normalize();
+            if (Files.isSymbolicLink(current)) {
+                throw new IOException("tracked path contains symbolic link: " + relativePath);
+            }
+            segmentIndex++;
         }
     }
 
