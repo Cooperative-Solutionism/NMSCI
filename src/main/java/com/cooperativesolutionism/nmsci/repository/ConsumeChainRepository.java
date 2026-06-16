@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.repository;
 
+import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
@@ -53,42 +54,56 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     @Query("select c from ConsumeChain c where c.id in (select e.chain.id from ConsumeChainEdge e where e.relatedTransactionMount = :relatedTransactionMount)")
     Slice<ConsumeChain> findDistinctByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount, Pageable pageable);
 
-    Slice<ConsumeChain> findByStart(FlowNodeRegisterMsg start, Pageable pageable);
-
-    Slice<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop, Pageable pageable);
-
-    Slice<ConsumeChain> findByEnd(FlowNodeRegisterMsg end, Pageable pageable);
-
-    Slice<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop, Pageable pageable);
-
     @Query("""
-            select c
+            select distinct c
             from ConsumeChain c
-            where c.start = :node
-                or c.end = :node
-                or exists (
-                    select 1
-                    from ConsumeChainEdge e
-                    where e.chain = c
-                        and (e.source = :node or e.target = :node)
-                )
-            """)
-    Slice<ConsumeChain> findDistinctByNode(FlowNodeRegisterMsg node, Pageable pageable);
-
-    @Query("""
-            select c
-            from ConsumeChain c
-            where c.isLoop = :isLoop
+            where (:isLoop is null or c.isLoop = :isLoop)
                 and (
-                    c.start = :node
-                    or c.end = :node
-                    or exists (
-                        select 1
-                        from ConsumeChainEdge e
-                        where e.chain = c
-                            and (e.source = :node or e.target = :node)
-                    )
+                    (:#{#filter.name()} = 'START'
+                        and c.start = :node)
+                    or (:#{#filter.name()} = 'END'
+                        and c.end = :node)
+                    or (:#{#filter.name()} = 'NODE'
+                        and (
+                            c.start = :node
+                            or c.end = :node
+                            or exists (
+                                select 1
+                                from ConsumeChainEdge e
+                                where e.chain = c
+                                    and (e.source = :node or e.target = :node)
+                            )
+                        ))
                 )
             """)
-    Slice<ConsumeChain> findDistinctByNodeAndIsLoop(FlowNodeRegisterMsg node, Boolean isLoop, Pageable pageable);
+    Slice<ConsumeChain> findByNodeFilter(
+            @Param("filter") ConsumeChainNodeFilter filter,
+            @Param("node") FlowNodeRegisterMsg node,
+            @Param("isLoop") Boolean isLoop,
+            Pageable pageable
+    );
+
+    default Slice<ConsumeChain> findByStart(FlowNodeRegisterMsg start, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.START, start, null, pageable);
+    }
+
+    default Slice<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.START, start, isLoop, pageable);
+    }
+
+    default Slice<ConsumeChain> findByEnd(FlowNodeRegisterMsg end, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.END, end, null, pageable);
+    }
+
+    default Slice<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.END, end, isLoop, pageable);
+    }
+
+    default Slice<ConsumeChain> findDistinctByNode(FlowNodeRegisterMsg node, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.NODE, node, null, pageable);
+    }
+
+    default Slice<ConsumeChain> findDistinctByNodeAndIsLoop(FlowNodeRegisterMsg node, Boolean isLoop, Pageable pageable) {
+        return findByNodeFilter(ConsumeChainNodeFilter.NODE, node, isLoop, pageable);
+    }
 }
