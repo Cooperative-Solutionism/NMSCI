@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.consume.ConsumeChainSupport;
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
+import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
@@ -120,81 +121,27 @@ public class ConsumeChainQueryService {
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("起点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("起点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStart(startNode, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.START, id, null, "起点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("起点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg startNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("起点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByStartAndIsLoop(startNode, isLoop, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.START, id, isLoop, "起点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("终点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("终点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEnd(endNode, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.END, id, null, "终点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("终点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg endNode = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("终点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByEndAndIsLoop(endNode, isLoop, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.END, id, isLoop, "终点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByNode(UUID id, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("节点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("节点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNode(node, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, id, null, "节点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
-        if (id == null) {
-            throw new IllegalArgumentException("节点ID不能为空");
-        }
-
-        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("节点ID不存在"));
-
-        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
-
-        return getConsumeChainResponseDTOSlice(consumeChains);
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, id, isLoop, "节点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByRelatedId(
@@ -209,20 +156,14 @@ public class ConsumeChainQueryService {
         }
 
         if (start != null) {
-            return isLoop == null
-                    ? getConsumeChainByStart(start, pageable)
-                    : getConsumeChainByStartAndIsLoop(start, isLoop, pageable);
+            return queryByNodeId(ConsumeChainNodeFilter.START, start, isLoop, "起点", pageable);
         }
 
         if (end != null) {
-            return isLoop == null
-                    ? getConsumeChainByEnd(end, pageable)
-                    : getConsumeChainByEndAndIsLoop(end, isLoop, pageable);
+            return queryByNodeId(ConsumeChainNodeFilter.END, end, isLoop, "终点", pageable);
         }
 
-        return isLoop == null
-                ? getConsumeChainByNode(node, pageable)
-                : getConsumeChainByNodeAndIsLoop(node, isLoop, pageable);
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, node, isLoop, "节点", pageable);
     }
 
     public Slice<ConsumeChainResponseDTO> getConsumeChainByPubkey(
@@ -237,25 +178,53 @@ public class ConsumeChainQueryService {
         }
 
         if (startPubkey != null) {
-            FlowNodeRegisterMsg start = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(startPubkey, "起点");
-            Slice<ConsumeChain> consumeChains = isLoop == null
-                    ? consumeChainRepository.findByStart(start, pageable)
-                    : consumeChainRepository.findByStartAndIsLoop(start, isLoop, pageable);
-            return getConsumeChainResponseDTOSlice(consumeChains);
+            return queryByNodePubkey(ConsumeChainNodeFilter.START, startPubkey, isLoop, "起点", pageable);
         }
 
         if (endPubkey != null) {
-            FlowNodeRegisterMsg end = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(endPubkey, "终点");
-            Slice<ConsumeChain> consumeChains = isLoop == null
-                    ? consumeChainRepository.findByEnd(end, pageable)
-                    : consumeChainRepository.findByEndAndIsLoop(end, isLoop, pageable);
-            return getConsumeChainResponseDTOSlice(consumeChains);
+            return queryByNodePubkey(ConsumeChainNodeFilter.END, endPubkey, isLoop, "终点", pageable);
         }
 
-        FlowNodeRegisterMsg node = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(nodePubkey, "节点");
-        Slice<ConsumeChain> consumeChains = isLoop == null
-                ? consumeChainRepository.findDistinctByNode(node, pageable)
-                : consumeChainRepository.findDistinctByNodeAndIsLoop(node, isLoop, pageable);
+        return queryByNodePubkey(ConsumeChainNodeFilter.NODE, nodePubkey, isLoop, "节点", pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNodeId(
+            ConsumeChainNodeFilter filter,
+            UUID id,
+            Boolean isLoop,
+            String label,
+            Pageable pageable
+    ) {
+        if (id == null) {
+            throw new IllegalArgumentException(label + "ID不能为空");
+        }
+
+        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(label + "ID不存在"));
+
+        return queryByNode(filter, node, isLoop, pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNodePubkey(
+            ConsumeChainNodeFilter filter,
+            byte[] pubkey,
+            Boolean isLoop,
+            String label,
+            Pageable pageable
+    ) {
+        FlowNodeRegisterMsg node = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(pubkey, label);
+
+        return queryByNode(filter, node, isLoop, pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNode(
+            ConsumeChainNodeFilter filter,
+            FlowNodeRegisterMsg node,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByNodeFilter(filter, node, isLoop, pageable);
+
         return getConsumeChainResponseDTOSlice(consumeChains);
     }
 

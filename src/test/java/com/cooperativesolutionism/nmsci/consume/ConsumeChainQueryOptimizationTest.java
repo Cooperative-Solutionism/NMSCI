@@ -1,6 +1,8 @@
 package com.cooperativesolutionism.nmsci.consume;
 
 import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
+import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
@@ -106,7 +108,7 @@ class ConsumeChainQueryOptimizationTest {
         Pageable pageable = PageRequest.of(0, 50);
 
         when(flowNodeRepository.findById(start.getId())).thenReturn(Optional.of(start));
-        when(chainRepository.findByStart(start, pageable))
+        when(chainRepository.findByNodeFilter(ConsumeChainNodeFilter.START, start, null, pageable))
                 .thenReturn(new SliceImpl<>(List.of(firstChain, secondChain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain)))
                 .thenReturn(List.of(firstEdge, secondEdge));
@@ -166,7 +168,7 @@ class ConsumeChainQueryOptimizationTest {
         Pageable pageable = PageRequest.of(0, 50);
 
         when(flowNodeRepository.findById(node.getId())).thenReturn(Optional.of(node));
-        when(chainRepository.findDistinctByNode(node, pageable))
+        when(chainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node, null, pageable))
                 .thenReturn(new SliceImpl<>(List.of(firstChain, secondChain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain)))
                 .thenReturn(List.of(firstEdge, secondEdge));
@@ -176,7 +178,7 @@ class ConsumeChainQueryOptimizationTest {
         assertEquals(2, response.getNumberOfElements());
         assertSame(firstEdge, response.getContent().get(0).getConsumeChainEdges().get(0));
         assertSame(secondEdge, response.getContent().get(1).getConsumeChainEdges().get(0));
-        verify(chainRepository).findDistinctByNode(node, pageable);
+        verify(chainRepository).findByNodeFilter(ConsumeChainNodeFilter.NODE, node, null, pageable);
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(firstChain, secondChain));
         verify(edgeRepository, never()).findByChainOrderByRelatedTransactionMountTimestampAsc(any());
     }
@@ -197,7 +199,7 @@ class ConsumeChainQueryOptimizationTest {
         Pageable pageable = PageRequest.of(0, 50);
 
         when(flowNodeRepository.findFirstByFlowNodePubkey(startPubkey)).thenReturn(start);
-        when(chainRepository.findByStartAndIsLoop(start, true, pageable))
+        when(chainRepository.findByNodeFilter(ConsumeChainNodeFilter.START, start, true, pageable))
                 .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
 
@@ -206,7 +208,7 @@ class ConsumeChainQueryOptimizationTest {
         assertEquals(1, response.getNumberOfElements());
         assertSame(edge, response.getContent().get(0).getConsumeChainEdges().get(0));
         verify(flowNodeRepository).findFirstByFlowNodePubkey(startPubkey);
-        verify(chainRepository).findByStartAndIsLoop(start, true, pageable);
+        verify(chainRepository).findByNodeFilter(ConsumeChainNodeFilter.START, start, true, pageable);
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain));
         assertThrows(
                 IllegalArgumentException.class,
@@ -229,7 +231,7 @@ class ConsumeChainQueryOptimizationTest {
         Pageable pageable = PageRequest.of(0, 50);
 
         when(flowNodeRepository.findById(node.getId())).thenReturn(Optional.of(node));
-        when(chainRepository.findDistinctByNodeAndIsLoop(node, true, pageable))
+        when(chainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node, true, pageable))
                 .thenReturn(new SliceImpl<>(List.of(chain), pageable, false));
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain))).thenReturn(List.of(edge));
 
@@ -238,12 +240,49 @@ class ConsumeChainQueryOptimizationTest {
         assertEquals(1, response.getNumberOfElements());
         assertSame(edge, response.getContent().get(0).getConsumeChainEdges().get(0));
         verify(flowNodeRepository).findById(node.getId());
-        verify(chainRepository).findDistinctByNodeAndIsLoop(node, true, pageable);
+        verify(chainRepository).findByNodeFilter(ConsumeChainNodeFilter.NODE, node, true, pageable);
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(List.of(chain));
         assertThrows(
                 IllegalArgumentException.class,
                 () -> service.getConsumeChainByRelatedId(node.getId(), node.getId(), null, null, pageable)
         );
+    }
+
+    @Test
+    void nodeIdHelpersPreserveCurrentNullAndNotFoundMessages() {
+        ConsumeChainQueryService service = new ConsumeChainQueryService();
+        FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
+        ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
+        ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
+        ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
+        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        UUID missing = UUID.fromString("11111111-1111-1111-1111-111111111111");
+        Pageable pageable = PageRequest.of(0, 50);
+
+        IllegalArgumentException startNull = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getConsumeChainByStart(null, pageable)
+        );
+        assertEquals("起点ID不能为空", startNull.getMessage());
+
+        when(flowNodeRepository.findById(missing)).thenReturn(Optional.empty());
+        NotFoundException startMissing = assertThrows(
+                NotFoundException.class,
+                () -> service.getConsumeChainByStart(missing, pageable)
+        );
+        assertEquals("起点ID不存在", startMissing.getMessage());
+
+        IllegalArgumentException endNull = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getConsumeChainByEnd(null, pageable)
+        );
+        assertEquals("终点ID不能为空", endNull.getMessage());
+
+        IllegalArgumentException nodeNull = assertThrows(
+                IllegalArgumentException.class,
+                () -> service.getConsumeChainByNode(null, pageable)
+        );
+        assertEquals("节点ID不能为空", nodeNull.getMessage());
     }
 
     private static ConsumeChainSupport support(
