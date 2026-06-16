@@ -179,7 +179,8 @@
                         <configuration>
                             <target>
                                 <java classname="com.cooperativesolutionism.nmsci.buildtool.CalcSourceCodeZipHash"
-                                      fork="true">
+                                      fork="true"
+                                      failonerror="true">
                                     <classpath>
                                         <pathelement path="${project.build.directory}/classes"/>
                                         <pathelement path="${project.build.directory}/dependency"/>

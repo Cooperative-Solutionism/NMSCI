@@ -1,19 +1,19 @@
 # syntax=docker/dockerfile:1
 
 # ============================================================================
-# 构建阶段：用项目自带的 Maven Wrapper 从源码打包。
-# 因为上链源码哈希（nmsci.source-code-zip-hash）在 prepare-package 阶段由
-# CalcSourceCodeZipHash 对源码树计算，所以「从源码构建」可让任何人 docker build
-# 复现出与 CI 一致的哈希。复现性依赖 .dockerignore 与该工具的排除项严格对齐。
+# Build stage: package from source with Maven.
+# Source hash generation runs in Maven prepare-package and uses `git ls-files`.
+# The build context therefore includes `.git` metadata, while the generated zip
+# still contains only tracked working-tree files, never Git metadata itself.
 # ============================================================================
-# Maven 版本与 .mvn/wrapper/maven-wrapper.properties 中 wrapperVersion 一致（3.9.10），
-# 直接用官方 maven 镜像避免构建期再下载 Maven 发行版（更稳）。源码哈希按源码文件计算，
-# 故用 mvn 还是 ./mvnw 算出的哈希完全一致。
 FROM maven:3.9.10-eclipse-temurin-21 AS build
 WORKDIR /build
+RUN if ! command -v git >/dev/null 2>&1; then \
+        apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*; \
+    fi
 
-# 拷贝整个源码树（.dockerignore 已排除 .git/target/logs/temp/IDE 及未跟踪的本地文件，
-# 使 /build 与 CI 干净检出一致）。单次 COPY 可避免中间态影响源码哈希。
+# Copy the source tree and Git metadata so CalcSourceCodeZipHash can use
+# `git ls-files` during prepare-package.
 COPY . .
 
 # 用 BuildKit 缓存 ~/.m2（项目依赖），跳过测试（集成测试需 Docker，构建期不可用）。
