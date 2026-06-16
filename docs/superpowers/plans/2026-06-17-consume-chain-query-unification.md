@@ -305,10 +305,11 @@ public enum ConsumeChainNodeFilter {
 
 - [ ] **Step 2: Add unified repository method**
 
-In `src/main/java/com/cooperativesolutionism/nmsci/repository/ConsumeChainRepository.java`, add the enum import:
+In `src/main/java/com/cooperativesolutionism/nmsci/repository/ConsumeChainRepository.java`, add the imports:
 
 ```java
 import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
+import java.util.Objects;
 ```
 
 Replace these six methods:
@@ -354,19 +355,30 @@ Slice<ConsumeChain> findDistinctByNode(FlowNodeRegisterMsg node, Pageable pageab
 Slice<ConsumeChain> findDistinctByNodeAndIsLoop(FlowNodeRegisterMsg node, Boolean isLoop, Pageable pageable);
 ```
 
-with:
+Replace those Spring Data query methods with a guarded public default wrapper and an internal SpEL-backed query method. For Tasks 1+2 only, keep the six old repository method names as temporary `default` delegates so `ConsumeChainQueryService` still compiles before Task 3 migrates service calls; Task 3/4 must remove those delegates after service and reflection tests move to `findByNodeFilter(...)`.
 
 ```java
+default Slice<ConsumeChain> findByNodeFilter(
+        ConsumeChainNodeFilter filter,
+        FlowNodeRegisterMsg node,
+        Boolean isLoop,
+        Pageable pageable
+) {
+    Objects.requireNonNull(filter, "filter");
+    Objects.requireNonNull(node, "node");
+    return findByNodeFilterInternal(filter, node, isLoop, pageable);
+}
+
 @Query("""
         select distinct c
         from ConsumeChain c
         where (:isLoop is null or c.isLoop = :isLoop)
             and (
-                (:filter = com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter.START
+                (:#{#filter.name()} = 'START'
                     and c.start = :node)
-                or (:filter = com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter.END
+                or (:#{#filter.name()} = 'END'
                     and c.end = :node)
-                or (:filter = com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter.NODE
+                or (:#{#filter.name()} = 'NODE'
                     and (
                         c.start = :node
                         or c.end = :node
@@ -379,7 +391,7 @@ with:
                     ))
             )
         """)
-Slice<ConsumeChain> findByNodeFilter(
+Slice<ConsumeChain> findByNodeFilterInternal(
         @Param("filter") ConsumeChainNodeFilter filter,
         @Param("node") FlowNodeRegisterMsg node,
         @Param("isLoop") Boolean isLoop,
@@ -397,15 +409,9 @@ Run:
 .\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify
 ```
 
-Expected: PASS. `ConsumeChainRepositoryNodeFilterTest` extends `NmsciIntegrationTestBase`, so it has the `integration` tag and is excluded by Surefire. The expected focused verification is Failsafe running 1 repository integration test with `Failures: 0, Errors: 0, Skipped: 0`; Surefire may report 0 tests for the same class during this command.
+Expected: PASS. `ConsumeChainRepositoryNodeFilterTest` extends `NmsciIntegrationTestBase`, so it has the `integration` tag and is excluded by Surefire. The expected focused verification is Failsafe running 2 repository integration tests with `Failures: 0, Errors: 0, Skipped: 0`; Surefire may report 0 tests for the same class during this command.
 
-If Spring Data rejects enum literals in JPQL, replace the three enum comparisons in the query with parameterized SpEL string comparisons:
-
-```java
-(:#{#filter.name()} = 'START' and c.start = :node)
-(:#{#filter.name()} = 'END' and c.end = :node)
-(:#{#filter.name()} = 'NODE' and (...))
-```
+The SpEL string comparisons are intentional: Hibernate rejects the enum-literal form for this parameterized filter. Keep the guarded default wrapper so null `filter` and null `node` fail with clear `NullPointerException` messages before SpEL evaluation.
 
 Then rerun the same Failsafe verification command and require it to pass before continuing.
 
@@ -812,7 +818,7 @@ Run:
 .\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify
 ```
 
-Expected: PASS. Expected focused Surefire count is 7 query optimization tests + 3 pagination tests = 10 tests. Expected focused Failsafe count is 1 repository integration test.
+Expected: PASS. Expected focused Surefire count is 7 query optimization tests + 3 pagination tests = 10 tests. Expected focused Failsafe count is 2 repository integration tests.
 
 - [ ] **Step 4: Run stale method scans**
 
@@ -879,7 +885,7 @@ In `docs/code-quality-audit-status.md`, update the top `codex 修复范围` line
 Update the top `验证手段` line to include focused Surefire service/pagination verification and focused Failsafe repository integration verification with actual counts:
 
 ```markdown
-targeted surefire `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）；focused failsafe `ConsumeChainRepositoryNodeFilterTest`（1 test）
+targeted surefire `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）；focused failsafe `ConsumeChainRepositoryNodeFilterTest`（2 tests）
 ```
 
 If full `mvnw test` count changed to 169, update full test count from 168 to 169. If `mvnw verify` ran, update Surefire/Failsafe counts to actual values.
@@ -901,7 +907,7 @@ Do not remove unrelated delayed items such as write-service template refactor, `
 In `## 6. 验证记录与待办`, add:
 
 ```markdown
-- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，10 tests passed（Failures 0 / Errors 0 / Skipped 0）；focused failsafe 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify`，1 test passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，10 tests passed（Failures 0 / Errors 0 / Skipped 0）；focused failsafe 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify`，2 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 ```
 
 Update the full `mvnw test` and `mvnw verify` bullets with actual counts from Step 1 and Step 2.

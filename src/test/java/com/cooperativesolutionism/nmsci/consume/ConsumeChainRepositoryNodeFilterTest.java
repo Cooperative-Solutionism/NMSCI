@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
 
@@ -130,6 +131,24 @@ class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
                 consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(edgeTargetOnly), null, PAGEABLE),
                 edgeChain
         );
+    }
+
+    @Test
+    void findByNodeFilterRejectsNullRequiredArgumentsAtRepositoryBoundary() {
+        UUID existing = UUID.fromString("66666666-6666-6666-6666-666666666666");
+        insertFlowNode(existing, 60);
+
+        NullPointerException nullFilter = assertThrows(
+                NullPointerException.class,
+                () -> consumeChainRepository.findByNodeFilter(null, node(existing), null, PAGEABLE)
+        );
+        assertEquals("filter", nullFilter.getMessage());
+
+        NullPointerException nullNode = assertThrows(
+                NullPointerException.class,
+                () -> consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, null, null, PAGEABLE)
+        );
+        assertEquals("node", nullNode.getMessage());
     }
 
     private void insertFlowNode(UUID id, int seed) {

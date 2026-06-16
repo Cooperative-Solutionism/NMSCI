@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID> {
@@ -54,6 +55,17 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     @Query("select c from ConsumeChain c where c.id in (select e.chain.id from ConsumeChainEdge e where e.relatedTransactionMount = :relatedTransactionMount)")
     Slice<ConsumeChain> findDistinctByRelatedTransactionMount(TransactionMountMsg relatedTransactionMount, Pageable pageable);
 
+    default Slice<ConsumeChain> findByNodeFilter(
+            ConsumeChainNodeFilter filter,
+            FlowNodeRegisterMsg node,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        Objects.requireNonNull(filter, "filter");
+        Objects.requireNonNull(node, "node");
+        return findByNodeFilterInternal(filter, node, isLoop, pageable);
+    }
+
     @Query("""
             select distinct c
             from ConsumeChain c
@@ -76,7 +88,7 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
                         ))
                 )
             """)
-    Slice<ConsumeChain> findByNodeFilter(
+    Slice<ConsumeChain> findByNodeFilterInternal(
             @Param("filter") ConsumeChainNodeFilter filter,
             @Param("node") FlowNodeRegisterMsg node,
             @Param("isLoop") Boolean isLoop,
