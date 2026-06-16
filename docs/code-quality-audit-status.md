@@ -1,10 +1,10 @@
 # NMSCI 代码质量审计 — 修复状态清单
 
-- **核验日期**：2026-06-16
+- **核验日期**：2026-06-17
 - **核验基线**：本清单提交所在 HEAD（工作树干净）；本轮消费链接口契约修复包含 `e9d5f7e`、`7f60626`、`a3d9bcd`、`e749633` 及后续文档校正提交。
 - **审计来源**：多智能体并行审计（11 维度 / 100 条保留发现 / 6 条对抗验证证伪）
-- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）、`docs/superpowers/specs/2026-06-16-secp256k1-negative-tests-design.md` / `docs/superpowers/plans/2026-06-16-secp256k1-negative-tests.md`（Secp256k1 原语负路径与边界守卫）、`docs/superpowers/specs/2026-06-16-consume-chain-concurrency-test-design.md` / `docs/superpowers/plans/2026-06-16-consume-chain-concurrency-test.md`（消费链真实两线程并发测试）、`docs/superpowers/specs/2026-06-16-controller-param-parser-design.md` / `docs/superpowers/plans/2026-06-16-controller-param-parser.md`（控制器参数解析去重）、`docs/superpowers/specs/2026-06-16-protocol-byte-lengths-design.md` / `docs/superpowers/plans/2026-06-16-protocol-byte-lengths.md`（协议长度常量化）。
-- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）/ `Secp256k1EncryptUtilTest`（11 tests）/ `RequestParamParserTest`（4 tests）/ `ProtocolByteLengthsContractTest`（3 tests）/ targeted surefire `RequestParamParserTest,ConsumeChainPaginationTest`（7 tests）/ `ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest`（14 tests）+ focused failsafe `ConsumeChainAllocationConcurrencyIntegrationTest`（1 test）+ `mvnw package` 源码包生成 + full `mvnw test`（168 tests）+ full `mvnw verify`（surefire 168 + failsafe 35 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
+- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）、`docs/superpowers/specs/2026-06-16-secp256k1-negative-tests-design.md` / `docs/superpowers/plans/2026-06-16-secp256k1-negative-tests.md`（Secp256k1 原语负路径与边界守卫）、`docs/superpowers/specs/2026-06-16-consume-chain-concurrency-test-design.md` / `docs/superpowers/plans/2026-06-16-consume-chain-concurrency-test.md`（消费链真实两线程并发测试）、`docs/superpowers/specs/2026-06-16-controller-param-parser-design.md` / `docs/superpowers/plans/2026-06-16-controller-param-parser.md`（控制器参数解析去重）、`docs/superpowers/specs/2026-06-16-protocol-byte-lengths-design.md` / `docs/superpowers/plans/2026-06-16-protocol-byte-lengths.md`（协议长度常量化）、`docs/superpowers/specs/2026-06-17-consume-chain-query-unification-design.md` / `docs/superpowers/plans/2026-06-17-consume-chain-query-unification.md`（消费链查询统一化）。
+- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）/ `Secp256k1EncryptUtilTest`（11 tests）/ `RequestParamParserTest`（4 tests）/ `ProtocolByteLengthsContractTest`（3 tests）/ targeted surefire `RequestParamParserTest,ConsumeChainPaginationTest`（7 tests）/ `ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest`（14 tests）/ `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）+ focused failsafe `ConsumeChainAllocationConcurrencyIntegrationTest`（1 test）/ `ConsumeChainRepositoryNodeFilterTest`（2 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（169 tests）+ full `mvnw verify`（surefire 169 + failsafe 37 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
 
 ## 图例
 
@@ -26,8 +26,8 @@
 | 综合评分（审计时） | 约 65 / 100 |
 | 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 16 + 多个 Low/Info |
 | 本轮有意延后 | 大型重构、多数 Low/Info |
-| 单元测试 | ✅ 通过（surefire / mvnw test，168 tests） |
-| 集成测试 | ✅ 通过（failsafe / mvnw verify，35 tests） |
+| 单元测试 | ✅ 通过（surefire / mvnw test，169 tests） |
+| 集成测试 | ✅ 通过（failsafe / mvnw verify，37 tests） |
 
 **维度评分卡（审计时基线，供下一轮对比）：** Correctness 7 · Concurrency 6 · Security 7 · Persistence 6 · Performance 7 · Architecture 6 · Maintainability 6 · Error Handling 6 · API/REST 7 · Test 6 · Config/Build/Ops 7。
 
@@ -68,7 +68,7 @@
 | Dockerfile 承诺优雅停机但未配 `server.shutdown=graceful` | `resources/application.properties` | ✅ | 已加。`0663d5e` |
 | 事务 shim（`CentralPubkeyLockedMsgPersistenceService`）仅为绕过事务存在 | （已删除） | ✅ | 删除该类，改 `TransactionTemplate`。`7ab12ae` |
 
-### 2.4 本轮新增修复（2026-06-16）
+### 2.4 本轮新增修复（2026-06-16 / 2026-06-17）
 - ✅ **`/consume-chains/edges` 分页修复**：已改为 `SliceResponseDTO<ConsumeChainEdge>`，新增 `page`/`size`，复用 `PageRequestUtil` 200 上限，native query 使用 `size+1`/`offset`。
 - ✅ **查询期 not-found 语义修复**：未冻结/未授权/不存在改 `NotFoundException` → 404；格式错误、缺参、非法 pubkey 长度仍 400。
 - ✅ **源码哈希构建链路硬化**：源码包文件集改由 `git ls-files -z` 枚举 git 跟踪文件，内容仍读取当前工作树；历史生成物 `source_code_v*.zip` 明确排除；git/zip/hash/properties 任一阶段失败均非零退出，Maven antrun 配置 `failonerror=true`；Docker build context 有意保留 `.git` 以支持容器内 `git ls-files`；路径加固拒绝符号链接及符号链接祖先，并校验 `nmsci.block-version` 必须为正整数。commits `3842af1` / `bd36112` / `bd3b8c5` / `5b06bd6`。
@@ -76,6 +76,7 @@
 - ✅ **消费链真实两线程并发测试**：新增 service 层并发集成测试，使用 `ExecutorService` + `CountDownLatch` 让两个真实线程同时进入 `TransactionMountMsgService.saveTransactionMountMsg`；测试通过独立 JDBC 事务预锁 seed 开放链，并以 `pg_stat_activity` 等待探测确认两个事务同时阻塞在 `consume_chains` 分配锁点；以不同交易记录竞争同一条开放消费链，通过最终链金额、边金额、seed edge 守恒和尾节点状态断言 `for update` 分配路径不会重复消费同一开放链。
 - ✅ **控制器参数解析去重**：新增 `RequestParamParser` 统一 optional query 参数的 blank/null 判断、UUID 解析和十六进制字节解析，替换消息控制器、消费链查询和回流率查询中的重复私有 helper；保留现有非法 UUID/hex 异常路径、必填参数 `BadRequestException` 文案和 path variable 解析行为。
 - ✅ **协议长度常量化**：新增 `ProtocolByteLengths` 统一消息入站/落库长度以及 UUID、压缩公钥、RS 签名、原始私钥等协议字段长度；写端点 `@ByteArraySize`、消息转换器、`MsgTypeEnum`、实体字段约束和生产校验复用同一组编译期常量，保留现有协议布局、异常类型和错误文案。
+- ✅ **消费链查询统一化**：新增 `ConsumeChainNodeFilter` 和统一 `ConsumeChainRepository.findByNodeFilter(...)`，收敛 start/end/node 与可选 `isLoop` 的 6 个重复查询方法；`ConsumeChainQueryService` 保留现有 public 方法和错误文案，通过私有 id/pubkey/node helper 复用分派逻辑，挂载交易查询与 `/consume-chains/edges` 路径保持独立。
 
 ---
 
@@ -85,7 +86,6 @@
 
 ### 结构性重构（成本较高）
 - 5–6 个写 Service 重复约 30 行管线 → 模板方法 / 管线抽象（Low）。
-- `ConsumeChainQueryService` ~8–10 个近重复 `getConsumeChainBy*` 方法（Low）。
 - `BlockAssembler.findMessages` 6 分支 if/else 类型派发 + `isInBlock` 副作用（Low）。
 - repository 反向依赖 `block/dto/protocol` 投影类型（Low）。
 - `WebMvcConfig extends WebMvcConfigurationSupport` 关闭了 Boot MVC 自动配置（Low）。
@@ -100,7 +100,7 @@
 ### JPA / 并发 / 性能（Low/Info，纵深防御与优化）
 - 实体无 `equals/hashCode`、无 `@Version`；`LoopMarker` 改 id 比较（**见 §5：非活跃 bug，属防御性加固**）。
 - `byte[]` 作 `@Id` 的哈希集合脚枪；`BlockInfo.rawBytes`（~1MB）急加载；`ConsumeChainQueryService` 读方法未 `@Transactional(readOnly=true)`。
-- PoW + 双 ECDSA 验签在持有悲观锁的事务窗口内；`findDistinctByNode` 相关子查询 EXISTS；`verifySignature` 重复编解码公钥；`BlockAssembler` 分型查询 + 集合未预分配。
+- PoW + 双 ECDSA 验签在持有悲观锁的事务窗口内；`findByNodeFilterInternal` 的 NODE 分支 EXISTS 子查询优化；`verifySignature` 重复编解码公钥；`BlockAssembler` 分型查询 + 集合未预分配。
 - `isFirstTimeRun` 非 volatile（当前单线程调度器下安全）；advisory lock 不变量未文档化。
 - **区块体/Merkle 顺序非确定**（`findPayloadByIdIn` 无 `ORDER BY`）—— Persistence 维度评估提及，建议确认是否需稳定排序。
 
@@ -135,10 +135,12 @@
 - ✅ focused surefire 通过：`.\mvnw.cmd -Dtest=ProtocolByteLengthsContractTest test`，3 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=RequestParamParserTest,ConsumeChainPaginationTest" test`，7 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest" test`，14 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，10 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ focused failsafe 通过：`.\mvnw.cmd "-Dit.test=ConsumeChainAllocationConcurrencyIntegrationTest" verify`，1 test passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ focused failsafe 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify`，2 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ package 通过：`.\mvnw.cmd -DskipTests package` BUILD SUCCESS；生成 `target/classes/static/source_code_v1.zip`，并写入非零 `nmsci.source-code-zip-hash`。由于本审计文档本身是 `git ls-files` 纳入的跟踪源码，任何跟踪源码/文档变更都会改变源码包哈希；因此此处记录非零生成事实，不记录固定哈希值。
-- ✅ full `mvnw test`（surefire 单元测试）通过：168 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、Secp256k1 原语负路径、协议长度常量契约、控制器参数解析、冻结流程停机与事务边界。
-- ✅ full **`mvnw verify`（surefire + failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 168 个、failsafe 35 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
+- ✅ full `mvnw test`（surefire 单元测试）通过：169 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、Secp256k1 原语负路径、协议长度常量契约、控制器参数解析、消费链查询统一化、冻结流程停机与事务边界。
+- ✅ full **`mvnw verify`（surefire + failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 169 个、failsafe 37 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
 - ⚠️ Docker build-stage 复验未完成：`docker build --target build -t nmsci-source-hash-build-test .` 在进入 build stage 前拉取 Docker Hub token 失败，当前完整失败行为的精确摘录如下。该项仅阻塞 Docker 镜像构建阶段复验，不影响上述 Maven 本地验证结论。
 
 ```text
@@ -149,4 +151,4 @@ ERROR: failed to solve: failed to fetch anonymous token: Get "https://auth.docke
 
 ## 7. 下一轮建议优先级
 
-1. 其余结构性重构（写 Service 模板化、查询 Service 去重、错误契约/API 打磨等）按团队节奏推进。
+1. 其余结构性重构（写 Service 模板化、错误契约/API 打磨、BlockAssembler 类型派发等）按团队节奏推进。

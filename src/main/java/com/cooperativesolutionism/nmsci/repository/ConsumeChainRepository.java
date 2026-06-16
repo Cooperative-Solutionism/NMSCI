@@ -94,28 +94,4 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
             @Param("isLoop") Boolean isLoop,
             Pageable pageable
     );
-
-    default Slice<ConsumeChain> findByStart(FlowNodeRegisterMsg start, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.START, start, null, pageable);
-    }
-
-    default Slice<ConsumeChain> findByStartAndIsLoop(FlowNodeRegisterMsg start, Boolean isLoop, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.START, start, isLoop, pageable);
-    }
-
-    default Slice<ConsumeChain> findByEnd(FlowNodeRegisterMsg end, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.END, end, null, pageable);
-    }
-
-    default Slice<ConsumeChain> findByEndAndIsLoop(FlowNodeRegisterMsg end, Boolean isLoop, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.END, end, isLoop, pageable);
-    }
-
-    default Slice<ConsumeChain> findDistinctByNode(FlowNodeRegisterMsg node, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.NODE, node, null, pageable);
-    }
-
-    default Slice<ConsumeChain> findDistinctByNodeAndIsLoop(FlowNodeRegisterMsg node, Boolean isLoop, Pageable pageable) {
-        return findByNodeFilter(ConsumeChainNodeFilter.NODE, node, isLoop, pageable);
-    }
 }

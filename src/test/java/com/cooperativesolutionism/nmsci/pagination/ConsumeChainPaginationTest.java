@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.pagination;
 
 import com.cooperativesolutionism.nmsci.controller.ConsumeChainController;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
+import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
@@ -43,12 +44,17 @@ class ConsumeChainPaginationTest {
                 "getConsumeChainEdgesByPubkey",
                 byte[].class, byte[].class, short.class, long.class, long.class, Pageable.class
         );
-        assertSliceMethod(ConsumeChainRepository.class, "findByStart", FlowNodeRegisterMsg.class, Pageable.class);
-        assertSliceMethod(ConsumeChainRepository.class, "findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainRepository.class, "findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
-        assertSliceMethod(ConsumeChainRepository.class, "findByEndAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
-        assertSliceMethod(ConsumeChainRepository.class, "findDistinctByNode", FlowNodeRegisterMsg.class, Pageable.class);
-        assertSliceMethod(ConsumeChainRepository.class, "findDistinctByNodeAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
+        assertSliceMethod(
+                ConsumeChainRepository.class,
+                "findByNodeFilter",
+                ConsumeChainNodeFilter.class, FlowNodeRegisterMsg.class, Boolean.class, Pageable.class
+        );
+        assertRepositoryMethodAbsent("findByStart", FlowNodeRegisterMsg.class, Pageable.class);
+        assertRepositoryMethodAbsent("findByStartAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
+        assertRepositoryMethodAbsent("findByEnd", FlowNodeRegisterMsg.class, Pageable.class);
+        assertRepositoryMethodAbsent("findByEndAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
+        assertRepositoryMethodAbsent("findDistinctByNode", FlowNodeRegisterMsg.class, Pageable.class);
+        assertRepositoryMethodAbsent("findDistinctByNodeAndIsLoop", FlowNodeRegisterMsg.class, Boolean.class, Pageable.class);
         assertSliceMethod(ConsumeChainRepository.class, "findDistinctByRelatedTransactionMount", TransactionMountMsg.class, Pageable.class);
     }
 
@@ -97,6 +103,10 @@ class ConsumeChainPaginationTest {
 
     private void assertControllerMethodAbsent(String name, Class<?>... parameterTypes) {
         assertThrows(NoSuchMethodException.class, () -> ConsumeChainController.class.getMethod(name, parameterTypes));
+    }
+
+    private void assertRepositoryMethodAbsent(String name, Class<?>... parameterTypes) {
+        assertThrows(NoSuchMethodException.class, () -> ConsumeChainRepository.class.getMethod(name, parameterTypes));
     }
 
     private void assertStableEdgeDistinctOnOrder(String name, Class<?>... parameterTypes) throws NoSuchMethodException {
