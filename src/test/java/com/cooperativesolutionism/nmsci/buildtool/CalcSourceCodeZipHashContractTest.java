@@ -4,17 +4,22 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -23,34 +28,45 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class CalcSourceCodeZipHashContractTest {
 
-    private static final Path ROOT = Path.of("project");
-
     @Test
-    void excludesVcsBuildAndToolingPaths() {
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve(".git").resolve("config")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve(".idea").resolve("workspace.xml")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("target").resolve("classes").resolve("App.class")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("logs").resolve("app.log")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("temp").resolve("notes.md")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("nmsci.iml")));
-        assertTrue(CalcSourceCodeZipHash.isExcluded(
-                ROOT, ROOT.resolve("src").resolve("main").resolve("resources").resolve("static").resolve("source_code_v1.zip")));
+    void zipUsesGitTrackedFilesAndCurrentWorktreeContent(@TempDir Path projectDir) throws Exception {
+        initGitRepo(projectDir);
+        writeFile(projectDir.resolve(".gitignore"), "ignored.txt\n");
+        writeFile(projectDir.resolve("pom.xml"), "<project/>");
+        writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App { int version = 1; }");
+        writeFile(projectDir.resolve("src/main/resources/static/source_code_v1.zip"), "old-source-zip");
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "initial");
+
+        writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App { int version = 2; }");
+        writeFile(projectDir.resolve("untracked.txt"), "local");
+        writeFile(projectDir.resolve("ignored.txt"), "ignored");
+
+        Path zip = projectDir.resolve("target/out.zip");
+        CalcSourceCodeZipHash.zipTrackedFiles(projectDir, CalcSourceCodeZipHash.trackedFiles(projectDir), zip);
+
+        List<String> entries = zipEntries(zip);
+        assertTrue(entries.contains(".gitignore"));
+        assertTrue(entries.contains("pom.xml"));
+        assertTrue(entries.contains("src/main/java/com/example/App.java"));
+        assertFalse(entries.contains("untracked.txt"));
+        assertFalse(entries.contains("ignored.txt"));
+        assertFalse(entries.contains("src/main/resources/static/source_code_v1.zip"));
+        assertTrue(entries.stream().noneMatch(name -> name.startsWith(".git/")));
+        assertTrue(entries.stream().noneMatch(name -> name.startsWith("target/")));
+        assertEquals("class App { int version = 2; }", zipEntryContent(zip, "src/main/java/com/example/App.java"));
     }
 
     @Test
-    void includesKeySourceFiles() {
-        assertFalse(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("pom.xml")));
-        assertFalse(CalcSourceCodeZipHash.isExcluded(ROOT, ROOT.resolve("PROTOCOL.md")));
-        assertFalse(CalcSourceCodeZipHash.isExcluded(
-                ROOT, ROOT.resolve("src").resolve("main").resolve("java")
-                        .resolve("com").resolve("cooperativesolutionism").resolve("nmsci").resolve("NmsciApplication.java")));
-        assertFalse(CalcSourceCodeZipHash.isExcluded(
-                ROOT, ROOT.resolve("src").resolve("main").resolve("resources").resolve("static").resolve("banner.txt")));
-        // 路径段仅「包含」排除词但不相等的合法源码不应被排除（按段相等而非子串判定）
-        assertFalse(CalcSourceCodeZipHash.isExcluded(
-                ROOT, ROOT.resolve("src").resolve("main").resolve("java").resolve("targeting").resolve("X.java")));
-        assertFalse(CalcSourceCodeZipHash.isExcluded(
-                ROOT, ROOT.resolve("src").resolve("main").resolve("resources").resolve("templates").resolve("x.html")));
+    void trackedFilesFailsWhenGitRepoHasNoTrackedFiles(@TempDir Path projectDir) throws Exception {
+        initGitRepo(projectDir);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> CalcSourceCodeZipHash.trackedFiles(projectDir)
+        );
+
+        assertTrue(exception.getMessage().contains("git ls-files returned no tracked files"));
     }
 
     @Test
@@ -61,22 +77,21 @@ class CalcSourceCodeZipHashContractTest {
     }
 
     @Test
-    void zipExcludesExcludedTreesAndEmitsSortedForwardSlashEntries(@TempDir Path projectDir) throws IOException {
+    void zipExcludesExcludedTreesAndEmitsSortedForwardSlashEntries(@TempDir Path projectDir) throws Exception {
+        initGitRepo(projectDir);
+        writeFile(projectDir.resolve(".gitignore"), "ignored.txt\n");
         writeFile(projectDir.resolve("pom.xml"), "<project/>");
         writeFile(projectDir.resolve("PROTOCOL.md"), "protocol");
         writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App {}");
         writeFile(projectDir.resolve("src/main/resources/static/banner.txt"), "banner");
-        writeFile(projectDir.resolve(".git/HEAD"), "ref");
-        writeFile(projectDir.resolve(".idea/workspace.xml"), "x");
-        writeFile(projectDir.resolve("target/classes/App.class"), "bytecode");
-        writeFile(projectDir.resolve("logs/app.log"), "log");
-        writeFile(projectDir.resolve("temp/notes.md"), "notes");
-        writeFile(projectDir.resolve("nmsci.iml"), "iml");
         writeFile(projectDir.resolve("src/main/resources/static/source_code_v1.zip"), "oldzip");
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "initial");
+        writeFile(projectDir.resolve("ignored.txt"), "ignored");
+        writeFile(projectDir.resolve("untracked.txt"), "untracked");
 
         Path zip = projectDir.resolve("target").resolve("out.zip");
-        Files.createDirectories(zip.getParent());
-        CalcSourceCodeZipHash.zipDirectory(projectDir, zip);
+        CalcSourceCodeZipHash.zipTrackedFiles(projectDir, CalcSourceCodeZipHash.trackedFiles(projectDir), zip);
 
         List<String> entries = zipEntries(zip);
 
@@ -85,12 +100,10 @@ class CalcSourceCodeZipHashContractTest {
         assertTrue(entries.contains("src/main/java/com/example/App.java"));
         assertTrue(entries.contains("src/main/resources/static/banner.txt"));
 
-        assertTrue(entries.stream().noneMatch(name -> name.contains(".git/")), ".git must be excluded");
-        assertTrue(entries.stream().noneMatch(name -> name.contains(".idea/")), ".idea must be excluded");
-        assertTrue(entries.stream().noneMatch(name -> name.startsWith("target/")), "target must be excluded");
-        assertTrue(entries.stream().noneMatch(name -> name.contains("logs/")), "logs must be excluded");
-        assertTrue(entries.stream().noneMatch(name -> name.contains("temp/")), "temp must be excluded");
-        assertTrue(entries.stream().noneMatch(name -> name.endsWith(".iml")), ".iml must be excluded");
+        assertFalse(entries.contains("ignored.txt"));
+        assertFalse(entries.contains("untracked.txt"));
+        assertTrue(entries.stream().noneMatch(name -> name.startsWith(".git/")), ".git must not be zipped");
+        assertTrue(entries.stream().noneMatch(name -> name.startsWith("target/")), "target must not be zipped");
         assertTrue(entries.stream().noneMatch(name -> name.contains("static/source_code_v")), "generated source archive must be excluded");
 
         assertTrue(entries.stream().noneMatch(name -> name.contains("\\")), "entry names must use forward slashes");
@@ -100,16 +113,19 @@ class CalcSourceCodeZipHashContractTest {
     }
 
     @Test
-    void zipBytesAreReproducibleAcrossRepeatedRuns(@TempDir Path projectDir) throws IOException {
+    void zipBytesAreReproducibleAcrossRepeatedRuns(@TempDir Path projectDir) throws Exception {
+        initGitRepo(projectDir);
         writeFile(projectDir.resolve("pom.xml"), "<project/>");
         writeFile(projectDir.resolve("PROTOCOL.md"), "protocol");
         writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App {}");
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "initial");
 
         Path zip1 = projectDir.resolve("target").resolve("a.zip");
         Path zip2 = projectDir.resolve("target").resolve("b.zip");
-        Files.createDirectories(zip1.getParent());
-        CalcSourceCodeZipHash.zipDirectory(projectDir, zip1);
-        CalcSourceCodeZipHash.zipDirectory(projectDir, zip2);
+        List<Path> files = CalcSourceCodeZipHash.trackedFiles(projectDir);
+        CalcSourceCodeZipHash.zipTrackedFiles(projectDir, files, zip1);
+        CalcSourceCodeZipHash.zipTrackedFiles(projectDir, files, zip2);
 
         assertArrayEquals(
                 Files.readAllBytes(zip1),
@@ -118,9 +134,75 @@ class CalcSourceCodeZipHashContractTest {
         );
     }
 
+    @Test
+    void runGeneratesSourceZipAndWritesHashIntoTargetProperties(@TempDir Path projectDir) throws Exception {
+        initGitRepo(projectDir);
+        writeFile(projectDir.resolve("pom.xml"), "<project/>");
+        writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App {}");
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "initial");
+
+        Path propertiesFile = projectDir.resolve("target/classes/application.properties");
+        writeFile(propertiesFile, """
+                nmsci.block-version=7
+                nmsci.source-code-zip-hash=0000000000000000000000000000000000000000000000000000000000000000
+                """);
+
+        CalcSourceCodeZipHash.SourceHashResult result = CalcSourceCodeZipHash.run(projectDir);
+
+        Path expectedZip = projectDir.resolve("target/classes/static/source_code_v7.zip");
+        assertEquals(expectedZip, result.zipFilePath());
+        assertTrue(Files.exists(expectedZip));
+        assertEquals(CalcSourceCodeZipHash.calcFileHash(expectedZip), result.hashValue());
+        assertEquals(64, result.hashValue().length());
+        assertNotEquals("0000000000000000000000000000000000000000000000000000000000000000", result.hashValue());
+
+        Properties properties = new Properties();
+        try (var input = Files.newInputStream(propertiesFile)) {
+            properties.load(input);
+        }
+        assertEquals(result.hashValue(), properties.getProperty("nmsci.source-code-zip-hash"));
+    }
+
     private static void writeFile(Path file, String content) throws IOException {
-        Files.createDirectories(file.getParent());
+        if (file.getParent() != null) {
+            Files.createDirectories(file.getParent());
+        }
         Files.writeString(file, content);
+    }
+
+    private static void initGitRepo(Path projectDir) throws IOException, InterruptedException {
+        Files.createDirectories(projectDir);
+        git(projectDir, "init");
+        git(projectDir, "config", "user.email", "test@example.local");
+        git(projectDir, "config", "user.name", "Test User");
+        git(projectDir, "config", "commit.gpgsign", "false");
+        git(projectDir, "config", "core.hooksPath", ".git/hooks");
+    }
+
+    private static void git(Path projectDir, String... args) throws IOException, InterruptedException {
+        List<String> command = new ArrayList<>();
+        command.add("git");
+        command.addAll(Arrays.asList(args));
+        Process process = new ProcessBuilder(command)
+                .directory(projectDir.toFile())
+                .redirectErrorStream(true)
+                .start();
+        String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        int exitCode = process.waitFor();
+        assertEquals(0, exitCode, () -> "git " + String.join(" ", args) + " failed\n" + output);
+    }
+
+    private static String zipEntryContent(Path zip, String entryName) throws IOException {
+        try (ZipInputStream zis = new ZipInputStream(Files.newInputStream(zip))) {
+            ZipEntry entry;
+            while ((entry = zis.getNextEntry()) != null) {
+                if (entryName.equals(entry.getName())) {
+                    return new String(zis.readAllBytes(), StandardCharsets.UTF_8);
+                }
+            }
+        }
+        throw new AssertionError("zip entry not found: " + entryName);
     }
 
     private static List<String> zipEntries(Path zip) throws IOException {

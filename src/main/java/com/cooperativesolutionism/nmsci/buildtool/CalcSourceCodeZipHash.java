@@ -2,72 +2,101 @@ package com.cooperativesolutionism.nmsci.buildtool;
 
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 
-import java.io.*;
-import java.nio.file.*;
-import java.security.*;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import java.util.stream.Stream;
-import java.util.zip.*;
-import java.util.*;
 
 public class CalcSourceCodeZipHash {
 
-    /**
-     * 需要排除在上链源码包之外的目录段（按相对路径的「路径段」匹配，与平台分隔符无关）。
-     */
-    private static final Set<String> EXCLUDED_DIRECTORIES = Set.of(".git", ".idea", "logs", "temp", "target");
+    private static final String SOURCE_HASH_PROPERTY = "nmsci.source-code-zip-hash";
+    private static final String BLOCK_VERSION_PROPERTY = "nmsci.block-version";
+    private static final String GENERATED_ARCHIVE_ENTRY_PREFIX = "src/main/resources/static/source_code_v";
+    private static final String GENERATED_ARCHIVE_ENTRY_SUFFIX = ".zip";
 
-    /**
-     * 需要排除的生成物标记：static 目录下的历史版本源码包（避免自包含与非确定性）。
-     * 以子串匹配——相对路径（'/' 归一）含该标记即排除。
-     */
-    private static final String EXCLUDED_GENERATED_ARCHIVE_MARKER = "static/source_code_v";
-
-    /**
-     * 删除指定目录下的某些文件
-     *
-     * @param dir   目标目录
-     * @param regex 正则表达式，用于匹配要删除的文件
-     */
-    public static void deleteFiles(Path dir, String regex) {
-        try (Stream<Path> files = Files.walk(dir)) {
-            files.filter(path -> path.toString().matches(regex))
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                            System.out.println("Deleted file: " + path);
-                        } catch (IOException e) {
-                            System.err.println("Failed to delete file: " + path + " - " + e.getMessage());
-                        }
-                    });
-        } catch (IOException e) {
-            System.err.println("Traversing directory failed: " + dir + " - " + e.getMessage());
-        }
+    public record SourceHashResult(Path zipFilePath, String hashValue) {
     }
 
-    /**
-     * 判断给定文件是否应排除在上链源码包之外。
-     * 基于相对路径的「路径段」匹配（目录段命中排除集，或路径含历史源码包前缀，或为 .iml），
-     * 全程归一为 '/' 分隔，不依赖运行平台的分隔符，Windows/Linux/macOS 行为一致。
-     */
-    static boolean isExcluded(Path sourceDir, Path path) {
-        String relativePath = toEntryName(sourceDir.relativize(path));
-        if (relativePath.isEmpty()) {
-            return true;
+    public static List<Path> trackedFiles(Path root) {
+        Path normalizedRoot = root.toAbsolutePath().normalize();
+        if (!Files.isDirectory(normalizedRoot)) {
+            throw new IllegalStateException("source root does not exist: " + normalizedRoot);
         }
-        for (String segment : relativePath.split("/")) {
-            if (EXCLUDED_DIRECTORIES.contains(segment)) {
-                return true;
+
+        byte[] output;
+        try {
+            Process process = new ProcessBuilder("git", "-C", normalizedRoot.toString(), "ls-files", "-z")
+                    .redirectErrorStream(true)
+                    .start();
+            output = process.getInputStream().readAllBytes();
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                String message = new String(output, StandardCharsets.UTF_8).trim();
+                throw new IllegalStateException("git ls-files failed with exit code " + exitCode + ": " + message);
+            }
+        } catch (IOException e) {
+            throw new IllegalStateException("git ls-files failed to start", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("git ls-files interrupted", e);
+        }
+
+        List<Path> files = parseTrackedFiles(output).stream()
+                .filter(CalcSourceCodeZipHash::shouldIncludeTrackedFile)
+                .sorted(Comparator.comparing(CalcSourceCodeZipHash::toEntryName))
+                .toList();
+        if (files.isEmpty()) {
+            throw new IllegalStateException("git ls-files returned no tracked files under: " + normalizedRoot);
+        }
+        return files;
+    }
+
+    private static List<Path> parseTrackedFiles(byte[] output) {
+        List<Path> files = new ArrayList<>();
+        int start = 0;
+        for (int i = 0; i < output.length; i++) {
+            if (output[i] == 0) {
+                addTrackedPath(files, output, start, i);
+                start = i + 1;
             }
         }
-        if (relativePath.contains(EXCLUDED_GENERATED_ARCHIVE_MARKER)) {
-            return true;
+        if (start < output.length) {
+            addTrackedPath(files, output, start, output.length);
         }
-        return relativePath.endsWith(".iml");
+        return files;
     }
 
-    /**
-     * 将相对路径归一为以 '/' 分隔的 zip 条目名，保证上链哈希与运行平台的路径分隔符无关。
-     */
+    private static void addTrackedPath(List<Path> files, byte[] output, int start, int end) {
+        if (end <= start) {
+            return;
+        }
+        String path = new String(output, start, end - start, StandardCharsets.UTF_8);
+        if (!path.isBlank()) {
+            files.add(Path.of(path));
+        }
+    }
+
+    static boolean shouldIncludeTrackedFile(Path relativePath) {
+        String entryName = toEntryName(relativePath);
+        return !(entryName.startsWith(GENERATED_ARCHIVE_ENTRY_PREFIX)
+                && entryName.endsWith(GENERATED_ARCHIVE_ENTRY_SUFFIX));
+    }
+
     static String toEntryName(Path relativePath) {
         List<String> segments = new ArrayList<>();
         for (Path segment : relativePath) {
@@ -76,59 +105,69 @@ public class CalcSourceCodeZipHash {
         return String.join("/", segments);
     }
 
-    /**
-     * 将指定目录压缩为 ZIP 文件。
-     * 条目名归一为 '/' 分隔、按条目名排序、并固定时间戳；配合仓库 .gitattributes 将文本统一为 LF
-     * （* text=auto eol=lf），相同源码在任意平台/文件系统上产出字节一致的 zip，故上链源码哈希可复现可信。
-     *
-     * @param sourceDir   源目录
-     * @param zipFilePath 压缩后的 ZIP 文件路径
-     * @throws IOException 如果压缩过程中发生错误
-     */
-    public static void zipDirectory(Path sourceDir, Path zipFilePath) throws IOException {
-        List<Path> includedFiles;
-        try (Stream<Path> paths = Files.walk(sourceDir)) {
-            includedFiles = paths
-                    .filter(path -> !Files.isDirectory(path))
-                    .filter(path -> !isExcluded(sourceDir, path))
-                    .sorted(Comparator.comparing(path -> toEntryName(sourceDir.relativize(path))))
+    public static void deleteFiles(Path dir, String regex) throws IOException {
+        if (!Files.exists(dir)) {
+            return;
+        }
+        try (Stream<Path> files = Files.walk(dir)) {
+            List<Path> pathsToDelete = files
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().matches(regex))
                     .toList();
+            for (Path path : pathsToDelete) {
+                Files.delete(path);
+                System.out.println("Deleted file: " + path);
+            }
+        }
+    }
+
+    public static void zipDirectory(Path sourceDir, Path zipFilePath) throws IOException {
+        zipTrackedFiles(sourceDir, trackedFiles(sourceDir), zipFilePath);
+    }
+
+    public static void zipTrackedFiles(Path root, List<Path> trackedFiles, Path zipFilePath) throws IOException {
+        Path normalizedRoot = root.toAbsolutePath().normalize();
+        Path normalizedZipPath = zipFilePath.toAbsolutePath().normalize();
+        if (normalizedZipPath.getParent() != null) {
+            Files.createDirectories(normalizedZipPath.getParent());
         }
 
-        try (FileOutputStream fos = new FileOutputStream(zipFilePath.toFile());
-             ZipOutputStream zos = new ZipOutputStream(fos)) {
-            for (Path path : includedFiles) {
-                ZipEntry zipEntry = new ZipEntry(toEntryName(sourceDir.relativize(path)));
-                zipEntry.setTime(1L); // 固定时间戳，避免每次打包时间不同导致哈希值不同
+        List<Path> sortedFiles = trackedFiles.stream()
+                .filter(CalcSourceCodeZipHash::shouldIncludeTrackedFile)
+                .sorted(Comparator.comparing(CalcSourceCodeZipHash::toEntryName))
+                .toList();
+
+        try (ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(Files.newOutputStream(normalizedZipPath)))) {
+            for (Path relativePath : sortedFiles) {
+                Path source = normalizedRoot.resolve(relativePath).normalize();
+                if (!source.startsWith(normalizedRoot)) {
+                    throw new IOException("tracked path escapes source root: " + relativePath);
+                }
+                if (!Files.isRegularFile(source)) {
+                    throw new IOException("tracked file is missing or not a regular file: " + relativePath);
+                }
+
+                ZipEntry zipEntry = new ZipEntry(toEntryName(relativePath));
+                zipEntry.setTime(1L);
                 zos.putNextEntry(zipEntry);
-                Files.copy(path, zos);
+                Files.copy(source, zos);
                 zos.closeEntry();
             }
         }
     }
 
-    /**
-     * 计算指定文件的 SHA-256 哈希值
-     *
-     * @param filePath 要计算哈希值的文件路径
-     * @return 文件的 SHA-256 哈希值
-     * @throws Exception 如果计算哈希值过程中发生错误
-     */
-    public static String calcFileHash(Path filePath) throws Exception {
+    public static String calcFileHash(Path filePath) throws IOException, NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("SHA-256");
-        try (InputStream is = Files.newInputStream(filePath);
-             DigestInputStream dis = new DigestInputStream(is, digest)) {
-            while (true) {
-                if (dis.read() == -1) break;
+        try (InputStream input = new BufferedInputStream(Files.newInputStream(filePath));
+             DigestInputStream digestInput = new DigestInputStream(input, digest)) {
+            byte[] buffer = new byte[8192];
+            while (digestInput.read(buffer) != -1) {
+                // DigestInputStream updates the digest as bytes are read.
             }
         }
-        byte[] hashBytes = digest.digest();
-        return ByteArrayUtil.bytesToHex(hashBytes);
+        return ByteArrayUtil.bytesToHex(digest.digest());
     }
 
-    /**
-     * 读取 application.properties 文件
-     */
     public static Properties readProperties(Path propertiesFilePath) throws IOException {
         Properties properties = new Properties();
         if (Files.exists(propertiesFilePath)) {
@@ -139,53 +178,54 @@ public class CalcSourceCodeZipHash {
         return properties;
     }
 
-    /**
-     * 将哈希值插入或更新 application.properties 文件
-     *
-     * @param hashValue          要插入的哈希值
-     * @param propertiesFilePath properties 文件路径
-     * @param propertyKey        要插入或更新的属性键
-     * @throws IOException 如果文件操作过程中发生错误
-     */
     public static void insertHashToProperties(String hashValue, Path propertiesFilePath, String propertyKey) throws IOException {
         Properties properties = readProperties(propertiesFilePath);
-
-        // 将哈希值插入或更新 properties 文件
         properties.setProperty(propertyKey, hashValue);
-
-        // 保存回 properties 文件
         try (OutputStream output = Files.newOutputStream(propertiesFilePath)) {
             properties.store(output, "Updated source code zip hash");
         }
     }
 
+    private static Properties readRequiredProperties(Path propertiesFilePath) throws IOException {
+        if (!Files.isRegularFile(propertiesFilePath)) {
+            throw new IOException("required properties file does not exist: " + propertiesFilePath);
+        }
+        return readProperties(propertiesFilePath);
+    }
+
+    public static SourceHashResult run(Path root) throws IOException, NoSuchAlgorithmException {
+        Path sourceDir = root.toAbsolutePath().normalize();
+        Path propertiesFilePath = sourceDir.resolve("target").resolve("classes").resolve("application.properties");
+        Properties properties = readRequiredProperties(propertiesFilePath);
+
+        String blockVersion = properties.getProperty(BLOCK_VERSION_PROPERTY);
+        if (blockVersion == null || blockVersion.isBlank()) {
+            throw new IllegalStateException(BLOCK_VERSION_PROPERTY + " is missing in " + propertiesFilePath);
+        }
+
+        Path staticDir = sourceDir.resolve("target").resolve("classes").resolve("static");
+        Files.createDirectories(staticDir);
+        deleteFiles(staticDir, ".*source_code_v.*\\.zip");
+
+        Path zipFilePath = staticDir.resolve("source_code_v" + blockVersion + ".zip");
+        zipTrackedFiles(sourceDir, trackedFiles(sourceDir), zipFilePath);
+        System.out.println("The file has been compressed to: " + zipFilePath);
+
+        String hashValue = calcFileHash(zipFilePath);
+        System.out.println("Calculated file hash value: " + hashValue);
+
+        insertHashToProperties(hashValue, propertiesFilePath, SOURCE_HASH_PROPERTY);
+        return new SourceHashResult(zipFilePath, hashValue);
+    }
+
     public static void main(String[] args) {
         try {
-            // 项目根目录
-            String rootDir = System.getProperty("user.dir");
-            Path sourceDir = Paths.get(rootDir);
-            Path propertiesFilePath = Paths.get(rootDir, "target", "classes", "application.properties");
-
-            // 删除已存在的 zip 文件
-            Path staticDir = Paths.get(rootDir, "target", "classes", "static");
-            deleteFiles(staticDir, ".*source_code_v.*\\.zip");
-
-            Properties properties = readProperties(propertiesFilePath);
-            Path zipFilePath = Paths.get(rootDir, "target", "classes", "static", "source_code_v" + properties.getProperty("nmsci.block-version") + ".zip");
-
-            // 压缩文件夹为 zip 文件
-            zipDirectory(sourceDir, zipFilePath);
-            System.out.println("The file has been compressed to: " + zipFilePath);
-
-            // 计算哈希值
-            String hashValue = calcFileHash(zipFilePath);
-            System.out.println("Calculated file hash value: " + hashValue);
-
-            // 将哈希值插入 application.properties 文件
-            insertHashToProperties(hashValue, propertiesFilePath, "nmsci.source-code-zip-hash");
-
+            Path root = Paths.get(System.getProperty("user.dir"));
+            run(root);
         } catch (Exception e) {
-            System.err.println("An error occurred: " + e.getMessage());
+            System.err.println("source code zip hash generation failed: " + e.getMessage());
+            e.printStackTrace(System.err);
+            System.exit(1);
         }
     }
 }
