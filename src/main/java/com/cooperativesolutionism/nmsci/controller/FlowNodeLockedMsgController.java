@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
@@ -15,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.UUID;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
 @RequestMapping("/flow-node-locks")
@@ -51,15 +52,7 @@ public class FlowNodeLockedMsgController {
 
     @GetMapping("/status")
     public ResponseResult<LockedMessageResponseDTO<FlowNodeLockedMsg>> getFlowNodeLockStatus(@RequestParam String flowNodePubkey) {
-        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(hexToBytesOrNull(flowNodePubkey));
+        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(hexBytesOrNull(flowNodePubkey));
         return ResponseResult.success(new LockedMessageResponseDTO<>(flowNodeLockedMsg.isPresent(), flowNodeLockedMsg.orElse(null)));
-    }
-
-    private static byte[] hexToBytesOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return ByteArrayUtil.hexToBytes(value);
     }
 }

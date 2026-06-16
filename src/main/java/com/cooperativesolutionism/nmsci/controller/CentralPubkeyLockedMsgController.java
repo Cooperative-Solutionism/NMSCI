@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
@@ -15,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 import java.util.UUID;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
 @RequestMapping("/central-pubkey-locks")
@@ -51,15 +52,7 @@ public class CentralPubkeyLockedMsgController {
 
     @GetMapping("/status")
     public ResponseResult<LockedMessageResponseDTO<CentralPubkeyLockedMsg>> getCentralPubkeyLockStatus(@RequestParam String centralPubkey) {
-        Optional<CentralPubkeyLockedMsg> centralPubkeyLockedMsg = centralPubkeyLockedMsgService.findCentralPubkeyLockedMsgByCentralPubkey(hexToBytesOrNull(centralPubkey));
+        Optional<CentralPubkeyLockedMsg> centralPubkeyLockedMsg = centralPubkeyLockedMsgService.findCentralPubkeyLockedMsgByCentralPubkey(hexBytesOrNull(centralPubkey));
         return ResponseResult.success(new LockedMessageResponseDTO<>(centralPubkeyLockedMsg.isPresent(), centralPubkeyLockedMsg.orElse(null)));
-    }
-
-    private static byte[] hexToBytesOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return ByteArrayUtil.hexToBytes(value);
     }
 }

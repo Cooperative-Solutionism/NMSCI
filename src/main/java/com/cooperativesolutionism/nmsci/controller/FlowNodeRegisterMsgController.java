@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
@@ -14,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
 @RequestMapping("/flow-node-registrations")
@@ -47,17 +48,9 @@ public class FlowNodeRegisterMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<FlowNodeRegisterMsg> flowNodeRegisterMsgs = flowNodeRegisterMsgMsgService.listFlowNodeRegisterMsgs(
-                hexToBytesOrNull(flowNodePubkey),
+                hexBytesOrNull(flowNodePubkey),
                 PageRequestUtil.of(page, size, REGISTER_QUERY_SORT)
         );
         return ResponseResult.success(SliceResponseDTO.from(flowNodeRegisterMsgs));
-    }
-
-    private static byte[] hexToBytesOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return ByteArrayUtil.hexToBytes(value);
     }
 }

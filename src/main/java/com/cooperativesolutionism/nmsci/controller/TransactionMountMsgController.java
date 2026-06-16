@@ -6,13 +6,15 @@ import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
 @RequestMapping("/transaction-mounts")
@@ -47,29 +49,13 @@ public class TransactionMountMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.searchTransactionMountMsgs(
-                hexToBytesOrNull(consumeNodePubkey),
-                hexToBytesOrNull(flowNodePubkey),
+                hexBytesOrNull(consumeNodePubkey),
+                hexBytesOrNull(flowNodePubkey),
                 uuidOrNull(mountedTransactionRecordId),
                 startTime,
                 endTime,
                 PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(transactionMountMsgs));
-    }
-
-    private static byte[] hexToBytesOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return ByteArrayUtil.hexToBytes(value);
-    }
-
-    private static UUID uuidOrNull(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-
-        return UUID.fromString(value);
     }
 }
