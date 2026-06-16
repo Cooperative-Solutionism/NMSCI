@@ -1,0 +1,52 @@
+package com.cooperativesolutionism.nmsci.util;
+
+import org.junit.jupiter.api.Test;
+
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class RequestParamParserTest {
+
+    @Test
+    void detectsNonBlankValues() {
+        assertFalse(RequestParamParser.notBlank(null));
+        assertFalse(RequestParamParser.notBlank(""));
+        assertFalse(RequestParamParser.notBlank("  "));
+        assertTrue(RequestParamParser.notBlank("abc"));
+    }
+
+    @Test
+    void treatsBlankUuidParameterAsMissing() {
+        assertNull(RequestParamParser.uuidOrNull(null));
+        assertNull(RequestParamParser.uuidOrNull(""));
+        assertNull(RequestParamParser.uuidOrNull("  "));
+    }
+
+    @Test
+    void parsesUuidAndPropagatesInvalidUuid() {
+        UUID expected = UUID.fromString("11111111-2222-3333-4444-555555555555");
+
+        assertEquals(expected, RequestParamParser.uuidOrNull(expected.toString()));
+        assertThrows(IllegalArgumentException.class, () -> RequestParamParser.uuidOrNull("not-a-uuid"));
+    }
+
+    @Test
+    void parsesHexBytesAndPropagatesInvalidHex() {
+        assertNull(RequestParamParser.hexBytesOrNull(null));
+        assertNull(RequestParamParser.hexBytesOrNull(""));
+        assertNull(RequestParamParser.hexBytesOrNull("  "));
+        assertArrayEquals(new byte[]{0x00, 0x0f, (byte) 0xab}, RequestParamParser.hexBytesOrNull("000fab"));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> RequestParamParser.hexBytesOrNull("0g")
+        );
+        assertEquals("十六进制字符串包含非法字符", exception.getMessage());
+    }
+}
