@@ -42,29 +42,57 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果解析DER签名失败
      */
     public static byte[] derToRs(byte[] derSignature) throws IOException {
-        ASN1Sequence seq = (ASN1Sequence) ASN1Primitive.fromByteArray(derSignature);
-        if (seq.size() != 2) {
+        if (derSignature == null) {
             throw new IOException("Invalid DER signature format");
         }
-        BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getValue();
-        BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getValue();
 
-        byte[] rBytes = r.toByteArray();
-        byte[] sBytes = s.toByteArray();
+        ASN1Primitive primitive;
+        try {
+            primitive = ASN1Primitive.fromByteArray(derSignature);
+        } catch (IOException e) {
+            throw new IOException("Invalid DER signature format", e);
+        }
+
+        if (!(primitive instanceof ASN1Sequence seq) || seq.size() != 2) {
+            throw new IOException("Invalid DER signature format");
+        }
+        if (!(seq.getObjectAt(0) instanceof ASN1Integer rInteger)
+                || !(seq.getObjectAt(1) instanceof ASN1Integer sInteger)) {
+            throw new IOException("Invalid DER signature format");
+        }
+
+        BigInteger r = rInteger.getValue();
+        BigInteger s = sInteger.getValue();
+        validateSignatureScalar(r, "r");
+        validateSignatureScalar(s, "s");
 
         byte[] rs = new byte[64];
-
-        // r填充到32字节
-        int rOffset = Math.max(0, rBytes.length - 32);
-        int rLen = Math.min(rBytes.length, 32);
-        System.arraycopy(rBytes, rOffset, rs, 32 - rLen, rLen);
-
-        // s填充到32字节
-        int sOffset = Math.max(0, sBytes.length - 32);
-        int sLen = Math.min(sBytes.length, 32);
-        System.arraycopy(sBytes, sOffset, rs, 32 + (32 - sLen), sLen);
+        byte[] rBytes = toFixed32Bytes(r);
+        byte[] sBytes = toFixed32Bytes(s);
+        System.arraycopy(rBytes, 0, rs, 0, 32);
+        System.arraycopy(sBytes, 0, rs, 32, 32);
 
         return rs;
+    }
+
+    private static void validateSignatureScalar(BigInteger value, String name) throws IOException {
+        if (value.compareTo(BigInteger.ZERO) <= 0 || value.compareTo(CURVE_ORDER) >= 0) {
+            throw new IOException("Invalid DER signature " + name + " value");
+        }
+    }
+
+    private static byte[] toFixed32Bytes(BigInteger value) throws IOException {
+        byte[] valueBytes = value.toByteArray();
+        if (valueBytes.length == 33 && valueBytes[0] == 0) {
+            valueBytes = Arrays.copyOfRange(valueBytes, 1, 33);
+        }
+        if (valueBytes.length > 32) {
+            throw new IOException("Invalid DER signature scalar length");
+        }
+
+        byte[] fixed = new byte[32];
+        System.arraycopy(valueBytes, 0, fixed, 32 - valueBytes.length, valueBytes.length);
+        return fixed;
     }
 
     /**
@@ -75,9 +103,7 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果转换失败
      */
     public static byte[] rsToDer(byte[] rsSignature) throws IOException {
-        if (rsSignature.length != 64) {
-            throw new IllegalArgumentException("rsSignature must be 64 bytes long");
-        }
+        validateRsSignature(rsSignature);
 
         // 分离r和s
         byte[] rBytes = Arrays.copyOfRange(rsSignature, 0, 32);
@@ -112,7 +138,7 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果转换失败
      */
     public static PublicKey compressedToPublicKey(byte[] compressedPubKey) throws Exception {
-        if (compressedPubKey.length != 33) {
+        if (compressedPubKey == null || compressedPubKey.length != 33) {
             throw new IllegalArgumentException("Compressed public key must be 33 bytes long");
         }
 
@@ -158,17 +184,10 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果转换失败
      */
     public static PrivateKey rawToPrivateKey(byte[] rawPrivateKey) throws Exception {
-        if (rawPrivateKey.length != 32) {
-            throw new IllegalArgumentException("Raw private key must be 32 bytes long");
-        }
-
-        BigInteger privateKeyValue = new BigInteger(1, rawPrivateKey);
-        if (privateKeyValue.compareTo(BigInteger.ZERO) <= 0 || privateKeyValue.compareTo(CURVE_ORDER) >= 0) {
-            throw new IllegalArgumentException("Invalid private key value");
-        }
+        BigInteger privateKeyValue = validateRawPrivateKey(rawPrivateKey);
 
         KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(1, rawPrivateKey), EC_SPEC);
+        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(privateKeyValue, EC_SPEC);
 
         return keyFactory.generatePrivate(privateKeySpec);
     }
@@ -220,14 +239,25 @@ public class Secp256k1EncryptUtil {
      * 将32字节原始私钥转换为可复用的 ECKey（范围校验与 {@link #rawToPrivateKey} 一致）。
      */
     public static ECKey rawToECKey(byte[] rawPrivateKey) {
+        return ECKey.fromPrivate(validateRawPrivateKey(rawPrivateKey));
+    }
+
+    private static void validateRsSignature(byte[] rsSignature) {
+        if (rsSignature == null || rsSignature.length != 64) {
+            throw new IllegalArgumentException("rsSignature must be 64 bytes long");
+        }
+    }
+
+    private static BigInteger validateRawPrivateKey(byte[] rawPrivateKey) {
         if (rawPrivateKey == null || rawPrivateKey.length != 32) {
             throw new IllegalArgumentException("Raw private key must be 32 bytes long");
         }
+
         BigInteger privateKeyValue = new BigInteger(1, rawPrivateKey);
         if (privateKeyValue.compareTo(BigInteger.ZERO) <= 0 || privateKeyValue.compareTo(CURVE_ORDER) >= 0) {
             throw new IllegalArgumentException("Invalid private key value");
         }
-        return ECKey.fromPrivate(privateKeyValue);
+        return privateKeyValue;
     }
 
     /**
@@ -260,6 +290,7 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果解析签名失败
      */
     public static boolean isNotLowS(byte[] rsSignature) throws IOException {
+        validateRsSignature(rsSignature);
         BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
         return s.compareTo(HALF_CURVE_ORDER) > 0;
     }

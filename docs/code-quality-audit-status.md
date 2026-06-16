@@ -3,8 +3,8 @@
 - **核验日期**：2026-06-16
 - **核验基线**：本清单提交所在 HEAD（工作树干净）；本轮消费链接口契约修复包含 `e9d5f7e`、`7f60626`、`a3d9bcd`、`e749633` 及后续文档校正提交。
 - **审计来源**：多智能体并行审计（11 维度 / 100 条保留发现 / 6 条对抗验证证伪）
-- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）。
-- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（152 tests）+ full `mvnw verify`（surefire 152 + failsafe 34 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
+- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）、`docs/superpowers/specs/2026-06-16-secp256k1-negative-tests-design.md` / `docs/superpowers/plans/2026-06-16-secp256k1-negative-tests.md`（Secp256k1 原语负路径与边界守卫）。
+- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）/ `Secp256k1EncryptUtilTest`（11 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（161 tests）+ full `mvnw verify`（surefire 161 + failsafe 34 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
 
 ## 图例
 
@@ -24,9 +24,9 @@
 |------|------|
 | 审计保留发现 | 100（High 2 / Medium 19 / Low 71 / Info 8） |
 | 综合评分（审计时） | 约 65 / 100 |
-| 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 14 + 多个 Low/Info |
-| 本轮有意延后 | 大型重构、并发测试、Secp256k1 原语负路径、多数 Low/Info |
-| 单元测试 | ✅ 通过（surefire / mvnw test，152 tests） |
+| 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 15 + 多个 Low/Info |
+| 本轮有意延后 | 大型重构、并发测试、多数 Low/Info |
+| 单元测试 | ✅ 通过（surefire / mvnw test，161 tests） |
 | 集成测试 | ✅ 通过（failsafe / mvnw verify，34 tests） |
 
 **维度评分卡（审计时基线，供下一轮对比）：** Correctness 7 · Concurrency 6 · Security 7 · Persistence 6 · Performance 7 · Architecture 6 · Maintainability 6 · Error Handling 6 · API/REST 7 · Test 6 · Config/Build/Ops 7。
@@ -62,7 +62,7 @@
 | 问题 | 位置 | 状态 | 实现 |
 |------|------|:--:|------|
 | `PoWUtil` 指数无界 / 负指数崩溃 | `util/PoWUtil.java` | ✅ | exponent 3..32 + mantissa>0 校验。`78875f0` |
-| 低-S 校验对非定长签名无防御 | `protocol/SignatureValidator.java` | ✅* | 在 `validateLowS` 入口加 `length==64` 守卫。*原语 `Secp256k1EncryptUtil.isNotLowS` 自身仍未加守卫（其唯一安全调用方已防御）。`78875f0` |
+| 低-S 校验对非定长签名无防御 | `protocol/SignatureValidator.java` | ✅ | 在 `validateLowS` 入口加 `length==64` 守卫；原语 `Secp256k1EncryptUtil.isNotLowS` 后续已补稳定输入守卫。`78875f0` / `f84fc96` |
 | `bytesToHex` 无 null 守卫（与同类方法不一致） | `util/ByteArrayUtil.java` | ✅ | 已加 null 守卫。`78875f0` |
 | 无 `ddl-auto=validate`，实体/DDL 漂移不报 | `resources/application.properties` | ✅ | 加 `validate`；`mvnw verify` 已确认 Testcontainers 启动与 schema validate 通过。`0663d5e` |
 | Dockerfile 承诺优雅停机但未配 `server.shutdown=graceful` | `resources/application.properties` | ✅ | 已加。`0663d5e` |
@@ -72,6 +72,7 @@
 - ✅ **`/consume-chains/edges` 分页修复**：已改为 `SliceResponseDTO<ConsumeChainEdge>`，新增 `page`/`size`，复用 `PageRequestUtil` 200 上限，native query 使用 `size+1`/`offset`。
 - ✅ **查询期 not-found 语义修复**：未冻结/未授权/不存在改 `NotFoundException` → 404；格式错误、缺参、非法 pubkey 长度仍 400。
 - ✅ **源码哈希构建链路硬化**：源码包文件集改由 `git ls-files -z` 枚举 git 跟踪文件，内容仍读取当前工作树；历史生成物 `source_code_v*.zip` 明确排除；git/zip/hash/properties 任一阶段失败均非零退出，Maven antrun 配置 `failonerror=true`；Docker build context 有意保留 `.git` 以支持容器内 `git ls-files`；路径加固拒绝符号链接及符号链接祖先，并校验 `nmsci.block-version` 必须为正整数。commits `3842af1` / `bd36112` / `bd3b8c5` / `5b06bd6`。
+- ✅ **Secp256k1 原语负路径测试与边界守卫**：补充错误公钥、篡改数据、high-S、非 64 字节 RS、畸形 DER、非法 `r/s`、非法压缩公钥、非法原始私钥等 primitive 单元测试；`derToRs` 拒绝非法 ASN.1/标量，`isNotLowS`/`rsToDer`/密钥转换方法增加稳定输入守卫。
 
 ---
 
@@ -81,7 +82,6 @@
 
 ### 较高价值（建议下一轮优先）
 - **缺真实两线程并发测试**（Medium，Test）：双挂载 / 并发分配仅靠反射断言注解；建议补 `ExecutorService` + `CountDownLatch` 竞争测试。
-- **Secp256k1 原语负路径测试缺失**（Medium，Test）：高-S 拒绝、错误密钥、篡改数据、畸形 DER 等（`validateLowS`/`PoW`/`bytesToHex` 已补，但原语层仍弱）。
 
 ### 结构性重构（成本较高）
 - 5–6 个写 Service 重复约 30 行管线 → 模板方法 / 管线抽象（Low）。
@@ -133,9 +133,10 @@
 ## 6. 验证记录与待办
 
 - ✅ focused surefire 通过：`.\mvnw.cmd -Dtest=CalcSourceCodeZipHashContractTest test`，9 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ focused surefire 通过：`.\mvnw.cmd -Dtest=Secp256k1EncryptUtilTest test`，11 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ package 通过：`.\mvnw.cmd -DskipTests package` BUILD SUCCESS；生成 `target/classes/static/source_code_v1.zip`，并写入非零 `nmsci.source-code-zip-hash`。由于本审计文档本身是 `git ls-files` 纳入的跟踪源码，任何跟踪源码/文档变更都会改变源码包哈希；因此此处记录非零生成事实，不记录固定哈希值。
-- ✅ full `mvnw test`（surefire 单元测试）通过：152 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、冻结流程停机与事务边界。
-- ✅ full **`mvnw verify`（failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 152 个、failsafe 34 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
+- ✅ full `mvnw test`（surefire 单元测试）通过：161 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、Secp256k1 原语负路径、冻结流程停机与事务边界。
+- ✅ full **`mvnw verify`（surefire + failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 161 个、failsafe 34 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
 - ⚠️ Docker build-stage 复验未完成：`docker build --target build -t nmsci-source-hash-build-test .` 在进入 build stage 前拉取 Docker Hub token 失败，当前完整失败行为的精确摘录如下。该项仅阻塞 Docker 镜像构建阶段复验，不影响上述 Maven 本地验证结论。
 
 ```text
@@ -146,5 +147,5 @@ ERROR: failed to solve: failed to fetch anonymous token: Get "https://auth.docke
 
 ## 7. 下一轮建议优先级
 
-1. 双挂载 / 并发分配的真实两线程测试；Secp256k1 原语负路径测试。
+1. 双挂载 / 并发分配的真实两线程测试。
 2. 其余结构性重构（写 Service 模板化、常量化、去重）按团队节奏推进。
