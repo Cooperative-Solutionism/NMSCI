@@ -16,7 +16,7 @@ temp
 .worktrees/
 
 # Generated source archives
-src/main/resources/static/source_code_*.zip
+src/main/resources/static/source_code_v*.zip
 
 # Local secrets/environment files
 application-local.properties
