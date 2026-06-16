@@ -104,7 +104,7 @@ temp/source-code
 
 镜像采用「多阶段从源码构建」：构建阶段用项目自带的 Maven Wrapper 从源码打包，因此任何人 `docker build` 都能复现出与 CI 一致的上链源码哈希（`nmsci.source-code-zip-hash`）；运行阶段仅含 JRE 21 与可执行 jar，并以非 root 用户运行。
 
-> **复现性约定：** [.dockerignore](./.dockerignore) 的排除项与构建期 `CalcSourceCodeZipHash` 严格对齐（仅排除 `.git`、`target`、`logs`、`temp`、IDE 文件，以及未跟踪的 `application-local.properties`/`.env`）。**请勿在 `.dockerignore` 中排除任何被 git 跟踪的源码/配置文件**，否则 Docker 构建算出的源码哈希会与 CI 不一致。注意：`Dockerfile`、`docker-compose.yml` 等一旦提交即纳入源码哈希。
+> **复现性约定：** 构建期 `CalcSourceCodeZipHash` 通过 `git ls-files` 取被 git 跟踪的文件集，因此 Docker build context 会有意保留 `.git` 元数据，确保容器内能执行同样的枚举。生成的 `source_code_v*.zip` 仍不会包含 `.git` 元数据，因为 Git 不会把自身元数据作为被跟踪文件输出。[.dockerignore](./.dockerignore) 只应排除 `target`、`logs`、`temp`、`.worktrees/`、IDE 文件，以及未跟踪的 `application-local.properties`/`.env` 等本地噪声。**请勿在 `.dockerignore` 中排除任何被 git 跟踪的源码/配置文件**，否则 Docker 构建算出的源码哈希会与 CI 不一致。注意：`Dockerfile`、`docker-compose.yml` 等一旦提交即纳入源码哈希。
 
 ### 一键启动（含 PostgreSQL）
 

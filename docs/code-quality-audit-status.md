@@ -3,8 +3,8 @@
 - **核验日期**：2026-06-16
 - **核验基线**：本清单提交所在 HEAD（工作树干净）；本轮消费链接口契约修复包含 `e9d5f7e`、`7f60626`、`a3d9bcd`、`e749633` 及后续文档校正提交。
 - **审计来源**：多智能体并行审计（11 维度 / 100 条保留发现 / 6 条对抗验证证伪）
-- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），范围定为「快赢 + 唯一 High 止血」
-- **验证手段**：逐条比对当前已提交代码 + targeted surefire（10 tests）+ targeted failsafe `verify`（29 tests）+ full `mvnw test`（148 tests）+ full `mvnw verify`（surefire 148 + failsafe 34 tests），全绿。
+- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）。
+- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（152 tests）+ full `mvnw verify`（surefire 152 + failsafe 34 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
 
 ## 图例
 
@@ -24,9 +24,9 @@
 |------|------|
 | 审计保留发现 | 100（High 2 / Medium 19 / Low 71 / Info 8） |
 | 综合评分（审计时） | 约 65 / 100 |
-| 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 13 + 多个 Low/Info |
-| 本轮有意延后 | 大型重构、源码哈希兜底、并发测试、Secp256k1 原语负路径、多数 Low/Info |
-| 单元测试 | ✅ 通过（surefire / mvnw test，148 tests） |
+| 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 14 + 多个 Low/Info |
+| 本轮有意延后 | 大型重构、并发测试、Secp256k1 原语负路径、多数 Low/Info |
+| 单元测试 | ✅ 通过（surefire / mvnw test，152 tests） |
 | 集成测试 | ✅ 通过（failsafe / mvnw verify，34 tests） |
 
 **维度评分卡（审计时基线，供下一轮对比）：** Correctness 7 · Concurrency 6 · Security 7 · Persistence 6 · Performance 7 · Architecture 6 · Maintainability 6 · Error Handling 6 · API/REST 7 · Test 6 · Config/Build/Ops 7。
@@ -71,6 +71,7 @@
 ### 2.4 本轮新增修复（2026-06-16）
 - ✅ **`/consume-chains/edges` 分页修复**：已改为 `SliceResponseDTO<ConsumeChainEdge>`，新增 `page`/`size`，复用 `PageRequestUtil` 200 上限，native query 使用 `size+1`/`offset`。
 - ✅ **查询期 not-found 语义修复**：未冻结/未授权/不存在改 `NotFoundException` → 404；格式错误、缺参、非法 pubkey 长度仍 400。
+- ✅ **源码哈希构建链路硬化**：源码包文件集改由 `git ls-files -z` 枚举 git 跟踪文件，内容仍读取当前工作树；历史生成物 `source_code_v*.zip` 明确排除；git/zip/hash/properties 任一阶段失败均非零退出，Maven antrun 配置 `failonerror=true`；Docker build context 有意保留 `.git` 以支持容器内 `git ls-files`；路径加固拒绝符号链接及符号链接祖先，并校验 `nmsci.block-version` 必须为正整数。commits `3842af1` / `bd36112` / `bd3b8c5` / `5b06bd6`。
 
 ---
 
@@ -79,7 +80,6 @@
 > 这些**不是未完成**，是这一轮刻意未纳入。按建议优先级从高到低。
 
 ### 较高价值（建议下一轮优先）
-- **源码哈希排除集漂移 + 吞异常**（Medium，Config）：`buildtool/CalcSourceCodeZipHash.java` 排除集与 .gitignore/.dockerignore 不一致，且失败返回 0 → 可能打包陈旧/全零链上哈希。建议改 `git ls-files` 取文件集 + 失败 `System.exit(1)`。
 - **缺真实两线程并发测试**（Medium，Test）：双挂载 / 并发分配仅靠反射断言注解；建议补 `ExecutorService` + `CountDownLatch` 竞争测试。
 - **Secp256k1 原语负路径测试缺失**（Medium，Test）：高-S 拒绝、错误密钥、篡改数据、畸形 DER 等（`validateLowS`/`PoW`/`bytesToHex` 已补，但原语层仍弱）。
 
@@ -132,15 +132,19 @@
 
 ## 6. 验证记录与待办
 
-- ✅ targeted surefire 通过：`ConsumeChainPaginationTest`、`ConsumeChainQueryServiceTest`、`ProtocolNotFoundSemanticsTest` 共 10 tests passed。
-- ✅ targeted failsafe verify 通过：`ProtocolLifecycleIntegrationTest`、`ProtocolErrorIntegrationTest` 共 29 integration tests passed。
-- ✅ full `mvnw test`（surefire 单元测试）通过：148 tests passed；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、冻结流程停机与事务边界。
-- ✅ full **`mvnw verify`（failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 148 个、failsafe 34 个用例通过。
+- ✅ focused surefire 通过：`.\mvnw.cmd -Dtest=CalcSourceCodeZipHashContractTest test`，9 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ package 通过：`.\mvnw.cmd -DskipTests package` BUILD SUCCESS；生成 `target/classes/static/source_code_v1.zip`，并写入非零 `nmsci.source-code-zip-hash`。由于本审计文档本身是 `git ls-files` 纳入的跟踪源码，任何跟踪源码/文档变更都会改变源码包哈希；因此此处记录非零生成事实，不记录固定哈希值。
+- ✅ full `mvnw test`（surefire 单元测试）通过：152 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、冻结流程停机与事务边界。
+- ✅ full **`mvnw verify`（failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 152 个、failsafe 34 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
+- ⚠️ Docker build-stage 复验未完成：`docker build --target build -t nmsci-source-hash-build-test .` 在进入 build stage 前拉取 Docker Hub token 失败，当前完整失败行为的精确摘录如下。该项仅阻塞 Docker 镜像构建阶段复验，不影响上述 Maven 本地验证结论。
+
+```text
+ERROR: failed to solve: failed to fetch anonymous token: Get "https://auth.docker.io/token?scope=repository%3Adocker%2Fdockerfile%3Apull&service=registry.docker.io": dial tcp 199.96.62.21:443: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond.
+```
 
 ---
 
 ## 7. 下一轮建议优先级
 
-1. 源码哈希失败兜底 + 排除集对齐（链上完整性）。
-2. 双挂载 / 并发分配的真实两线程测试；Secp256k1 原语负路径测试。
-3. 其余结构性重构（写 Service 模板化、常量化、去重）按团队节奏推进。
+1. 双挂载 / 并发分配的真实两线程测试；Secp256k1 原语负路径测试。
+2. 其余结构性重构（写 Service 模板化、常量化、去重）按团队节奏推进。

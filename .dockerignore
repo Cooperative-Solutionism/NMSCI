@@ -9,10 +9,11 @@
 .idea
 *.iml
 
-# Build/runtime outputs
+# Build/runtime/local-only outputs
 target
 logs
 temp
+.worktrees/
 
 # Generated source archives
 src/main/resources/static/source_code_*.zip
