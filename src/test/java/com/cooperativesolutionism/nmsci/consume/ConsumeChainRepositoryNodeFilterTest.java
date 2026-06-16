@@ -38,6 +38,7 @@ class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
         UUID end = UUID.fromString("22222222-2222-2222-2222-222222222222");
         UUID edgeOnly = UUID.fromString("33333333-3333-3333-3333-333333333333");
         UUID other = UUID.fromString("44444444-4444-4444-4444-444444444444");
+        UUID edgeTargetOnly = UUID.fromString("55555555-5555-5555-5555-555555555555");
         UUID record = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
         UUID mount = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
         UUID startChain = UUID.fromString("00000000-0000-0000-0000-000000000001");
@@ -49,6 +50,7 @@ class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
         insertFlowNode(end, 2);
         insertFlowNode(edgeOnly, 3);
         insertFlowNode(other, 4);
+        insertFlowNode(edgeTargetOnly, 5);
         insertTransactionRecord(record, 20);
         insertTransactionMount(mount, record, 21);
         insertChain(startChain, start, other, false, 10L);
@@ -64,6 +66,16 @@ class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
                 mount,
                 false,
                 30L
+        );
+        insertEdge(
+                UUID.fromString("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+                other,
+                edgeTargetOnly,
+                edgeChain,
+                record,
+                mount,
+                false,
+                31L
         );
 
         assertIds(
@@ -85,7 +97,37 @@ class ConsumeChainRepositoryNodeFilterTest extends NmsciIntegrationTestBase {
                 loopChain
         );
         assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.END, node(end), false, PAGEABLE),
+                endChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.END, node(end), true, PAGEABLE),
+                loopChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(start), null, PAGEABLE),
+                startChain,
+                loopChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(start), false, PAGEABLE),
+                startChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(start), true, PAGEABLE),
+                loopChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(end), null, PAGEABLE),
+                endChain,
+                loopChain
+        );
+        assertIds(
                 consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(edgeOnly), null, PAGEABLE),
+                edgeChain
+        );
+        assertIds(
+                consumeChainRepository.findByNodeFilter(ConsumeChainNodeFilter.NODE, node(edgeTargetOnly), null, PAGEABLE),
                 edgeChain
         );
     }

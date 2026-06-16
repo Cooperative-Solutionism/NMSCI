@@ -389,15 +389,15 @@ Slice<ConsumeChain> findByNodeFilter(
 
 Keep `findDistinctByRelatedTransactionMount(...)` and `lockOpenChainsForAllocation(...)` unchanged.
 
-- [ ] **Step 3: Run the repository test and verify it passes**
+- [ ] **Step 3: Run the repository integration test and verify it passes**
 
 Run:
 
 ```powershell
-.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" test
+.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify
 ```
 
-Expected: PASS. The expected test count is 1 test with `Failures: 0, Errors: 0, Skipped: 0`.
+Expected: PASS. `ConsumeChainRepositoryNodeFilterTest` extends `NmsciIntegrationTestBase`, so it has the `integration` tag and is excluded by Surefire. The expected focused verification is Failsafe running 1 repository integration test with `Failures: 0, Errors: 0, Skipped: 0`; Surefire may report 0 tests for the same class during this command.
 
 If Spring Data rejects enum literals in JPQL, replace the three enum comparisons in the query with parameterized SpEL string comparisons:
 
@@ -407,7 +407,7 @@ If Spring Data rejects enum literals in JPQL, replace the three enum comparisons
 (:#{#filter.name()} = 'NODE' and (...))
 ```
 
-Then rerun the same test and require it to pass before continuing.
+Then rerun the same Failsafe verification command and require it to pass before continuing.
 
 - [ ] **Step 4: Commit repository unification foundation**
 
@@ -808,10 +808,11 @@ private void assertRepositoryMethodAbsent(String name, Class<?>... parameterType
 Run:
 
 ```powershell
-.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest,ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test
+.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test
+.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify
 ```
 
-Expected: PASS. Expected count is 1 repository test + 7 query optimization tests + 3 pagination tests = 11 tests.
+Expected: PASS. Expected focused Surefire count is 7 query optimization tests + 3 pagination tests = 10 tests. Expected focused Failsafe count is 1 repository integration test.
 
 - [ ] **Step 4: Run stale method scans**
 
@@ -855,7 +856,7 @@ Run:
 .\mvnw.cmd test
 ```
 
-Expected: PASS. The previous full Surefire count was 168; after adding `ConsumeChainRepositoryNodeFilterTest` and one new service test, expected total is 170 tests if no existing test count changes. Use the actual Maven result in the audit document.
+Expected: PASS. The previous full Surefire count was 168; `ConsumeChainRepositoryNodeFilterTest` is an integration test excluded by Surefire, so after adding one new service test the expected full Surefire total is 169 tests if no existing test count changes. Use the actual Maven result in the audit document.
 
 - [ ] **Step 2: Optionally run full verify if Docker is available**
 
@@ -875,13 +876,13 @@ In `docs/code-quality-audit-status.md`, update the top `codex 修复范围` line
 `docs/superpowers/specs/2026-06-17-consume-chain-query-unification-design.md` / `docs/superpowers/plans/2026-06-17-consume-chain-query-unification.md`（消费链查询统一化）
 ```
 
-Update the top `验证手段` line to include the focused targeted command and actual count:
+Update the top `验证手段` line to include focused Surefire service/pagination verification and focused Failsafe repository integration verification with actual counts:
 
 ```markdown
-targeted surefire `ConsumeChainRepositoryNodeFilterTest,ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（11 tests）
+targeted surefire `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）；focused failsafe `ConsumeChainRepositoryNodeFilterTest`（1 test）
 ```
 
-If full `mvnw test` count changed to 170, update full test count from 168 to 170. If `mvnw verify` ran, update Surefire/Failsafe counts to actual values.
+If full `mvnw test` count changed to 169, update full test count from 168 to 169. If `mvnw verify` ran, update Surefire/Failsafe counts to actual values.
 
 Under `### 2.4 本轮新增修复（2026-06-16）`, add a new 2026-06-17 bullet or update the heading to include 2026-06-17:
 
@@ -900,7 +901,7 @@ Do not remove unrelated delayed items such as write-service template refactor, `
 In `## 6. 验证记录与待办`, add:
 
 ```markdown
-- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest,ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，11 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，10 tests passed（Failures 0 / Errors 0 / Skipped 0）；focused failsafe 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify`，1 test passed（Failures 0 / Errors 0 / Skipped 0）。
 ```
 
 Update the full `mvnw test` and `mvnw verify` bullets with actual counts from Step 1 and Step 2.
@@ -954,10 +955,11 @@ Expected: matches in the enum, repository, service, and tests.
 Run:
 
 ```powershell
-.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest,ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test
+.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test
+.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify
 ```
 
-Expected: PASS with the actual targeted test count recorded in Task 5.
+Expected: PASS with the actual targeted Surefire and focused Failsafe test counts recorded in Task 5.
 
 - [ ] **Step 3: Run workspace and author checks**
 
@@ -982,7 +984,7 @@ Report:
 
 ```text
 已完成：消费链查询统一化，新增 ConsumeChainNodeFilter 和 ConsumeChainRepository.findByNodeFilter(...)，删除 start/end/node × isLoop 的重复仓储方法；ConsumeChainQueryService public 方法、controller API、错误文案和分页行为保持不变。
-验证：列出 targeted surefire、mvnw test、mvnw verify 的实际结果和测试数量。
+验证：列出 targeted surefire、focused failsafe、mvnw test、mvnw verify 的实际结果和测试数量。
 提交：列出本轮新增提交哈希和中文提交信息。
 残余：写 Service 模板化、错误契约/API 打磨、BlockAssembler 类型派发等仍按审计清单留待后续。
 ```
