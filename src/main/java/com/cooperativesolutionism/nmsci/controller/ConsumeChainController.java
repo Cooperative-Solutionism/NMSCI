@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +14,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
 @RequestMapping("/consume-chains")
@@ -67,13 +70,13 @@ public class ConsumeChainController {
 
         Slice<ConsumeChainResponseDTO> result;
         if (hasMounted) {
-            result = consumeChainQueryService.getConsumeChainByMountedTransaction(UUID.fromString(mountedTransactionId), pageable);
+            result = consumeChainQueryService.getConsumeChainByMountedTransaction(uuidOrNull(mountedTransactionId), pageable);
         } else if (hasPubkeyNode) {
             result = consumeChainQueryService.getConsumeChainByPubkey(
-                    pubkey(startPubkey), pubkey(endPubkey), pubkey(nodePubkey), isLoop, pageable);
+                    hexBytesOrNull(startPubkey), hexBytesOrNull(endPubkey), hexBytesOrNull(nodePubkey), isLoop, pageable);
         } else {
             result = consumeChainQueryService.getConsumeChainByRelatedId(
-                    uuid(startId), uuid(endId), uuid(nodeId), isLoop, pageable);
+                    uuidOrNull(startId), uuidOrNull(endId), uuidOrNull(nodeId), isLoop, pageable);
         }
         return ResponseResult.success(SliceResponseDTO.from(result));
     }
@@ -112,29 +115,11 @@ public class ConsumeChainController {
         Slice<ConsumeChainEdge> edges;
         if (hasPubkey) {
             edges = consumeChainQueryService.getConsumeChainEdgesByPubkey(
-                    pubkey(sourcePubkey), pubkey(targetPubkey), currencyType, startTime, endTime, pageable);
+                    hexBytesOrNull(sourcePubkey), hexBytesOrNull(targetPubkey), currencyType, startTime, endTime, pageable);
         } else {
             edges = consumeChainQueryService.getConsumeChainEdgesById(
-                    uuid(sourceId), uuid(targetId), currencyType, startTime, endTime, pageable);
+                    uuidOrNull(sourceId), uuidOrNull(targetId), currencyType, startTime, endTime, pageable);
         }
         return ResponseResult.success(SliceResponseDTO.from(edges));
-    }
-
-    private static boolean notBlank(String value) {
-        return value != null && !value.isBlank();
-    }
-
-    private UUID uuid(String id) {
-        if (id == null || id.isBlank()) {
-            return null;
-        }
-        return UUID.fromString(id);
-    }
-
-    private byte[] pubkey(String pubkey) {
-        if (pubkey == null || pubkey.isBlank()) {
-            return null;
-        }
-        return ByteArrayUtil.hexToBytes(pubkey);
     }
 }

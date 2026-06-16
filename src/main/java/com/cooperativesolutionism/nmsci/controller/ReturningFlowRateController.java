@@ -5,11 +5,12 @@ import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
 @RequestMapping("/returning-flow-rates")
@@ -48,9 +49,9 @@ public class ReturningFlowRateController {
             if (!notBlank(targetPubkey)) {
                 throw new BadRequestException("targetPubkey 不能为空");
             }
-            request.setTarget(ByteArrayUtil.hexToBytes(targetPubkey));
+            request.setTarget(hexBytesOrNull(targetPubkey));
             if (notBlank(sourcePubkey)) {
-                request.setSource(ByteArrayUtil.hexToBytes(sourcePubkey));
+                request.setSource(hexBytesOrNull(sourcePubkey));
                 responseDTO = consumeChainQueryService.getReturningFlowRateByPubkey(request);
             } else {
                 responseDTO = consumeChainQueryService.getReturningFlowRateByTargetPubkey(request);
@@ -59,9 +60,9 @@ public class ReturningFlowRateController {
             if (!notBlank(targetId)) {
                 throw new BadRequestException("targetId 不能为空");
             }
-            request.setTargetId(UUID.fromString(targetId));
+            request.setTargetId(uuidOrNull(targetId));
             if (notBlank(sourceId)) {
-                request.setSourceId(UUID.fromString(sourceId));
+                request.setSourceId(uuidOrNull(sourceId));
                 responseDTO = consumeChainQueryService.getReturningFlowRateById(request);
             } else {
                 responseDTO = consumeChainQueryService.getReturningFlowRateByTargetId(request);
@@ -69,9 +70,5 @@ public class ReturningFlowRateController {
         }
 
         return ResponseResult.success(responseDTO);
-    }
-
-    private static boolean notBlank(String value) {
-        return value != null && !value.isBlank();
     }
 }
