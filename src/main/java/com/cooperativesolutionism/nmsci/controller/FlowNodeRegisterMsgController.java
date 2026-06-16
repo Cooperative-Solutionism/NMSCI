@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
@@ -30,7 +31,7 @@ public class FlowNodeRegisterMsgController {
     private FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter;
 
     @PostMapping
-    public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(123) byte[] byteData) {
+    public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(FLOW_NODE_REGISTER_INBOUND_BYTES) byte[] byteData) {
         FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(flowNodeRegisterMsgMsgService.saveFlowNodeRegisterMsg(flowNodeRegisterMsgMsg));
     }

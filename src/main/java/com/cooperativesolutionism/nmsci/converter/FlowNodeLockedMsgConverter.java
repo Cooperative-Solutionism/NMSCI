@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_LOCKED_INBOUND_BYTES;
+
 @Component
 public class FlowNodeLockedMsgConverter extends AbstractMessageConverter<FlowNodeLockedMsg> {
 
@@ -17,7 +19,7 @@ public class FlowNodeLockedMsgConverter extends AbstractMessageConverter<FlowNod
 
     @Override
     public int expectedSize() {
-        return 148;
+        return FLOW_NODE_LOCKED_INBOUND_BYTES;
     }
 
     @Override

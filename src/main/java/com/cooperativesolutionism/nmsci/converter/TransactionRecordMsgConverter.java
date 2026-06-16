@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_RECORD_INBOUND_BYTES;
+
 @Component
 public class TransactionRecordMsgConverter extends AbstractMessageConverter<TransactionRecordMsg> {
 
@@ -17,7 +19,7 @@ public class TransactionRecordMsgConverter extends AbstractMessageConverter<Tran
 
     @Override
     public int expectedSize() {
-        return 263;
+        return TRANSACTION_RECORD_INBOUND_BYTES;
     }
 
     @Override

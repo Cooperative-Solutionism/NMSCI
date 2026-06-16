@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_MOUNT_INBOUND_BYTES;
+
 @Component
 public class TransactionMountMsgConverter extends AbstractMessageConverter<TransactionMountMsg> {
 
@@ -17,7 +19,7 @@ public class TransactionMountMsgConverter extends AbstractMessageConverter<Trans
 
     @Override
     public int expectedSize() {
-        return 269;
+        return TRANSACTION_MOUNT_INBOUND_BYTES;
     }
 
     @Override

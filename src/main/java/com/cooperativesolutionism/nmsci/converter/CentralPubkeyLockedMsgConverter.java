@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
+
 @Component
 public class CentralPubkeyLockedMsgConverter extends AbstractMessageConverter<CentralPubkeyLockedMsg> {
 
@@ -17,7 +19,7 @@ public class CentralPubkeyLockedMsgConverter extends AbstractMessageConverter<Ce
 
     @Override
     public int expectedSize() {
-        return 115;
+        return CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
     }
 
     @Override

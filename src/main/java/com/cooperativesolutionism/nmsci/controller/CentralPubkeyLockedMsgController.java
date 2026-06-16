@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
@@ -28,7 +29,7 @@ public class CentralPubkeyLockedMsgController {
     private CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
 
     @PostMapping
-    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
+    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES) byte[] byteData) {
         CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
         centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
         return ResponseResult.success(centralPubkeyLockedMsg);

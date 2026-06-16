@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_RECORD_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 
 @RestController
@@ -26,7 +27,7 @@ public class TransactionRecordMsgController {
     private TransactionRecordMsgConverter transactionRecordMsgConverter;
 
     @PostMapping
-    public ResponseResult<TransactionRecordMsg> saveTransactionRecordMsg(@RequestBody @ByteArraySize(263) byte[] byteData) {
+    public ResponseResult<TransactionRecordMsg> saveTransactionRecordMsg(@RequestBody @ByteArraySize(TRANSACTION_RECORD_INBOUND_BYTES) byte[] byteData) {
         TransactionRecordMsg transactionRecordMsg = transactionRecordMsgConverter.fromByteArray(byteData);
         return ResponseResult.success(transactionRecordMsgService.saveTransactionRecordMsg(transactionRecordMsg));
     }
