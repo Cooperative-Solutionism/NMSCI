@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -21,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * 上链源码包构建机制的契约测试：保证排除项跨平台一致、关键源文件入包、
@@ -135,6 +137,28 @@ class CalcSourceCodeZipHashContractTest {
     }
 
     @Test
+    void zipRejectsTrackedSymbolicLinksBeforeCopying(@TempDir Path projectDir, @TempDir Path externalDir) throws Exception {
+        assumeTrue(canCreateSymlink(projectDir), "symbolic links are not supported or permitted");
+
+        initGitRepo(projectDir);
+        git(projectDir, "config", "core.symlinks", "true");
+        Path externalFile = externalDir.resolve("secret.txt");
+        writeFile(externalFile, "outside repo");
+        Path link = projectDir.resolve("src/main/java/com/example/Leaked.txt");
+        Files.createDirectories(link.getParent());
+        Files.createSymbolicLink(link, externalFile);
+        git(projectDir, "add", ".");
+        git(projectDir, "commit", "-m", "symlink");
+
+        IOException exception = assertThrows(
+                IOException.class,
+                () -> CalcSourceCodeZipHash.zipTrackedFiles(projectDir, CalcSourceCodeZipHash.trackedFiles(projectDir), projectDir.resolve("target/out.zip"))
+        );
+
+        assertTrue(exception.getMessage().contains("symbolic link"));
+    }
+
+    @Test
     void runGeneratesSourceZipAndWritesHashIntoTargetProperties(@TempDir Path projectDir) throws Exception {
         initGitRepo(projectDir);
         writeFile(projectDir.resolve("pom.xml"), "<project/>");
@@ -164,11 +188,49 @@ class CalcSourceCodeZipHashContractTest {
         assertEquals(result.hashValue(), properties.getProperty("nmsci.source-code-zip-hash"));
     }
 
+    @Test
+    void runRejectsMalformedBlockVersionsBeforeCreatingZip(@TempDir Path tempDir) throws Exception {
+        List<String> malformedVersions = List.of("../7", "7/evil");
+        for (int i = 0; i < malformedVersions.size(); i++) {
+            Path projectDir = tempDir.resolve("case-" + i);
+            initGitRepo(projectDir);
+            writeFile(projectDir.resolve("pom.xml"), "<project/>");
+            writeFile(projectDir.resolve("src/main/java/com/example/App.java"), "class App {}");
+            git(projectDir, "add", ".");
+            git(projectDir, "commit", "-m", "initial");
+            Path propertiesFile = projectDir.resolve("target/classes/application.properties");
+            writeFile(propertiesFile, "nmsci.block-version=" + malformedVersions.get(i) + "\n");
+
+            IllegalStateException exception = assertThrows(
+                    IllegalStateException.class,
+                    () -> CalcSourceCodeZipHash.run(projectDir)
+            );
+
+            assertTrue(exception.getMessage().contains("must be a positive integer"));
+            assertTrue(zipFilesUnder(projectDir.resolve("target/classes")).isEmpty());
+        }
+    }
+
     private static void writeFile(Path file, String content) throws IOException {
         if (file.getParent() != null) {
             Files.createDirectories(file.getParent());
         }
         Files.writeString(file, content);
+    }
+
+    private static boolean canCreateSymlink(Path projectDir) throws IOException {
+        Files.createDirectories(projectDir);
+        Path target = Files.createTempFile("nmsci-symlink-target", ".txt");
+        Path link = projectDir.resolve("symlink-check");
+        try {
+            Files.createSymbolicLink(link, target);
+            return Files.isSymbolicLink(link);
+        } catch (UnsupportedOperationException | IOException | SecurityException e) {
+            return false;
+        } finally {
+            Files.deleteIfExists(link);
+            Files.deleteIfExists(target);
+        }
     }
 
     private static void initGitRepo(Path projectDir) throws IOException, InterruptedException {
@@ -214,5 +276,17 @@ class CalcSourceCodeZipHashContractTest {
             }
         }
         return names;
+    }
+
+    private static List<Path> zipFilesUnder(Path root) throws IOException {
+        if (!Files.exists(root)) {
+            return List.of();
+        }
+        try (Stream<Path> paths = Files.walk(root)) {
+            return paths
+                    .filter(Files::isRegularFile)
+                    .filter(path -> path.toString().endsWith(".zip"))
+                    .toList();
+        }
     }
 }

@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.DigestInputStream;
@@ -86,7 +87,7 @@ public class CalcSourceCodeZipHash {
             return;
         }
         String path = new String(output, start, end - start, StandardCharsets.UTF_8);
-        if (!path.isBlank()) {
+        if (!path.isEmpty()) {
             files.add(Path.of(path));
         }
     }
@@ -143,7 +144,10 @@ public class CalcSourceCodeZipHash {
                 if (!source.startsWith(normalizedRoot)) {
                     throw new IOException("tracked path escapes source root: " + relativePath);
                 }
-                if (!Files.isRegularFile(source)) {
+                if (Files.isSymbolicLink(source)) {
+                    throw new IOException("tracked file is a symbolic link: " + relativePath);
+                }
+                if (!Files.isRegularFile(source, LinkOption.NOFOLLOW_LINKS)) {
                     throw new IOException("tracked file is missing or not a regular file: " + relativePath);
                 }
 
@@ -193,15 +197,23 @@ public class CalcSourceCodeZipHash {
         return readProperties(propertiesFilePath);
     }
 
-    public static SourceHashResult run(Path root) throws IOException, NoSuchAlgorithmException {
-        Path sourceDir = root.toAbsolutePath().normalize();
-        Path propertiesFilePath = sourceDir.resolve("target").resolve("classes").resolve("application.properties");
-        Properties properties = readRequiredProperties(propertiesFilePath);
-
+    private static String validatedBlockVersion(Properties properties, Path propertiesFilePath) {
         String blockVersion = properties.getProperty(BLOCK_VERSION_PROPERTY);
         if (blockVersion == null || blockVersion.isBlank()) {
             throw new IllegalStateException(BLOCK_VERSION_PROPERTY + " is missing in " + propertiesFilePath);
         }
+        String trimmed = blockVersion.trim();
+        if (!trimmed.matches("[1-9][0-9]*")) {
+            throw new IllegalStateException(BLOCK_VERSION_PROPERTY + " must be a positive integer in " + propertiesFilePath);
+        }
+        return trimmed;
+    }
+
+    public static SourceHashResult run(Path root) throws IOException, NoSuchAlgorithmException {
+        Path sourceDir = root.toAbsolutePath().normalize();
+        Path propertiesFilePath = sourceDir.resolve("target").resolve("classes").resolve("application.properties");
+        Properties properties = readRequiredProperties(propertiesFilePath);
+        String blockVersion = validatedBlockVersion(properties, propertiesFilePath);
 
         Path staticDir = sourceDir.resolve("target").resolve("classes").resolve("static");
         Files.createDirectories(staticDir);
