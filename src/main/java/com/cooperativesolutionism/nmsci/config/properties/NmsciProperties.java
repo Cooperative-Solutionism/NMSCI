@@ -1,5 +1,8 @@
 package com.cooperativesolutionism.nmsci.config.properties;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RAW_PRIVATE_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
@@ -192,23 +195,23 @@ public class NmsciProperties {
         public boolean isPubkeyValid() {
             byte[] decoded = decodeBase64(pubkey);
             return decoded != null
-                    && decoded.length == 33
+                    && decoded.length == COMPRESSED_PUBLIC_KEY_BYTES
                     && (decoded[0] == 0x02 || decoded[0] == 0x03);
         }
 
         @AssertTrue(message = "central-key-pair.prikey必须是32字节私钥Base64")
         public boolean isPrikeyValid() {
             byte[] decoded = decodeBase64(prikey);
-            return decoded != null && decoded.length == 32;
+            return decoded != null && decoded.length == RAW_PRIVATE_KEY_BYTES;
         }
 
         @AssertTrue(message = "central-key-pair.pubkey与central-key-pair.prikey不匹配")
         public boolean isKeyPairMatched() {
             byte[] decodedPubkey = decodeBase64(pubkey);
             byte[] decodedPrikey = decodeBase64(prikey);
-            if (decodedPubkey == null || decodedPubkey.length != 33
+            if (decodedPubkey == null || decodedPubkey.length != COMPRESSED_PUBLIC_KEY_BYTES
                     || (decodedPubkey[0] != 0x02 && decodedPubkey[0] != 0x03)
-                    || decodedPrikey == null || decodedPrikey.length != 32) {
+                    || decodedPrikey == null || decodedPrikey.length != RAW_PRIVATE_KEY_BYTES) {
                 return true;
             }
             try {

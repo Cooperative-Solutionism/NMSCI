@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +11,7 @@ import java.io.IOException;
 public class SignatureValidator {
 
     public void validateLowS(byte[] signature, String errorMessage) {
-        if (signature == null || signature.length != 64) {
+        if (signature == null || signature.length != RS_SIGNATURE_BYTES) {
             throw new IllegalArgumentException("签名必须为64字节RS格式");
         }
         try {

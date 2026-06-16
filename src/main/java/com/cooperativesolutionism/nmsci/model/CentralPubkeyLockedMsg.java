@@ -1,5 +1,8 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -41,13 +44,13 @@ public class CentralPubkeyLockedMsg implements CentrallySignedMessage {
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] centralPubkey;
 
     @Comment("中心对前三项数据的预确认签名")
     @Column(name = "central_signature_pre", nullable = false)
-    @ByteArraySize(64)
+    @ByteArraySize(RS_SIGNATURE_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] centralSignaturePre;
 

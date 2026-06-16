@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
@@ -88,7 +90,7 @@ public class FlowNodeLockedMsgService {
                 .orElseThrow(() -> new NotFoundException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未冻结"));
     }
     public Optional<FlowNodeLockedMsg> findFlowNodeLockedMsgByFlowNodePubkey(byte[] flowNodePubkey) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
         }
 

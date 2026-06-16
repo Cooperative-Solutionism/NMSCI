@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
@@ -110,7 +112,7 @@ public class CentralPubkeyLockedMsgService {
                 .orElseThrow(() -> new NotFoundException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结"));
     }
     public Optional<CentralPubkeyLockedMsg> findCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
-        if (centralPubkey == null || centralPubkey.length != 33) {
+        if (centralPubkey == null || centralPubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("中心公钥不能为空或长度不为33字节");
         }
 

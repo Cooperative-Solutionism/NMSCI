@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.consume;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
@@ -26,7 +28,7 @@ public class ConsumeChainSupport {
     private ConsumeChainEdgeRepository consumeChainEdgeRepository;
 
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgByPubkey(byte[] flowNodePubkey, String roleName) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException(roleName + "流转节点公钥不能为空或长度不为33字节");
         }
 

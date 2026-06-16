@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
@@ -84,7 +86,7 @@ public class CentralPubkeyEmpowerMsgService {
         return EntityLookup.requireById(id, "中心公钥公证信息", centralPubkeyEmpowerMsgRepository::findById);
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgByFlowNodePubkey(byte[] flowNodePubkey) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 

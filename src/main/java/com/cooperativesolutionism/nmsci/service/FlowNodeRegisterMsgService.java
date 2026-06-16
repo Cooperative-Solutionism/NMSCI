@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
@@ -99,7 +101,7 @@ public class FlowNodeRegisterMsgService {
         return EntityLookup.requireById(id, "流转节点注册信息", flowNodeRegisterMsgRepository::findById);
     }
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgByFlowNodePubkey(byte[] flowNodePubkey) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
         }
 
@@ -119,7 +121,7 @@ public class FlowNodeRegisterMsgService {
     }
     @Transactional(readOnly = true)
     public FlowNodeStateResponseDTO getFlowNodeState(byte[] flowNodePubkey) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不为33字节");
         }
 

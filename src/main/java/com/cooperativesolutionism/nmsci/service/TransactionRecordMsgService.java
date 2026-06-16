@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
@@ -103,14 +105,14 @@ public class TransactionRecordMsgService {
         return EntityLookup.requireById(id, "交易记录信息", transactionRecordMsgRepository::findById);
     }
     public Slice<TransactionRecordMsg> getTransactionRecordMsgByConsumeNodePubkey(byte[] consumeNodePubkey, Pageable pageable) {
-        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
         }
 
         return transactionRecordMsgRepository.findByConsumeNodePubkey(consumeNodePubkey, pageable);
     }
     public Slice<TransactionRecordMsg> getTransactionRecordMsgByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable) {
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 
@@ -121,11 +123,11 @@ public class TransactionRecordMsgService {
             byte[] flowNodePubkey,
             Pageable pageable
     ) {
-        if (consumeNodePubkey == null || consumeNodePubkey.length != 33) {
+        if (consumeNodePubkey == null || consumeNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("消费节点公钥不能为空或长度不正确");
         }
 
-        if (flowNodePubkey == null || flowNodePubkey.length != 33) {
+        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
         }
 

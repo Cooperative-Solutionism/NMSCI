@@ -1,5 +1,9 @@
 package com.cooperativesolutionism.nmsci.util;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RAW_PRIVATE_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import org.bitcoinj.crypto.ECKey;
 import org.bitcoinj.base.Sha256Hash;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -33,6 +37,7 @@ public class Secp256k1EncryptUtil {
     private static final BigInteger CURVE_ORDER = EC_SPEC.getN();
 
     private static final BigInteger HALF_CURVE_ORDER = CURVE_ORDER.shiftRight(1);
+    private static final int RS_COMPONENT_BYTES = RS_SIGNATURE_BYTES / 2;
 
     /**
      * 将DER签名转换为rs格式签名
@@ -66,11 +71,11 @@ public class Secp256k1EncryptUtil {
         validateSignatureScalar(r, "r");
         validateSignatureScalar(s, "s");
 
-        byte[] rs = new byte[64];
+        byte[] rs = new byte[RS_SIGNATURE_BYTES];
         byte[] rBytes = toFixed32Bytes(r);
         byte[] sBytes = toFixed32Bytes(s);
-        System.arraycopy(rBytes, 0, rs, 0, 32);
-        System.arraycopy(sBytes, 0, rs, 32, 32);
+        System.arraycopy(rBytes, 0, rs, 0, RS_COMPONENT_BYTES);
+        System.arraycopy(sBytes, 0, rs, RS_COMPONENT_BYTES, RS_COMPONENT_BYTES);
 
         return rs;
     }
@@ -83,15 +88,15 @@ public class Secp256k1EncryptUtil {
 
     private static byte[] toFixed32Bytes(BigInteger value) throws IOException {
         byte[] valueBytes = value.toByteArray();
-        if (valueBytes.length == 33 && valueBytes[0] == 0) {
-            valueBytes = Arrays.copyOfRange(valueBytes, 1, 33);
+        if (valueBytes.length == RS_COMPONENT_BYTES + 1 && valueBytes[0] == 0) {
+            valueBytes = Arrays.copyOfRange(valueBytes, 1, RS_COMPONENT_BYTES + 1);
         }
-        if (valueBytes.length > 32) {
+        if (valueBytes.length > RS_COMPONENT_BYTES) {
             throw new IOException("Invalid DER signature scalar length");
         }
 
-        byte[] fixed = new byte[32];
-        System.arraycopy(valueBytes, 0, fixed, 32 - valueBytes.length, valueBytes.length);
+        byte[] fixed = new byte[RS_COMPONENT_BYTES];
+        System.arraycopy(valueBytes, 0, fixed, RS_COMPONENT_BYTES - valueBytes.length, valueBytes.length);
         return fixed;
     }
 
@@ -106,8 +111,8 @@ public class Secp256k1EncryptUtil {
         validateRsSignature(rsSignature);
 
         // 分离r和s
-        byte[] rBytes = Arrays.copyOfRange(rsSignature, 0, 32);
-        byte[] sBytes = Arrays.copyOfRange(rsSignature, 32, 64);
+        byte[] rBytes = Arrays.copyOfRange(rsSignature, 0, RS_COMPONENT_BYTES);
+        byte[] sBytes = Arrays.copyOfRange(rsSignature, RS_COMPONENT_BYTES, RS_SIGNATURE_BYTES);
 
         ASN1Integer r = new ASN1Integer(new BigInteger(1, rBytes));
         ASN1Integer s = new ASN1Integer(new BigInteger(1, sBytes));
@@ -138,7 +143,7 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果转换失败
      */
     public static PublicKey compressedToPublicKey(byte[] compressedPubKey) throws Exception {
-        if (compressedPubKey == null || compressedPubKey.length != 33) {
+        if (compressedPubKey == null || compressedPubKey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("Compressed public key must be 33 bytes long");
         }
 
@@ -165,12 +170,12 @@ public class Secp256k1EncryptUtil {
         byte[] rawPrivateKey = d.toByteArray();
 
         // 确保私钥长度为32字节，不足时前面补0
-        if (rawPrivateKey.length < 32) {
-            byte[] paddedPrivateKey = new byte[32];
-            System.arraycopy(rawPrivateKey, 0, paddedPrivateKey, 32 - rawPrivateKey.length, rawPrivateKey.length);
+        if (rawPrivateKey.length < RAW_PRIVATE_KEY_BYTES) {
+            byte[] paddedPrivateKey = new byte[RAW_PRIVATE_KEY_BYTES];
+            System.arraycopy(rawPrivateKey, 0, paddedPrivateKey, RAW_PRIVATE_KEY_BYTES - rawPrivateKey.length, rawPrivateKey.length);
             return paddedPrivateKey;
-        } else if (rawPrivateKey.length > 32) {
-            return Arrays.copyOfRange(rawPrivateKey, rawPrivateKey.length - 32, rawPrivateKey.length);
+        } else if (rawPrivateKey.length > RAW_PRIVATE_KEY_BYTES) {
+            return Arrays.copyOfRange(rawPrivateKey, rawPrivateKey.length - RAW_PRIVATE_KEY_BYTES, rawPrivateKey.length);
         } else {
             return rawPrivateKey;
         }
@@ -243,13 +248,13 @@ public class Secp256k1EncryptUtil {
     }
 
     private static void validateRsSignature(byte[] rsSignature) {
-        if (rsSignature == null || rsSignature.length != 64) {
+        if (rsSignature == null || rsSignature.length != RS_SIGNATURE_BYTES) {
             throw new IllegalArgumentException("rsSignature must be 64 bytes long");
         }
     }
 
     private static BigInteger validateRawPrivateKey(byte[] rawPrivateKey) {
-        if (rawPrivateKey == null || rawPrivateKey.length != 32) {
+        if (rawPrivateKey == null || rawPrivateKey.length != RAW_PRIVATE_KEY_BYTES) {
             throw new IllegalArgumentException("Raw private key must be 32 bytes long");
         }
 
@@ -291,7 +296,7 @@ public class Secp256k1EncryptUtil {
      */
     public static boolean isNotLowS(byte[] rsSignature) throws IOException {
         validateRsSignature(rsSignature);
-        BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
+        BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, RS_COMPONENT_BYTES, RS_SIGNATURE_BYTES));
         return s.compareTo(HALF_CURVE_ORDER) > 0;
     }
 }
