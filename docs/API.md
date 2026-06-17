@@ -19,6 +19,7 @@
   - [1.5 时间戳与时间区间](#15-时间戳与时间区间)
   - [1.6 二进制写入（POST）](#16-二进制写入post)
   - [1.7 id 与 pubkey 不可混用](#17-id-与-pubkey-不可混用)
+  - [1.8 常见参数错误](#18-常见参数错误)
 - [2. 区块 `/blocks`](#2-区块-blocks)
 - [3. 系统 `/system`](#3-系统-system)
 - [4. 元数据 `/metadata`](#4-元数据-metadata)
@@ -43,22 +44,23 @@
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
-| `code` | int | 状态码，成功为 `200`，与 HTTP 状态码一致 |
-| `message` | String | 状态描述（成功为 `"Success"`） |
-| `data` | T | 业务数据；错误时通常为 `null` 或携带错误详情 |
+| `code` | int | 响应体业务状态码；成功为 `200`，除二进制写入成功外通常与 HTTP 状态码一致 |
+| `message` | String | 成功为 `"Success"`；失败时为具体错误消息或通用错误消息 |
+| `data` | T | 成功时为业务数据；失败时固定为 `null` |
 
-错误时 `data` 为 `null`（或异常详情字符串），HTTP 状态码与 `code` 一致。
+6 个二进制写入端点成功时使用 HTTP `201 Created`，但响应体仍为 `code: 200` / `message: "Success"`。错误响应统一将详情放在 `message`，`data` 为 `null`。
 
 ### 1.2 状态码
 
-| code | message | 何时出现 |
-|---|---|---|
-| 200 | Success | 请求成功 |
-| 400 | Bad Request | 参数非法：id 与 pubkey 混用、必填参数缺失、二进制体长度不符、协议校验失败等 |
-| 404 | Not Found | 按 `{id}`/高度/哈希/pubkey 查询的资源或状态不存在 |
-| 409 | Conflict | 资源状态冲突（如重复提交） |
-| 500 | Internal Server Error | 服务端异常 |
-| 503 | Service Unavailable | 服务不可用 |
+| HTTP 状态 | 响应体 `code` | `message` | 何时出现 |
+|---|---:|---|---|
+| 200 OK | 200 | Success | GET/查询类请求成功 |
+| 201 Created | 200 | Success | 6 个二进制 POST 写入成功 |
+| 400 Bad Request | 400 | Bad Request 或具体错误消息 | 参数非法：id 与 pubkey 混用、必填参数缺失、二进制体长度不符、协议校验失败等 |
+| 404 Not Found | 404 | Not Found 或具体错误消息 | 按 `{id}`/高度/哈希/pubkey 查询的资源或状态不存在 |
+| 409 Conflict | 409 | Conflict 或具体错误消息 | 资源状态冲突（如重复提交） |
+| 500 Internal Server Error | 500 | Internal Server Error 或 `服务器内部错误` | 服务端异常；未被控制器请求边界捕获的运行时异常不会向客户端暴露内部细节 |
+| 503 Service Unavailable | 503 | Service Unavailable | 服务不可用 |
 
 > `401 Unauthorized` / `403 Forbidden` 已在 `ResponseCode` 中定义，但当前无鉴权机制，业务不会触发。
 
@@ -122,7 +124,7 @@
   | `POST /transaction-records` | 0x0004 | 263 | 335 |
   | `POST /transaction-mounts` | 0x0005 | 269 | 341 |
 
-- **响应**：校验通过后，中心补签名与确认时间戳并落库，返回完整实体（注册信息无中心签名，入站=落库）。
+- **响应**：校验通过后，中心补签名与确认时间戳并落库，HTTP 状态为 `201 Created`，响应体为 `ResponseResult.success(完整实体)`（`code` 仍为 `200`；注册信息无中心签名，入站=落库）。
 
 ```bash
 curl -X POST http://localhost:8080/transaction-records \
@@ -133,6 +135,18 @@ curl -X POST http://localhost:8080/transaction-records \
 ### 1.7 id 与 pubkey 不可混用
 
 消费链与回流率的查询同时支持「按 id」与「按 pubkey」两套定位参数，**同一请求只能用其中一套**，混用返回 400（`"id 与 pubkey 查询参数不能混用"`）。pubkey 会在服务端解析为对应流转节点的 id 后再查询。
+
+### 1.8 常见参数错误
+
+参数解析失败统一返回 `ResponseResult` 错误信封，`data` 为 `null`。常见 `message` 包括：
+
+| 场景 | HTTP 状态 | 响应体 `code` | 典型 `message` |
+|---|---:|---:|---|
+| 框架参数绑定/请求体长度校验失败 | 400 | 400 | `请求参数非法` |
+| UUID 格式错误 | 400 | 400 | `UUID格式不正确` |
+| hex 字符串包含非十六进制字符 | 400 | 400 | `十六进制字符串包含非法字符` |
+| 压缩公钥过滤/查询参数长度不是 33 字节 | 400 | 400 | `公钥长度错误，必须为33字节` 或 `{参数名}不能为空或长度不为33字节` |
+| id 与 pubkey 查询模式混用 | 400 | 400 | `id 与 pubkey 查询参数不能混用` |
 
 ---
 
@@ -159,7 +173,7 @@ curl -X POST http://localhost:8080/transaction-records \
 |---|---|---|---|
 | `hash` | String | 是 | 区块头哈希（hex） |
 
-不存在返回 404。
+哈希格式非法返回 400；格式合法但不存在返回 404。
 
 ---
 
@@ -249,6 +263,8 @@ curl -X POST http://localhost:8080/transaction-records \
 |---|---|---|
 | `flowNodePubkey` | String | 流转节点公钥（hex，33 字节） |
 
+格式非法或长度不是 33 字节返回 400。
+
 ### GET `/flow-nodes`
 节点列表（分页），按布尔状态过滤。响应 `SliceResponseDTO<FlowNodeListItemDTO>`。
 
@@ -320,7 +336,8 @@ curl -X POST http://localhost:8080/transaction-records \
 | `currencyType` | short | `1` | 货币类型 |
 | `startTime` / `endTime` | long | `0` / `Long.MAX` | 微秒时间区间 |
 
-**400**：id 与 pubkey 混用；目标参数为空。
+**400**：id 与 pubkey 混用；目标参数为空；pubkey 格式或长度非法。
+**404**：按 pubkey 查询时目标或来源流转节点不存在。
 
 ```json
 {
@@ -338,7 +355,7 @@ curl -X POST http://localhost:8080/transaction-records \
 
 6 类消息控制器遵循统一模式：
 
-- `POST /{资源}` — 提交原始字节（见 [§1.6](#16-二进制写入post)），返回落库实体。
+- `POST /{资源}` — 提交原始字节（见 [§1.6](#16-二进制写入post)），成功时 HTTP `201 Created`，响应体 `code` 为 `200`，返回落库实体。
 - `GET /{资源}/{id}` — 按 UUID 查询单条，不存在 404。
 - `GET /{资源}` — 集合根，分页 + 可选过滤，返回 `SliceResponseDTO<实体>`。
 - 冻结类额外提供 `GET /{资源}/status` — 返回 `LockedMessageResponseDTO<实体>` = `{ locked, lockedMsg }`。
@@ -352,7 +369,7 @@ curl -X POST http://localhost:8080/transaction-records \
 | `/transaction-records` | 263 | `consumeNodePubkey`、`flowNodePubkey`、`currencyType`、`startTime`、`endTime` | — |
 | `/transaction-mounts` | 269 | `consumeNodePubkey`、`flowNodePubkey`、`mountedTransactionRecordId`、`startTime`、`endTime` | — |
 
-所有过滤参数均为可选；全空即返回全量（分页）。pubkey 为 hex，时间为微秒。
+所有过滤参数均为可选；全空即返回全量（分页）。pubkey 为 33 字节压缩公钥 hex，时间为微秒。过滤参数中的 pubkey 格式或长度非法返回 400；`{id}` 或 `mountedTransactionRecordId` 不是合法 UUID 时返回 400。
 
 **示例：查询某流转节点的交易记录**
 
