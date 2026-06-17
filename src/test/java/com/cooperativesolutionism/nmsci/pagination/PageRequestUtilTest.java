@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.pagination;
 
+import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
@@ -23,8 +24,8 @@ class PageRequestUtilTest {
 
     @Test
     void rejectsNegativePage() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> PageRequestUtil.of(-1, 50, Sort.unsorted())
         );
 
@@ -33,8 +34,8 @@ class PageRequestUtilTest {
 
     @Test
     void rejectsSizeGreaterThanMaximum() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
                 () -> PageRequestUtil.of(0, 201, Sort.unsorted())
         );
 

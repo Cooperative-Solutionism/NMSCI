@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+
 @RestController
 @RequestMapping("/blocks")
 public class BlockChainController {
@@ -29,7 +31,7 @@ public class BlockChainController {
 
     @GetMapping(params = "hash")
     public ResponseResult<BlockInfo> getBlockByHash(@RequestParam String hash) {
-        return ResponseResult.success(blockChainService.getBlockByHash(hash));
+        return badRequestOnIllegalArgument(() -> ResponseResult.success(blockChainService.getBlockByHash(hash)));
     }
 
 }

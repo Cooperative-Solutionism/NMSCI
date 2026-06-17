@@ -10,6 +10,8 @@ import org.springframework.http.MediaType;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -32,7 +34,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .content(Arrays.copyOf(valid, valid.length - 1)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("Validation failure")));
+                .andExpect(jsonPath("$.message").value("请求参数非法"))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -48,7 +51,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .content(builder.withMsgType(message, (short) 5)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("信息类型错误")));
+                .andExpect(jsonPath("$.message").value(containsString("信息类型错误")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -67,7 +71,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .content(builder.flowNodeRegister(secondId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value(409))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("已被注册")));
+                .andExpect(jsonPath("$.message").value(containsString("已被注册")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -86,7 +91,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .content(builder.transactionRecord(recordId, 100L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("未授权")));
+                .andExpect(jsonPath("$.message").value(containsString("未授权")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -113,7 +119,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .content(builder.withBrokenSignature(valid)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("签名")));
+                .andExpect(jsonPath("$.message").value(containsString("签名")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -122,8 +129,9 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("流转节点公钥")))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+                .andExpect(jsonPath("$.message").value(containsString("流转节点公钥")))
+                .andExpect(jsonPath("$.message").value(containsString("不存在")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -140,8 +148,9 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("源流转节点公钥")))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+                .andExpect(jsonPath("$.message").value(containsString("源流转节点公钥")))
+                .andExpect(jsonPath("$.message").value(containsString("不存在")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -151,7 +160,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("size", "201"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("分页大小不能超过200")));
+                .andExpect(jsonPath("$.message").value(containsString("分页大小不能超过200")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -159,7 +169,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(get("/consume-chains/edges"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("targetId 不能为空")));
+                .andExpect(jsonPath("$.message").value(containsString("targetId 不能为空")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -169,7 +180,8 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("id 与 pubkey 查询参数不能混用")));
+                .andExpect(jsonPath("$.message").value(containsString("id 与 pubkey 查询参数不能混用")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -178,8 +190,9 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_B.pubkey())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("目标流转节点公钥")))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+                .andExpect(jsonPath("$.message").value(containsString("目标流转节点公钥")))
+                .andExpect(jsonPath("$.message").value(containsString("不存在")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -196,8 +209,9 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", ByteArrayUtil.bytesToHex(TestKeyPairs.FLOW_NODE_A.pubkey())))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("源流转节点公钥")))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+                .andExpect(jsonPath("$.message").value(containsString("源流转节点公钥")))
+                .andExpect(jsonPath("$.message").value(containsString("不存在")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -206,7 +220,37 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                         .param("targetPubkey", "00"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.code").value(400))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("目标流转节点公钥不能为空或长度不为33字节")));
+                .andExpect(jsonPath("$.message").value(containsString("目标流转节点公钥不能为空或长度不为33字节")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsFlowNodeStateLookupWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/flow-nodes/{flowNodePubkey}", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("流转节点公钥不能为空或长度不为33字节")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsFlowNodeLockStatusWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/flow-node-locks/status")
+                        .param("flowNodePubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("流转节点公钥不能为空或长度不为33字节")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsCentralPubkeyLockStatusWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/central-pubkey-locks/status")
+                        .param("centralPubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("中心公钥不能为空或长度不为33字节")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 
     @Test
@@ -216,7 +260,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.locked").value(false))
-                .andExpect(jsonPath("$.data.lockedMsg").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.data.lockedMsg").value(nullValue()));
     }
 
     @Test
@@ -226,7 +270,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.locked").value(false))
-                .andExpect(jsonPath("$.data.lockedMsg").value(org.hamcrest.Matchers.nullValue()));
+                .andExpect(jsonPath("$.data.lockedMsg").value(nullValue()));
     }
 
     @Test
@@ -245,6 +289,17 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(get("/blocks/{height}", 999L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404))
-                .andExpect(jsonPath("$.data").value(org.hamcrest.Matchers.containsString("不存在")));
+                .andExpect(jsonPath("$.message").value(containsString("不存在")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsBlockLookupWhenHashIsMalformed() throws Exception {
+        mockMvc.perform(get("/blocks")
+                        .param("hash", "zz"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("十六进制字符串包含非法字符")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
     }
 }

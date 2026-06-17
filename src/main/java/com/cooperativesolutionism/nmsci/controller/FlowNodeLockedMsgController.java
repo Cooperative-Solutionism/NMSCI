@@ -57,7 +57,9 @@ public class FlowNodeLockedMsgController {
 
     @GetMapping("/status")
     public ResponseResult<LockedMessageResponseDTO<FlowNodeLockedMsg>> getFlowNodeLockStatus(@RequestParam String flowNodePubkey) {
-        Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(hexBytesOrNull(flowNodePubkey));
-        return ResponseResult.success(new LockedMessageResponseDTO<>(flowNodeLockedMsg.isPresent(), flowNodeLockedMsg.orElse(null)));
+        return badRequestOnIllegalArgument(() -> {
+            Optional<FlowNodeLockedMsg> flowNodeLockedMsg = flowNodeLockedMsgService.findFlowNodeLockedMsgByFlowNodePubkey(hexBytesOrNull(flowNodePubkey));
+            return ResponseResult.success(new LockedMessageResponseDTO<>(flowNodeLockedMsg.isPresent(), flowNodeLockedMsg.orElse(null)));
+        });
     }
 }

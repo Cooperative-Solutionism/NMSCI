@@ -32,7 +32,7 @@ public class ResponseResult<T> {
         );
     }
 
-    public static <T> ResponseResult<T> failure(ResponseCode responseCode, String detailMessage) {
+    public static ResponseResult<Void> failure(ResponseCode responseCode, String detailMessage) {
         Assert.isTrue(responseCode.getCode() != ResponseCode.SUCCESS.getCode(), "对于失败响应，响应码不能为SUCCESS");
         return new ResponseResult<>(
                 responseCode.getCode(),

@@ -8,6 +8,7 @@ import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
@@ -33,42 +34,44 @@ public class ReturningFlowRateController {
             @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
             @RequestParam(required = false, defaultValue = "1") short currencyType
     ) {
-        boolean hasId = notBlank(sourceId) || notBlank(targetId);
-        boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
-        if (hasId && hasPubkey) {
-            throw new BadRequestException("id 与 pubkey 查询参数不能混用");
-        }
-
-        ReturningFlowRateRequestDTO request = new ReturningFlowRateRequestDTO();
-        request.setStartTime(startTime);
-        request.setEndTime(endTime);
-        request.setCurrencyType(currencyType);
-
-        ReturningFlowRateResponseDTO responseDTO;
-        if (hasPubkey) {
-            if (!notBlank(targetPubkey)) {
-                throw new BadRequestException("targetPubkey 不能为空");
+        return badRequestOnIllegalArgument(() -> {
+            boolean hasId = notBlank(sourceId) || notBlank(targetId);
+            boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
+            if (hasId && hasPubkey) {
+                throw new BadRequestException("id 与 pubkey 查询参数不能混用");
             }
-            request.setTarget(hexBytesOrNull(targetPubkey));
-            if (notBlank(sourcePubkey)) {
-                request.setSource(hexBytesOrNull(sourcePubkey));
-                responseDTO = consumeChainQueryService.getReturningFlowRateByPubkey(request);
+
+            ReturningFlowRateRequestDTO request = new ReturningFlowRateRequestDTO();
+            request.setStartTime(startTime);
+            request.setEndTime(endTime);
+            request.setCurrencyType(currencyType);
+
+            ReturningFlowRateResponseDTO responseDTO;
+            if (hasPubkey) {
+                if (!notBlank(targetPubkey)) {
+                    throw new BadRequestException("targetPubkey 不能为空");
+                }
+                request.setTarget(hexBytesOrNull(targetPubkey));
+                if (notBlank(sourcePubkey)) {
+                    request.setSource(hexBytesOrNull(sourcePubkey));
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByPubkey(request);
+                } else {
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByTargetPubkey(request);
+                }
             } else {
-                responseDTO = consumeChainQueryService.getReturningFlowRateByTargetPubkey(request);
+                if (!notBlank(targetId)) {
+                    throw new BadRequestException("targetId 不能为空");
+                }
+                request.setTargetId(uuidOrNull(targetId));
+                if (notBlank(sourceId)) {
+                    request.setSourceId(uuidOrNull(sourceId));
+                    responseDTO = consumeChainQueryService.getReturningFlowRateById(request);
+                } else {
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByTargetId(request);
+                }
             }
-        } else {
-            if (!notBlank(targetId)) {
-                throw new BadRequestException("targetId 不能为空");
-            }
-            request.setTargetId(uuidOrNull(targetId));
-            if (notBlank(sourceId)) {
-                request.setSourceId(uuidOrNull(sourceId));
-                responseDTO = consumeChainQueryService.getReturningFlowRateById(request);
-            } else {
-                responseDTO = consumeChainQueryService.getReturningFlowRateByTargetId(request);
-            }
-        }
 
-        return ResponseResult.success(responseDTO);
+            return ResponseResult.success(responseDTO);
+        });
     }
 }

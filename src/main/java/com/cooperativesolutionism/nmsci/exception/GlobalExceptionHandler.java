@@ -19,24 +19,25 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private static final String INTERNAL_ERROR_MESSAGE = "服务器内部错误";
+    private static final String VALIDATION_ERROR_MESSAGE = "请求参数非法";
     private static final String CONFLICT_MESSAGE = "数据冲突：违反唯一约束";
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
-    @ExceptionHandler({IllegalArgumentException.class, BadRequestException.class})
-    public ResponseEntity<ResponseResult<String>> handleBadRequest(RuntimeException e) {
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ResponseResult<Void>> handleBadRequest(BadRequestException e) {
         logger.warn("Bad request: {}", e.getMessage());
         return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<ResponseResult<String>> handleNotFoundException(NotFoundException e) {
+    public ResponseEntity<ResponseResult<Void>> handleNotFoundException(NotFoundException e) {
         logger.warn("Not found: {}", e.getMessage());
         return failure(HttpStatus.NOT_FOUND, ResponseCode.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<ResponseResult<String>> handleConflictException(ConflictException e) {
+    public ResponseEntity<ResponseResult<Void>> handleConflictException(ConflictException e) {
         logger.warn("Conflict: {}", e.getMessage());
         return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, e.getMessage());
     }
@@ -49,24 +50,24 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException.class,
             HttpMessageNotReadableException.class
     })
-    public ResponseEntity<ResponseResult<String>> handleValidationExceptions(Exception e) {
+    public ResponseEntity<ResponseResult<Void>> handleValidationExceptions(Exception e) {
         logger.warn("Validation failed: {}", e.getMessage());
-        return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, e.getMessage());
+        return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, VALIDATION_ERROR_MESSAGE);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ResponseResult<String>> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+    public ResponseEntity<ResponseResult<Void>> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
         logger.warn("Data integrity conflict: {}", e.getMessage());
         return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, CONFLICT_MESSAGE);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ResponseResult<String>> handleAllExceptions(Exception e) {
+    public ResponseEntity<ResponseResult<Void>> handleAllExceptions(Exception e) {
         logger.error("An unexpected error occurred: {}", e.getMessage(), e);
         return failure(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MESSAGE);
     }
 
-    private ResponseEntity<ResponseResult<String>> failure(HttpStatus status, ResponseCode responseCode, String detail) {
+    private ResponseEntity<ResponseResult<Void>> failure(HttpStatus status, ResponseCode responseCode, String detail) {
         return ResponseEntity.status(status).body(ResponseResult.failure(responseCode, detail));
     }
 }

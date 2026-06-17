@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytes;
 
 @RestController
@@ -28,7 +29,9 @@ public class FlowNodeController {
 
     @GetMapping("/{flowNodePubkey}")
     public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@PathVariable String flowNodePubkey) {
-        return ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(hexBytes(flowNodePubkey)));
+        return badRequestOnIllegalArgument(
+                () -> ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(hexBytes(flowNodePubkey)))
+        );
     }
 
     @GetMapping

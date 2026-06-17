@@ -3,8 +3,8 @@
 - **核验日期**：2026-06-17
 - **核验基线**：本清单提交所在 HEAD（工作树干净）；本轮消费链接口契约修复包含 `e9d5f7e`、`7f60626`、`a3d9bcd`、`e749633` 及后续文档校正提交。
 - **审计来源**：多智能体并行审计（11 维度 / 100 条保留发现 / 6 条对抗验证证伪）
-- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）、`docs/superpowers/specs/2026-06-16-secp256k1-negative-tests-design.md` / `docs/superpowers/plans/2026-06-16-secp256k1-negative-tests.md`（Secp256k1 原语负路径与边界守卫）、`docs/superpowers/specs/2026-06-16-consume-chain-concurrency-test-design.md` / `docs/superpowers/plans/2026-06-16-consume-chain-concurrency-test.md`（消费链真实两线程并发测试）、`docs/superpowers/specs/2026-06-16-controller-param-parser-design.md` / `docs/superpowers/plans/2026-06-16-controller-param-parser.md`（控制器参数解析去重）、`docs/superpowers/specs/2026-06-16-protocol-byte-lengths-design.md` / `docs/superpowers/plans/2026-06-16-protocol-byte-lengths.md`（协议长度常量化）、`docs/superpowers/specs/2026-06-17-consume-chain-query-unification-design.md` / `docs/superpowers/plans/2026-06-17-consume-chain-query-unification.md`（消费链查询统一化）。
-- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）/ `Secp256k1EncryptUtilTest`（11 tests）/ `RequestParamParserTest`（4 tests）/ `ProtocolByteLengthsContractTest`（3 tests）/ targeted surefire `RequestParamParserTest,ConsumeChainPaginationTest`（7 tests）/ `ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest`（14 tests）/ `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）+ focused failsafe `ConsumeChainAllocationConcurrencyIntegrationTest`（1 test）/ `ConsumeChainRepositoryNodeFilterTest`（2 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（169 tests）+ full `mvnw verify`（surefire 169 + failsafe 37 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
+- **codex 修复范围**：见 `docs/superpowers/specs/2026-06-15-quality-fixes-design.md`（设计）与 `docs/superpowers/plans/2026-06-15-quality-fixes.md`（实施计划），以及 `docs/superpowers/specs/2026-06-16-source-hash-build-tool-design.md` / `docs/superpowers/plans/2026-06-16-source-hash-build-tool.md`（源码哈希构建工具硬化）、`docs/superpowers/specs/2026-06-16-secp256k1-negative-tests-design.md` / `docs/superpowers/plans/2026-06-16-secp256k1-negative-tests.md`（Secp256k1 原语负路径与边界守卫）、`docs/superpowers/specs/2026-06-16-consume-chain-concurrency-test-design.md` / `docs/superpowers/plans/2026-06-16-consume-chain-concurrency-test.md`（消费链真实两线程并发测试）、`docs/superpowers/specs/2026-06-16-controller-param-parser-design.md` / `docs/superpowers/plans/2026-06-16-controller-param-parser.md`（控制器参数解析去重）、`docs/superpowers/specs/2026-06-16-protocol-byte-lengths-design.md` / `docs/superpowers/plans/2026-06-16-protocol-byte-lengths.md`（协议长度常量化）、`docs/superpowers/specs/2026-06-17-consume-chain-query-unification-design.md` / `docs/superpowers/plans/2026-06-17-consume-chain-query-unification.md`（消费链查询统一化）、`docs/superpowers/specs/2026-06-17-api-error-contract-design.md` / `docs/superpowers/plans/2026-06-17-api-error-contract.md`（API 错误契约打磨）。
+- **验证手段**：逐条比对当前已提交代码 + focused surefire `CalcSourceCodeZipHashContractTest`（9 tests）/ `Secp256k1EncryptUtilTest`（11 tests）/ `RequestParamParserTest`（4 tests）/ `ProtocolByteLengthsContractTest`（3 tests）/ targeted surefire `RequestParamParserTest,ConsumeChainPaginationTest`（7 tests）/ `ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest`（14 tests）/ `ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest`（10 tests）/ `GlobalExceptionHandlerTest,ResponseResultTest,RequestParamParserTest,BinaryWriteEndpointContractTest,FlowNodeStateEndpointTest,ConsumeChainPaginationTest,TransactionRecordPaginationTest,TransactionMountPaginationTest,PageRequestUtilTest`（33 tests）+ focused failsafe `ConsumeChainAllocationConcurrencyIntegrationTest`（1 test）/ `ConsumeChainRepositoryNodeFilterTest`（2 tests）/ `ProtocolErrorIntegrationTest`（21 tests）+ `mvnw package` 源码包生成 + full `mvnw test`（178 tests）+ full `mvnw verify`（surefire 178 + failsafe 41 tests），Maven 全绿；Docker build-stage 复验因 Docker Hub token/network 故障未完成（见 §6）。
 
 ## 图例
 
@@ -26,8 +26,8 @@
 | 综合评分（审计时） | 约 65 / 100 |
 | 本轮已修复（含决策收口） | High 1（唯一真 High）+ Medium 16 + 多个 Low/Info |
 | 本轮有意延后 | 大型重构、多数 Low/Info |
-| 单元测试 | ✅ 通过（surefire / mvnw test，169 tests） |
-| 集成测试 | ✅ 通过（failsafe / mvnw verify，37 tests） |
+| 单元测试 | ✅ 通过（surefire / mvnw test，178 tests） |
+| 集成测试 | ✅ 通过（failsafe / mvnw verify，41 tests） |
 
 **维度评分卡（审计时基线，供下一轮对比）：** Correctness 7 · Concurrency 6 · Security 7 · Persistence 6 · Performance 7 · Architecture 6 · Maintainability 6 · Error Handling 6 · API/REST 7 · Test 6 · Config/Build/Ops 7。
 
@@ -77,6 +77,7 @@
 - ✅ **控制器参数解析去重**：新增 `RequestParamParser` 统一 optional query 参数的 blank/null 判断、UUID 解析和十六进制字节解析，替换消息控制器、消费链查询和回流率查询中的重复私有 helper；保留现有非法 UUID/hex 异常路径、必填参数 `BadRequestException` 文案和 path variable 解析行为。
 - ✅ **协议长度常量化**：新增 `ProtocolByteLengths` 统一消息入站/落库长度以及 UUID、压缩公钥、RS 签名、原始私钥等协议字段长度；写端点 `@ByteArraySize`、消息转换器、`MsgTypeEnum`、实体字段约束和生产校验复用同一组编译期常量，保留现有协议布局、异常类型和错误文案。
 - ✅ **消费链查询统一化**：新增 `ConsumeChainNodeFilter` 和统一 `ConsumeChainRepository.findByNodeFilter(...)`，收敛 start/end/node 与可选 `isLoop` 的 6 个重复查询方法；`ConsumeChainQueryService` 保留现有 public 方法和错误文案，通过私有 id/pubkey/node helper 复用分派逻辑，挂载交易查询与 `/consume-chains/edges` 路径保持独立。
+- ✅ **API 错误契约打磨**：失败响应详情改由 `message` 承载且 `data` 为空；`IllegalArgumentException` 不再全局映射为 400，控制器/请求解析边界将已知 UUID、hex、分页、二进制协议输入、公钥长度和 block hash 格式错误转换为 `BadRequestException`；6 个二进制写端点显式声明 `application/octet-stream`。
 
 ---
 
@@ -90,10 +91,7 @@
 - repository 反向依赖 `block/dto/protocol` 投影类型（Low）。
 - `WebMvcConfig extends WebMvcConfigurationSupport` 关闭了 Boot MVC 自动配置（Low）。
 
-### 错误契约 / API 打磨（Low，整体一致性）
-- `IllegalArgumentException` 全局映射 400（误标内部故障 + 泄露 JDK/解析器原文）。
-- `ResponseResult.failure` 把错误详情放类型化 `data` 而非 `message`。
-- 写端点未声明 `consumes`（文档要求 octet-stream 未强制）。
+### 错误契约 / API 打磨（Low，剩余一致性）
 - 自定义 Jackson 序列化器无 null 守卫；响应 DTO 非标准 boolean getter；POST 返回 200 而非 201、重试 409 非幂等。
 - 搜索端点 pubkey 无长度校验（静默返回空）。
 
@@ -136,11 +134,13 @@
 - ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=RequestParamParserTest,ConsumeChainPaginationTest" test`，7 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ProtocolByteLengthsContractTest,Secp256k1EncryptUtilTest" test`，14 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=ConsumeChainQueryOptimizationTest,ConsumeChainPaginationTest" test`，10 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ targeted surefire 通过：`.\mvnw.cmd "-Dtest=GlobalExceptionHandlerTest,ResponseResultTest,RequestParamParserTest,BinaryWriteEndpointContractTest,FlowNodeStateEndpointTest,ConsumeChainPaginationTest,TransactionRecordPaginationTest,TransactionMountPaginationTest,PageRequestUtilTest" test`，33 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ focused failsafe 通过：`.\mvnw.cmd "-Dit.test=ConsumeChainAllocationConcurrencyIntegrationTest" verify`，1 test passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ focused failsafe 通过：`.\mvnw.cmd "-Dtest=ConsumeChainRepositoryNodeFilterTest" "-Dit.test=ConsumeChainRepositoryNodeFilterTest" verify`，2 tests passed（Failures 0 / Errors 0 / Skipped 0）。
+- ✅ focused failsafe 通过：`.\mvnw.cmd "-Dit.test=ProtocolErrorIntegrationTest" test-compile failsafe:integration-test failsafe:verify`，21 tests passed（Failures 0 / Errors 0 / Skipped 0）。
 - ✅ package 通过：`.\mvnw.cmd -DskipTests package` BUILD SUCCESS；生成 `target/classes/static/source_code_v1.zip`，并写入非零 `nmsci.source-code-zip-hash`。由于本审计文档本身是 `git ls-files` 纳入的跟踪源码，任何跟踪源码/文档变更都会改变源码包哈希；因此此处记录非零生成事实，不记录固定哈希值。
-- ✅ full `mvnw test`（surefire 单元测试）通过：169 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、Secp256k1 原语负路径、协议长度常量契约、控制器参数解析、消费链查询统一化、冻结流程停机与事务边界。
-- ✅ full **`mvnw verify`（surefire + failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate 与协议生命周期端到端行为；本轮完整 verify 为 surefire 169 个、failsafe 37 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
+- ✅ full `mvnw test`（surefire 单元测试）通过：178 tests passed（Failures 0 / Errors 0 / Skipped 0）；覆盖密钥对校验、创世异常、调度失败、低-S/PoW/HexFormat 边界、Secp256k1 原语负路径、协议长度常量契约、控制器参数解析、消费链查询统一化、API 错误契约、冻结流程停机与事务边界。
+- ✅ full **`mvnw verify`（surefire + failsafe 集成测试，需 Docker）通过。** 覆盖 JPA/Flyway 启动期 schema validate、协议生命周期端到端行为与 API 错误契约集成路径；本轮完整 verify 为 surefire 178 个、failsafe 41 个用例通过（均 Failures 0 / Errors 0 / Skipped 0）。
 - ⚠️ Docker build-stage 复验未完成：`docker build --target build -t nmsci-source-hash-build-test .` 在进入 build stage 前拉取 Docker Hub token 失败，当前完整失败行为的精确摘录如下。该项仅阻塞 Docker 镜像构建阶段复验，不影响上述 Maven 本地验证结论。
 
 ```text
@@ -151,4 +151,4 @@ ERROR: failed to solve: failed to fetch anonymous token: Get "https://auth.docke
 
 ## 7. 下一轮建议优先级
 
-1. 其余结构性重构（写 Service 模板化、错误契约/API 打磨、BlockAssembler 类型派发等）按团队节奏推进。
+1. 其余结构性重构（写 Service 模板化、剩余 API 打磨、BlockAssembler 类型派发等）按团队节奏推进。

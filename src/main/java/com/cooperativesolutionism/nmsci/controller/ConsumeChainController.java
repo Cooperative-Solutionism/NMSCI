@@ -13,6 +13,7 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
@@ -54,30 +55,32 @@ public class ConsumeChainController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        boolean hasIdNode = notBlank(startId) || notBlank(endId) || notBlank(nodeId);
-        boolean hasPubkeyNode = notBlank(startPubkey) || notBlank(endPubkey) || notBlank(nodePubkey);
-        boolean hasMounted = notBlank(mountedTransactionId);
+        return badRequestOnIllegalArgument(() -> {
+            boolean hasIdNode = notBlank(startId) || notBlank(endId) || notBlank(nodeId);
+            boolean hasPubkeyNode = notBlank(startPubkey) || notBlank(endPubkey) || notBlank(nodePubkey);
+            boolean hasMounted = notBlank(mountedTransactionId);
 
-        if (hasIdNode && hasPubkeyNode) {
-            throw new BadRequestException("id 与 pubkey 查询参数不能混用");
-        }
-        if (hasMounted && (hasIdNode || hasPubkeyNode)) {
-            throw new BadRequestException("mountedTransactionId 不能与节点过滤参数混用");
-        }
+            if (hasIdNode && hasPubkeyNode) {
+                throw new BadRequestException("id 与 pubkey 查询参数不能混用");
+            }
+            if (hasMounted && (hasIdNode || hasPubkeyNode)) {
+                throw new BadRequestException("mountedTransactionId 不能与节点过滤参数混用");
+            }
 
-        Pageable pageable = PageRequestUtil.of(page, size, CONSUME_CHAIN_QUERY_SORT);
+            Pageable pageable = PageRequestUtil.of(page, size, CONSUME_CHAIN_QUERY_SORT);
 
-        Slice<ConsumeChainResponseDTO> result;
-        if (hasMounted) {
-            result = consumeChainQueryService.getConsumeChainByMountedTransaction(uuidOrNull(mountedTransactionId), pageable);
-        } else if (hasPubkeyNode) {
-            result = consumeChainQueryService.getConsumeChainByPubkey(
-                    hexBytesOrNull(startPubkey), hexBytesOrNull(endPubkey), hexBytesOrNull(nodePubkey), isLoop, pageable);
-        } else {
-            result = consumeChainQueryService.getConsumeChainByRelatedId(
-                    uuidOrNull(startId), uuidOrNull(endId), uuidOrNull(nodeId), isLoop, pageable);
-        }
-        return ResponseResult.success(SliceResponseDTO.from(result));
+            Slice<ConsumeChainResponseDTO> result;
+            if (hasMounted) {
+                result = consumeChainQueryService.getConsumeChainByMountedTransaction(uuidOrNull(mountedTransactionId), pageable);
+            } else if (hasPubkeyNode) {
+                result = consumeChainQueryService.getConsumeChainByPubkey(
+                        hexBytesOrNull(startPubkey), hexBytesOrNull(endPubkey), hexBytesOrNull(nodePubkey), isLoop, pageable);
+            } else {
+                result = consumeChainQueryService.getConsumeChainByRelatedId(
+                        uuidOrNull(startId), uuidOrNull(endId), uuidOrNull(nodeId), isLoop, pageable);
+            }
+            return ResponseResult.success(SliceResponseDTO.from(result));
+        });
     }
 
     /**
@@ -96,29 +99,31 @@ public class ConsumeChainController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        boolean hasId = notBlank(sourceId) || notBlank(targetId);
-        boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
-        if (hasId && hasPubkey) {
-            throw new BadRequestException("id 与 pubkey 查询参数不能混用");
-        }
-
-        if (hasPubkey) {
-            if (!notBlank(targetPubkey)) {
-                throw new BadRequestException("targetPubkey 不能为空");
+        return badRequestOnIllegalArgument(() -> {
+            boolean hasId = notBlank(sourceId) || notBlank(targetId);
+            boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
+            if (hasId && hasPubkey) {
+                throw new BadRequestException("id 与 pubkey 查询参数不能混用");
             }
-        } else if (!notBlank(targetId)) {
-            throw new BadRequestException("targetId 不能为空");
-        }
 
-        Pageable pageable = PageRequestUtil.of(page, size, CONSUME_CHAIN_EDGE_QUERY_SORT);
-        Slice<ConsumeChainEdge> edges;
-        if (hasPubkey) {
-            edges = consumeChainQueryService.getConsumeChainEdgesByPubkey(
-                    hexBytesOrNull(sourcePubkey), hexBytesOrNull(targetPubkey), currencyType, startTime, endTime, pageable);
-        } else {
-            edges = consumeChainQueryService.getConsumeChainEdgesById(
-                    uuidOrNull(sourceId), uuidOrNull(targetId), currencyType, startTime, endTime, pageable);
-        }
-        return ResponseResult.success(SliceResponseDTO.from(edges));
+            if (hasPubkey) {
+                if (!notBlank(targetPubkey)) {
+                    throw new BadRequestException("targetPubkey 不能为空");
+                }
+            } else if (!notBlank(targetId)) {
+                throw new BadRequestException("targetId 不能为空");
+            }
+
+            Pageable pageable = PageRequestUtil.of(page, size, CONSUME_CHAIN_EDGE_QUERY_SORT);
+            Slice<ConsumeChainEdge> edges;
+            if (hasPubkey) {
+                edges = consumeChainQueryService.getConsumeChainEdgesByPubkey(
+                        hexBytesOrNull(sourcePubkey), hexBytesOrNull(targetPubkey), currencyType, startTime, endTime, pageable);
+            } else {
+                edges = consumeChainQueryService.getConsumeChainEdgesById(
+                        uuidOrNull(sourceId), uuidOrNull(targetId), currencyType, startTime, endTime, pageable);
+            }
+            return ResponseResult.success(SliceResponseDTO.from(edges));
+        });
     }
 }
