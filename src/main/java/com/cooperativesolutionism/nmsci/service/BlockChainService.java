@@ -9,6 +9,7 @@ import com.cooperativesolutionism.nmsci.block.SelectedBlockMessages;
 import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
@@ -59,6 +60,7 @@ public class BlockChainService {
         AssembledBlock assembledBlock = blockAssembler.assemble(previousBlock, selectedMessages);
         BlockInfo blockInfo = assembledBlock.getBlockInfo();
 
+        markSelectedInBlock(assembledBlock);
         msgAbstractRepository.saveAll(assembledBlock.getSelectedMsgAbstracts());
         blockInfo.setDatFilepath(blockFileStore.appendBlock(previousDatFilepath(previousBlock), assembledBlock.getDatBytes()));
         blockInfo.setSourceCodeZipFilepath(sourceCodeArchiveStore.copyArchiveForVersion(blockInfo.getVersion()));
@@ -93,6 +95,12 @@ public class BlockChainService {
             return null;
         }
         return previousBlock.getDatFilepath();
+    }
+
+    private void markSelectedInBlock(AssembledBlock assembledBlock) {
+        for (MsgAbstract msgAbstract : assembledBlock.getSelectedMsgAbstracts()) {
+            msgAbstract.setIsInBlock(true);
+        }
     }
 
 }

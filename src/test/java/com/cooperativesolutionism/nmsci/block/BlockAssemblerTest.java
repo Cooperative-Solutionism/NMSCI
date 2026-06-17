@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -61,7 +60,7 @@ class BlockAssemblerTest {
 
         assertEquals(block.getBlockInfo().getRawBytes().length + 12, block.getDatBytes().length);
         assertArrayEquals(block.getBlockInfo().getRawBytes(), bytesAfterDatHeader(block.getDatBytes()));
-        assertTrue(block.getSelectedMsgAbstracts().get(0).getIsInBlock());
+        assertFalse(block.getSelectedMsgAbstracts().get(0).getIsInBlock());
         verify(registerRepository).findPayloadByIdIn(List.of(msgId));
         verify(registerRepository, never()).findAllById(any());
     }

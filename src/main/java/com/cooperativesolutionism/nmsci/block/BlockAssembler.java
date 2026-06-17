@@ -88,7 +88,6 @@ public class BlockAssembler {
             write(dat, ByteArrayUtil.longToBytes(rawBlockBytes.length));
             write(dat, rawBlockBytes);
 
-            markSelectedInBlock(selectedMessages);
             return new AssembledBlock(blockInfo, dat.toByteArray(), selectedMessages.getAllMessages());
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -141,12 +140,6 @@ public class BlockAssembler {
             msgIds.add(msgAbstract.getMsgId());
         }
         return msgIds;
-    }
-
-    private void markSelectedInBlock(SelectedBlockMessages selectedMessages) {
-        for (MsgAbstract msgAbstract : selectedMessages.getAllMessages()) {
-            msgAbstract.setIsInBlock(true);
-        }
     }
 
     private void write(ByteArrayOutputStream outputStream, byte[] bytes) {
