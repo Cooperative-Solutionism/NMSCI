@@ -10,10 +10,12 @@ import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_LOCKED_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
@@ -28,10 +30,12 @@ public class FlowNodeLockedMsgController {
     @Resource
     private FlowNodeLockedMsgConverter flowNodeLockedMsgConverter;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseResult<FlowNodeLockedMsg> saveFlowNodeLockedMsg(@RequestBody @ByteArraySize(FLOW_NODE_LOCKED_INBOUND_BYTES) byte[] byteData) {
-        FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(flowNodeLockedMsgService.saveFlowNodeLockedMsg(flowNodeLockedMsg));
+        return badRequestOnIllegalArgument(() -> {
+            FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgConverter.fromByteArray(byteData);
+            return ResponseResult.success(flowNodeLockedMsgService.saveFlowNodeLockedMsg(flowNodeLockedMsg));
+        });
     }
 
     @GetMapping("/{id}")

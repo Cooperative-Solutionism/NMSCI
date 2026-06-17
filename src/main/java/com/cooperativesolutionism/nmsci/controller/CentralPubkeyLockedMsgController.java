@@ -10,10 +10,12 @@ import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
@@ -28,11 +30,13 @@ public class CentralPubkeyLockedMsgController {
     @Resource
     private CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES) byte[] byteData) {
-        CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
-        centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
-        return ResponseResult.success(centralPubkeyLockedMsg);
+        return badRequestOnIllegalArgument(() -> {
+            CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
+            centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+            return ResponseResult.success(centralPubkeyLockedMsg);
+        });
     }
 
     @GetMapping("/{id}")

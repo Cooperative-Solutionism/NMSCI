@@ -9,8 +9,10 @@ import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_MOUNT_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
@@ -26,10 +28,12 @@ public class TransactionMountMsgController {
     @Resource
     private TransactionMountMsgConverter transactionMountMsgConverter;
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     public ResponseResult<TransactionMountMsg> saveTransactionMountMsg(@RequestBody @ByteArraySize(TRANSACTION_MOUNT_INBOUND_BYTES) byte[] byteData) {
-        TransactionMountMsg transactionMountMsg = transactionMountMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(transactionMountMsgService.saveTransactionMountMsg(transactionMountMsg));
+        return badRequestOnIllegalArgument(() -> {
+            TransactionMountMsg transactionMountMsg = transactionMountMsgConverter.fromByteArray(byteData);
+            return ResponseResult.success(transactionMountMsgService.saveTransactionMountMsg(transactionMountMsg));
+        });
     }
 
     @GetMapping("/{id}")
