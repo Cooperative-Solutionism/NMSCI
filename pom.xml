@@ -133,6 +133,7 @@
                     <excludedGroups>integration</excludedGroups>
                     <systemPropertyVariables>
                         <api.version>${docker.api.version}</api.version>
+                        <docker.api.version>${docker.api.version}</docker.api.version>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -147,6 +148,7 @@
                     <groups>integration</groups>
                     <systemPropertyVariables>
                         <api.version>${docker.api.version}</api.version>
+                        <docker.api.version>${docker.api.version}</docker.api.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -163,7 +165,6 @@
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <attach>true</attach>
-                    <requiresUnpack/>
                 </configuration>
             </plugin>
             <plugin>

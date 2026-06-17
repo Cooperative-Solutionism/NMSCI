@@ -32,6 +32,7 @@ public abstract class NmsciIntegrationTestBase {
     public static final int TRANSACTION_DIFFICULTY_NBITS = 0x20ffffff;
     private static final String INTEGRATION_TESTS_ENABLED_PROPERTY = "nmsci.integration-tests.enabled";
     private static final String DOCKER_API_VERSION_PROPERTY = "api.version";
+    private static final String MAVEN_DOCKER_API_VERSION_PROPERTY = "docker.api.version";
     private static final String DEFAULT_DOCKER_API_VERSION = "1.40";
 
     private static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
@@ -124,9 +125,12 @@ public abstract class NmsciIntegrationTestBase {
         return !"false".equalsIgnoreCase(System.getProperty(INTEGRATION_TESTS_ENABLED_PROPERTY));
     }
 
-    private static void configureDockerApiVersion() {
+    static void configureDockerApiVersion() {
         if (System.getProperty(DOCKER_API_VERSION_PROPERTY) == null) {
-            System.setProperty(DOCKER_API_VERSION_PROPERTY, DEFAULT_DOCKER_API_VERSION);
+            System.setProperty(
+                    DOCKER_API_VERSION_PROPERTY,
+                    System.getProperty(MAVEN_DOCKER_API_VERSION_PROPERTY, DEFAULT_DOCKER_API_VERSION)
+            );
         }
     }
 }
