@@ -98,7 +98,7 @@
 | `byte[]`（公钥、签名、哈希等） | hex 字符串（**无 `0x` 前缀**，小写） | `BytesToHexSerializer` | `"02a1b2…"` |
 | `Integer`（难度 nbits） | hex 字符串（含 `0x`） | `IntToHexSerializer` | `"0x1d00ffff"` |
 | 实体引用（如 `ConsumeChain.start`、`ConsumeChainEdge.source`） | 仅 UUID 字符串 | `IdentifiableToStringSerializer` | `"7c9e…-…"` |
-| `rawBytes`（普通消息原始字节缓存） | 输出（hex） | `BytesToHexSerializer` | 普通消息 rawBytes 长度有限，作为协议调试与追溯字段保留输出。 |
+| `rawBytes`（消息原始字节缓存） | **不输出**（`@JsonIgnore`） | — | 与 `BlockInfo.rawBytes` 一致，不计入对外契约；避免泄露原始字节并使列表/详情响应体翻倍。 |
 | `UUID`（如消息 `id`、`mountedTransactionRecordId`） | 标准 UUID 字符串 | 默认 | `"7c9e6679-…"` |
 
 ### 1.5 时间戳与时间区间
@@ -147,6 +147,7 @@ curl -X POST http://localhost:8080/transaction-records \
 | hex 字符串包含非十六进制字符 | 400 | 400 | `十六进制字符串包含非法字符` |
 | 压缩公钥过滤/查询参数长度不是 33 字节 | 400 | 400 | `公钥长度错误，必须为33字节` 或 `{参数名}不能为空或长度不为33字节` |
 | id 与 pubkey 查询模式混用 | 400 | 400 | `id 与 pubkey 查询参数不能混用` |
+| 签名/公钥字节非法（低 S、DER 解析、曲线点解码失败等） | 400 | 400 | 对应校验失败消息（如 `中心预签名验证失败`） |
 
 ---
 
@@ -155,7 +156,7 @@ curl -X POST http://localhost:8080/transaction-records \
 返回 `BlockInfo`（字段见[附录 10.1](#101-blockinfo)）。
 
 ### GET `/blocks/latest`
-最新区块。无参数。响应 `ResponseResult<BlockInfo>`。
+最新区块。无参数。响应 `ResponseResult<BlockInfo>`。创世区块产生前（区块链尚未初始化）返回 **404**（`区块链尚未初始化，暂无区块`）。
 
 ### GET `/blocks/{height}`
 按区块高度查询。
@@ -396,8 +397,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
         "flowNodeSignature": "…",
         "confirmTimestamp": 1718352000000000,
         "centralSignature": "…",
-        "txid": "9f86d0…",
-        "rawBytes": "0004…"
+        "txid": "9f86d0…"
       }
     ],
     "page": 0, "size": 20, "numberOfElements": 1, "hasNext": false, "hasPrevious": false
@@ -432,7 +432,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
 | `height` | Long | 高度 |
 | `sourceCodeZipHash` | hex | 源码包 SHA-256 |
 | `previousBlockHash` | hex | 前区块头哈希 |
-| `merkleRoot` | hex | 默克尔根 |
+| `merkleRoot` | hex | 默克尔根（沿用 Bitcoin 算法，含 CVE-2012-2459 重复尾延展性，见 [PROTOCOL.md §7](../PROTOCOL.md)） |
 | `maxMsgTimestamp` | Long | 信息内最大时间戳（微秒） |
 | `registerDifficultyTarget` | hex(`0x…`) | 注册难度 nbits |
 | `transactionDifficultyTarget` | hex(`0x…`) | 交易难度 nbits |
@@ -443,7 +443,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
 | `sourceCodeZipFilepath` | String | 源码包文件名 |
 
 ### 10.2 协议消息实体（共有约定）
-所有消息实体：`id`(UUID)、`msgType`(数值类型码)、各公钥/签名为 hex、`txid`(hex)、`rawBytes`(hex)；可中心签名类型含 `confirmTimestamp`(微秒) 与 `centralSignature`(hex)。各类型专有字段：
+所有消息实体：`id`(UUID)、`msgType`(数值类型码)、各公钥/签名为 hex、`txid`(hex)；可中心签名类型含 `confirmTimestamp`(微秒) 与 `centralSignature`(hex)。`rawBytes` 与 `BlockInfo` 一致**不输出**（`@JsonIgnore`）。各类型专有字段：
 
 - **FlowNodeRegisterMsg**（0x0000）：`registerDifficultyTarget`(hex)、`nonce`(int)、`flowNodePubkey`、`flowNodeSignature`。无 `confirmTimestamp`/`centralSignature`。
 - **CentralPubkeyEmpowerMsg**（0x0001）：`flowNodePubkey`、`centralPubkey`、`flowNodeSignature`。
