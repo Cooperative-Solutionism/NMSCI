@@ -26,6 +26,7 @@ class FlowNodeRegisterMsgServiceTest {
         FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
         ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
         ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", flowNodeRegisterMsgRepository);
+        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(mock(MsgAbstractService.class)));
 
         FlowNodeRegisterMsg msg = new FlowNodeRegisterMsg();
         msg.setMsgType(MsgTypeEnum.FlowNodeRegisterMsg.getValue());

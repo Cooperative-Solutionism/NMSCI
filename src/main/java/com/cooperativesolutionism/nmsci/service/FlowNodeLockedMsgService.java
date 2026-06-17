@@ -3,7 +3,6 @@ package com.cooperativesolutionism.nmsci.service;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
@@ -32,7 +31,7 @@ public class FlowNodeLockedMsgService {
     private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private FlowNodeStateValidator flowNodeStateValidator;
@@ -50,13 +49,12 @@ public class FlowNodeLockedMsgService {
     private CentralSignatureService centralSignatureService;
     @Transactional
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
-        if (flowNodeLockedMsg.getMsgType() != MsgTypeEnum.FlowNodeLockedMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeLockedMsg.getValue());
-        }
-
-        if (flowNodeLockedMsgRepository.existsById(flowNodeLockedMsg.getId())) {
-            throw new ConflictException("该流转节点公钥冻结信息id(" + flowNodeLockedMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.requireMsgType(flowNodeLockedMsg, MsgTypeEnum.FlowNodeLockedMsg);
+        messageWritePipeline.rejectExistingId(
+                flowNodeLockedMsg,
+                flowNodeLockedMsgRepository::existsById,
+                () -> "该流转节点公钥冻结信息id(" + flowNodeLockedMsg.getId() + ")已存在"
+        );
 
         flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
                 flowNodeLockedMsg.getFlowNodePubkey(),
@@ -78,9 +76,7 @@ public class FlowNodeLockedMsgService {
                 flowNodeLockedMsg.getFlowNodeSignature()
         );
 
-        msgAbstractService.saveMsgAbstract(flowNodeLockedMsg);
-
-        return flowNodeLockedMsgRepository.save(flowNodeLockedMsg);
+        return messageWritePipeline.saveAbstractThenEntity(flowNodeLockedMsg, flowNodeLockedMsgRepository::save);
     }
     public FlowNodeLockedMsg getFlowNodeLockedMsgById(UUID id) {
         return EntityLookup.requireById(id, "流转节点公钥冻结信息", flowNodeLockedMsgRepository::findById);

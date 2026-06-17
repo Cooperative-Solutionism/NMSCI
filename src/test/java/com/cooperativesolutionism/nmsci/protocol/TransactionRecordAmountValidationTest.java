@@ -4,6 +4,8 @@ import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
+import com.cooperativesolutionism.nmsci.service.MessageWritePipeline;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +37,7 @@ class TransactionRecordAmountValidationTest {
         blockDifficultyService = mock(BlockDifficultyService.class);
         ReflectionTestUtils.setField(service, "transactionRecordMsgRepository", transactionRecordMsgRepository);
         ReflectionTestUtils.setField(service, "blockDifficultyService", blockDifficultyService);
+        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(mock(MsgAbstractService.class)));
     }
 
     @Test

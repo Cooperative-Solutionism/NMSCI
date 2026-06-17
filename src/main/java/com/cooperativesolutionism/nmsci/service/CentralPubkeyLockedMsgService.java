@@ -39,7 +39,7 @@ public class CentralPubkeyLockedMsgService {
     private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private SignatureValidator signatureValidator;
@@ -62,13 +62,12 @@ public class CentralPubkeyLockedMsgService {
     public void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
         String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
 
-        if (centralPubkeyLockedMsg.getMsgType() != MsgTypeEnum.CentralPubkeyLockedMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyLockedMsg.getValue());
-        }
-
-        if (centralPubkeyLockedMsgRepository.existsById(centralPubkeyLockedMsg.getId())) {
-            throw new ConflictException("该中心公钥冻结信息id(" + centralPubkeyLockedMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.requireMsgType(centralPubkeyLockedMsg, MsgTypeEnum.CentralPubkeyLockedMsg);
+        messageWritePipeline.rejectExistingId(
+                centralPubkeyLockedMsg,
+                centralPubkeyLockedMsgRepository::existsById,
+                () -> "该中心公钥冻结信息id(" + centralPubkeyLockedMsg.getId() + ")已存在"
+        );
 
         if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyLockedMsg.getCentralPubkey())) {
             throw new ConflictException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
@@ -94,10 +93,9 @@ public class CentralPubkeyLockedMsgService {
                 centralPubkeyLockedMsg.getCentralSignaturePre()
         );
 
-        transactionTemplate.executeWithoutResult(status -> {
-            centralPubkeyLockedMsgRepository.save(centralPubkeyLockedMsg);
-            msgAbstractService.saveMsgAbstract(centralPubkeyLockedMsg);
-        });
+        transactionTemplate.executeWithoutResult(status ->
+                messageWritePipeline.saveEntityThenAbstract(centralPubkeyLockedMsg, centralPubkeyLockedMsgRepository::save)
+        );
 
         blockChainService.generateBlockUntilNoNotInBlockMsgs();
 

@@ -32,7 +32,7 @@ public class CentralPubkeyEmpowerMsgService {
     private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private FlowNodeStateValidator flowNodeStateValidator;
@@ -50,13 +50,12 @@ public class CentralPubkeyEmpowerMsgService {
     private CentralSignatureService centralSignatureService;
     @Transactional
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
-        if (centralPubkeyEmpowerMsg.getMsgType() != MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.CentralPubkeyEmpowerMsg.getValue());
-        }
-
-        if (centralPubkeyEmpowerMsgRepository.existsById(centralPubkeyEmpowerMsg.getId())) {
-            throw new ConflictException("该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.requireMsgType(centralPubkeyEmpowerMsg, MsgTypeEnum.CentralPubkeyEmpowerMsg);
+        messageWritePipeline.rejectExistingId(
+                centralPubkeyEmpowerMsg,
+                centralPubkeyEmpowerMsgRepository::existsById,
+                () -> "该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在"
+        );
 
         flowNodeStateValidator.validateRegistered(centralPubkeyEmpowerMsg.getFlowNodePubkey());
         if (centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
@@ -78,9 +77,7 @@ public class CentralPubkeyEmpowerMsgService {
                 centralPubkeyEmpowerMsg.getFlowNodeSignature()
         );
 
-        msgAbstractService.saveMsgAbstract(centralPubkeyEmpowerMsg);
-
-        return centralPubkeyEmpowerMsgRepository.save(centralPubkeyEmpowerMsg);
+        return messageWritePipeline.saveAbstractThenEntity(centralPubkeyEmpowerMsg, centralPubkeyEmpowerMsgRepository::save);
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
         return EntityLookup.requireById(id, "中心公钥公证信息", centralPubkeyEmpowerMsgRepository::findById);

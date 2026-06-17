@@ -4,7 +4,6 @@ import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMP
 
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
@@ -36,7 +35,7 @@ public class TransactionRecordMsgService {
     private TransactionRecordMsgRepository transactionRecordMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private FlowNodeStateValidator flowNodeStateValidator;
@@ -57,17 +56,17 @@ public class TransactionRecordMsgService {
     private CentralSignatureService centralSignatureService;
     @Transactional
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        if (transactionRecordMsg.getMsgType() != MsgTypeEnum.TransactionRecordMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionRecordMsg.getValue());
-        }
+        messageWritePipeline.requireMsgType(transactionRecordMsg, MsgTypeEnum.TransactionRecordMsg);
 
         if (transactionRecordMsg.getAmount() == null || transactionRecordMsg.getAmount() <= 0) {
             throw new IllegalArgumentException("交易金额必须为正数");
         }
 
-        if (transactionRecordMsgRepository.existsById(transactionRecordMsg.getId())) {
-            throw new ConflictException("该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.rejectExistingId(
+                transactionRecordMsg,
+                transactionRecordMsgRepository::existsById,
+                () -> "该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在"
+        );
 
         if (!CurrencyTypeEnum.containsValue(transactionRecordMsg.getCurrencyType())) {
             throw new IllegalArgumentException("货币类型错误，必须为以下数值:\n" + CurrencyTypeEnum.getAllEnumDescriptions());
@@ -97,9 +96,7 @@ public class TransactionRecordMsgService {
                 transactionRecordMsg.getFlowNodeSignature()
         );
 
-        msgAbstractService.saveMsgAbstract(transactionRecordMsg);
-
-        return transactionRecordMsgRepository.save(transactionRecordMsg);
+        return messageWritePipeline.saveAbstractThenEntity(transactionRecordMsg, transactionRecordMsgRepository::save);
     }
     public TransactionRecordMsg getTransactionRecordMsgById(UUID id) {
         return EntityLookup.requireById(id, "交易记录信息", transactionRecordMsgRepository::findById);

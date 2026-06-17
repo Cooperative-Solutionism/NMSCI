@@ -42,7 +42,7 @@ public class TransactionMountMsgService {
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private ConsumeChainAllocationService consumeChainAllocationService;
@@ -66,13 +66,13 @@ public class TransactionMountMsgService {
     private CentralSignatureService centralSignatureService;
     @Transactional
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
-        if (transactionMountMsg.getMsgType() != MsgTypeEnum.TransactionMountMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.TransactionMountMsg.getValue());
-        }
+        messageWritePipeline.requireMsgType(transactionMountMsg, MsgTypeEnum.TransactionMountMsg);
 
-        if (transactionMountMsgRepository.existsById(transactionMountMsg.getId())) {
-            throw new ConflictException("该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.rejectExistingId(
+                transactionMountMsg,
+                transactionMountMsgRepository::existsById,
+                () -> "该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在"
+        );
 
         TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findByIdForUpdate(transactionMountMsg.getMountedTransactionRecordId())
                 .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
@@ -112,8 +112,10 @@ public class TransactionMountMsgService {
                 transactionMountMsg.getFlowNodeSignature()
         );
 
-        TransactionMountMsg transactionMountMsgInDb = transactionMountMsgRepository.save(transactionMountMsg);
-        msgAbstractService.saveMsgAbstract(transactionMountMsg);
+        TransactionMountMsg transactionMountMsgInDb = messageWritePipeline.saveEntityThenAbstract(
+                transactionMountMsg,
+                transactionMountMsgRepository::save
+        );
         consumeChainAllocationService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
 
         return transactionMountMsgInDb;

@@ -19,7 +19,6 @@ import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Pageable;
@@ -41,7 +40,7 @@ public class FlowNodeRegisterMsgService {
     private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
 
     @Resource
-    private MsgAbstractService msgAbstractService;
+    private MessageWritePipeline messageWritePipeline;
 
     @Resource
     private CentralPubkeyValidator centralPubkeyValidator;
@@ -56,13 +55,12 @@ public class FlowNodeRegisterMsgService {
     private ProtocolRawBytesBuilder protocolRawBytesBuilder;
     @Transactional
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
-        if (flowNodeRegisterMsg.getMsgType() != MsgTypeEnum.FlowNodeRegisterMsg.getValue()) {
-            throw new IllegalArgumentException("信息类型错误，必须为" + MsgTypeEnum.FlowNodeRegisterMsg.getValue());
-        }
-
-        if (flowNodeRegisterMsgRepository.existsById(flowNodeRegisterMsg.getId())) {
-            throw new ConflictException("该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在");
-        }
+        messageWritePipeline.requireMsgType(flowNodeRegisterMsg, MsgTypeEnum.FlowNodeRegisterMsg);
+        messageWritePipeline.rejectExistingId(
+                flowNodeRegisterMsg,
+                flowNodeRegisterMsgRepository::existsById,
+                () -> "该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在"
+        );
 
         BlockInfo newestBlockInfo = blockInfoRepository.findTopByOrderByHeightDesc();
         if (newestBlockInfo == null) {
@@ -88,14 +86,9 @@ public class FlowNodeRegisterMsgService {
                 "流转节点签名验证失败"
         );
 
-        // 拼接注册信息原始字节数据 = 验证数据 + 流转节点对信息签名64字节
-        byte[] rawBytes = ArrayUtils.addAll(verifyData, flowNodeRegisterMsg.getFlowNodeSignature());
-        flowNodeRegisterMsg.setRawBytes(rawBytes);
-        flowNodeRegisterMsg.setTxid(MerkleTreeUtil.calcTxid(rawBytes));
+        messageWritePipeline.populateRawBytes(flowNodeRegisterMsg, verifyData, flowNodeRegisterMsg.getFlowNodeSignature());
 
-        msgAbstractService.saveMsgAbstract(flowNodeRegisterMsg);
-
-        return flowNodeRegisterMsgRepository.save(flowNodeRegisterMsg);
+        return messageWritePipeline.saveAbstractThenEntity(flowNodeRegisterMsg, flowNodeRegisterMsgRepository::save);
     }
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id) {
         return EntityLookup.requireById(id, "流转节点注册信息", flowNodeRegisterMsgRepository::findById);

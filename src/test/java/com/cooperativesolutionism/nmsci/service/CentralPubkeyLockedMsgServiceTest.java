@@ -90,7 +90,7 @@ class CentralPubkeyLockedMsgServiceTest {
         CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
         ReflectionTestUtils.setField(service, "nmsciProperties", properties());
         ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "msgAbstractService", msgAbstractService);
+        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
         ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
         ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
         ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
