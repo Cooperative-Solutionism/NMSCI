@@ -34,15 +34,21 @@ class JpaEntityConservativeHardeningContractTest {
     }
 
     @Test
-    void entitiesDoNotOverrideEqualsOrHashCodeInThisConservativePass() {
+    void ledgerEntitiesStillDoNotOverrideEqualsOrHashCode() {
+        // 区块与消费链等实体本轮仍保持默认引用相等
         assertFalse(overridesObjectMethod(BlockInfo.class, "equals", Object.class));
         assertFalse(overridesObjectMethod(BlockInfo.class, "hashCode"));
         assertFalse(overridesObjectMethod(MsgAbstract.class, "equals", Object.class));
         assertFalse(overridesObjectMethod(MsgAbstract.class, "hashCode"));
         assertFalse(overridesObjectMethod(ConsumeChain.class, "equals", Object.class));
         assertFalse(overridesObjectMethod(ConsumeChain.class, "hashCode"));
-        assertFalse(overridesObjectMethod(FlowNodeRegisterMsg.class, "equals", Object.class));
-        assertFalse(overridesObjectMethod(FlowNodeRegisterMsg.class, "hashCode"));
+    }
+
+    @Test
+    void messageEntitiesOverrideIdBasedEqualsAndHashCode() {
+        // 消息实体已改用基于 id 的 equals/hashCode（行为见 MessageEntityIdentityTest）
+        assertTrue(overridesObjectMethod(FlowNodeRegisterMsg.class, "equals", Object.class));
+        assertTrue(overridesObjectMethod(FlowNodeRegisterMsg.class, "hashCode"));
     }
 
     private static boolean hasVersionField(Class<?> entityType) {

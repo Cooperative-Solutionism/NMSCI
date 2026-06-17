@@ -228,4 +228,21 @@ public class TransactionRecordMsg implements CentrallySignedMessage {
         this.txid = txid;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TransactionRecordMsg)) {
+            return false;
+        }
+        TransactionRecordMsg that = (TransactionRecordMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return TransactionRecordMsg.class.hashCode();
+    }
+
 }

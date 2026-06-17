@@ -152,4 +152,21 @@ public class FlowNodeLockedMsg implements CentrallySignedMessage {
         this.txid = txid;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FlowNodeLockedMsg)) {
+            return false;
+        }
+        FlowNodeLockedMsg that = (FlowNodeLockedMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return FlowNodeLockedMsg.class.hashCode();
+    }
+
 }

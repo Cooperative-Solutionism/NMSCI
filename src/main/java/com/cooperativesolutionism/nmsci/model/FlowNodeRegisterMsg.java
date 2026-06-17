@@ -139,4 +139,21 @@ public class FlowNodeRegisterMsg implements Message {
         this.txid = txid;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FlowNodeRegisterMsg)) {
+            return false;
+        }
+        FlowNodeRegisterMsg that = (FlowNodeRegisterMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return FlowNodeRegisterMsg.class.hashCode();
+    }
+
 }

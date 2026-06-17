@@ -12,6 +12,6 @@ public interface Message extends Identifiable {
 
     byte[] getTxid();
 
-    void setTxid(byte[] msgType);
+    void setTxid(byte[] txid);
 
 }

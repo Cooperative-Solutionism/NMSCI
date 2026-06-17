@@ -138,4 +138,21 @@ public class CentralPubkeyLockedMsg implements CentrallySignedMessage {
         this.txid = txid;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof CentralPubkeyLockedMsg)) {
+            return false;
+        }
+        CentralPubkeyLockedMsg that = (CentralPubkeyLockedMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return CentralPubkeyLockedMsg.class.hashCode();
+    }
+
 }

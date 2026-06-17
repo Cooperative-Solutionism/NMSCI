@@ -151,4 +151,21 @@ public class CentralPubkeyEmpowerMsg implements CentrallySignedMessage {
         this.txid = txid;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof CentralPubkeyEmpowerMsg)) {
+            return false;
+        }
+        CentralPubkeyEmpowerMsg that = (CentralPubkeyEmpowerMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return CentralPubkeyEmpowerMsg.class.hashCode();
+    }
+
 }
