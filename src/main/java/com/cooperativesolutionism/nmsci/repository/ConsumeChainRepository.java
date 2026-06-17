@@ -63,33 +63,53 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
     ) {
         Objects.requireNonNull(filter, "filter");
         Objects.requireNonNull(node, "node");
-        return findByNodeFilterInternal(filter, node, isLoop, pageable);
+        return switch (filter) {
+            case START -> findByStartAndOptionalLoop(node, isLoop, pageable);
+            case END -> findByEndAndOptionalLoop(node, isLoop, pageable);
+            case NODE -> findByNodeAndOptionalLoop(node, isLoop, pageable);
+        };
     }
+
+    @Query("""
+            select c
+            from ConsumeChain c
+            where (:isLoop is null or c.isLoop = :isLoop)
+                and c.start = :node
+            """)
+    Slice<ConsumeChain> findByStartAndOptionalLoop(
+            @Param("node") FlowNodeRegisterMsg node,
+            @Param("isLoop") Boolean isLoop,
+            Pageable pageable
+    );
+
+    @Query("""
+            select c
+            from ConsumeChain c
+            where (:isLoop is null or c.isLoop = :isLoop)
+                and c.end = :node
+            """)
+    Slice<ConsumeChain> findByEndAndOptionalLoop(
+            @Param("node") FlowNodeRegisterMsg node,
+            @Param("isLoop") Boolean isLoop,
+            Pageable pageable
+    );
 
     @Query("""
             select distinct c
             from ConsumeChain c
             where (:isLoop is null or c.isLoop = :isLoop)
                 and (
-                    (:#{#filter.name()} = 'START'
-                        and c.start = :node)
-                    or (:#{#filter.name()} = 'END'
-                        and c.end = :node)
-                    or (:#{#filter.name()} = 'NODE'
-                        and (
-                            c.start = :node
-                            or c.end = :node
-                            or exists (
-                                select 1
-                                from ConsumeChainEdge e
-                                where e.chain = c
-                                    and (e.source = :node or e.target = :node)
-                            )
-                        ))
+                    c.start = :node
+                    or c.end = :node
+                    or exists (
+                        select 1
+                        from ConsumeChainEdge e
+                        where e.chain = c
+                            and (e.source = :node or e.target = :node)
+                    )
                 )
             """)
-    Slice<ConsumeChain> findByNodeFilterInternal(
-            @Param("filter") ConsumeChainNodeFilter filter,
+    Slice<ConsumeChain> findByNodeAndOptionalLoop(
             @Param("node") FlowNodeRegisterMsg node,
             @Param("isLoop") Boolean isLoop,
             Pageable pageable

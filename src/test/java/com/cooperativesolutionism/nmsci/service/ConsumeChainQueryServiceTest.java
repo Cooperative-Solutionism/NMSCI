@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -25,6 +26,15 @@ class ConsumeChainQueryServiceTest {
             Sort.Order.desc("relatedTransactionMountTimestamp"),
             Sort.Order.desc("id")
     );
+
+    @Test
+    void queryServiceDeclaresReadOnlyTransactionsAtClassBoundary() {
+        org.springframework.transaction.annotation.Transactional transactional =
+                ConsumeChainQueryService.class.getAnnotation(org.springframework.transaction.annotation.Transactional.class);
+
+        assertNotNull(transactional);
+        assertTrue(transactional.readOnly());
+    }
 
     @Test
     void edgeTargetQueryRequestsOneExtraRowAndReportsHasNext() {

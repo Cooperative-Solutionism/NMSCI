@@ -21,6 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Service
+@Transactional(readOnly = true)
 public class ConsumeChainQueryService {
 
     @Resource
