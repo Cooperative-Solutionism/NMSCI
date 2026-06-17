@@ -5,6 +5,7 @@ import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_S
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -71,7 +72,7 @@ public class FlowNodeLockedMsg implements CentrallySignedMessage {
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     @Comment("信息的dblsha256hash_reverse")
