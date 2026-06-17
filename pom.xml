@@ -19,6 +19,7 @@
         <bouncycastle.version>1.84</bouncycastle.version>
         <commons-lang3.version>3.18.0</commons-lang3.version>
         <bitcoinj.version>0.17</bitcoinj.version>
+        <docker.api.version>1.40</docker.api.version>
         <gatling.version>3.13.5</gatling.version>
         <gatling-maven-plugin.version>4.16.3</gatling-maven-plugin.version>
         <!-- 压测参数默认值；用 mvn -Dgatling.xxx=... 覆盖（经插件 jvmArgs 透传到 fork 的 gatling JVM） -->
@@ -131,7 +132,7 @@
                     <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
                     <excludedGroups>integration</excludedGroups>
                     <systemPropertyVariables>
-                        <api.version>1.40</api.version>
+                        <api.version>${docker.api.version}</api.version>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
@@ -145,7 +146,7 @@
                     </includes>
                     <groups>integration</groups>
                     <systemPropertyVariables>
-                        <api.version>1.40</api.version>
+                        <api.version>${docker.api.version}</api.version>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
