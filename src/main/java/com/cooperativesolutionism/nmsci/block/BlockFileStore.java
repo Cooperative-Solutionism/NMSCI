@@ -64,13 +64,15 @@ public class BlockFileStore {
 
     /**
      * 汇总 .dat 存储目录的利用情况：文件数、当前（最高索引）文件名与大小、总字节数、单文件上限。
-     * 复用内部 {@link #datDirectory()}，只读枚举，不修改任何文件。
+     * 枚举的是实际写入目录 {@link #datDirectory()}（绝对路径），但对外只报告配置的相对目录
+     * {@code <file-root-dir>/<file-dat-dir>}，避免泄露服务器运行目录的绝对路径。只读枚举，不修改任何文件。
      */
     public DatStorageInfo datStorageInfo() {
-        Path dir = Path.of(nmsciProperties.getFileDatDir());
+        Path dir = datDirectory();
+        String reportedDir = Path.of(nmsciProperties.getFileRootDir(), nmsciProperties.getFileDatDir()).toString();
         long maxSizePerFile = nmsciProperties.getBlockDatMaxSize();
         if (!Files.exists(dir)) {
-            return new DatStorageInfo(dir.toString(), 0, null, 0L, 0L, maxSizePerFile);
+            return new DatStorageInfo(reportedDir, 0, null, 0L, 0L, maxSizePerFile);
         }
 
         try (Stream<Path> paths = Files.list(dir)) {
@@ -92,7 +94,7 @@ public class BlockFileStore {
             String currentFileName = current == null ? null : current.getFileName().toString();
             long currentFileSizeBytes = current == null ? 0L : Files.size(current);
 
-            return new DatStorageInfo(dir.toString(), datFiles.size(), currentFileName, currentFileSizeBytes, totalBytes, maxSizePerFile);
+            return new DatStorageInfo(reportedDir, datFiles.size(), currentFileName, currentFileSizeBytes, totalBytes, maxSizePerFile);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

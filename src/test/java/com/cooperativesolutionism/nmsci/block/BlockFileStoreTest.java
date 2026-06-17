@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BlockFileStoreTest {
@@ -105,6 +106,41 @@ class BlockFileStoreTest {
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
+    }
+
+    @Test
+    void datStorageInfoCountsBlocksUnderConfiguredDatDirectory() {
+        BlockFileStore store = new BlockFileStore(properties(1024L), tempDir);
+
+        String filename = store.appendBlock(null, new byte[]{1, 2, 3, 4, 5});
+
+        BlockFileStore.DatStorageInfo info = store.datStorageInfo();
+
+        // 对外只报告配置的相对目录（file/dat），绝不暴露运行目录绝对路径
+        assertEquals(Path.of("file", "dat").toString(), info.datDirectory());
+        assertFalse(Path.of(info.datDirectory()).isAbsolute());
+        assertEquals(1, info.fileCount());
+        assertEquals(filename, info.currentFileName());
+        assertEquals(5L, info.currentFileSizeBytes());
+        assertEquals(5L, info.totalBytes());
+        assertEquals(1024L, info.maxSizePerFileBytes());
+        // 但统计的是实际写入目录 <root>/file/dat，而非相对 CWD 的 ./dat
+        Path datDir = tempDir.resolve("file").resolve("dat");
+        assertTrue(Files.exists(datDir.resolve(filename)));
+    }
+
+    @Test
+    void datStorageInfoReportsConfiguredDirectoryEvenWhenEmpty() {
+        BlockFileStore store = new BlockFileStore(properties(1024L), tempDir);
+
+        BlockFileStore.DatStorageInfo info = store.datStorageInfo();
+
+        assertEquals(Path.of("file", "dat").toString(), info.datDirectory());
+        assertFalse(Path.of(info.datDirectory()).isAbsolute());
+        assertEquals(0, info.fileCount());
+        assertNull(info.currentFileName());
+        assertEquals(0L, info.totalBytes());
+        assertEquals(1024L, info.maxSizePerFileBytes());
     }
 
     private void rollbackSynchronizations() {
