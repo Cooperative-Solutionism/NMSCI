@@ -1,6 +1,5 @@
 package com.cooperativesolutionism.nmsci.repository;
 
-import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeState;
@@ -97,6 +96,6 @@ public interface FlowNodeRegisterMsgRepository extends JpaRepository<FlowNodeReg
             Pageable pageable
     );
 
-    List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
+    List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
 
 }

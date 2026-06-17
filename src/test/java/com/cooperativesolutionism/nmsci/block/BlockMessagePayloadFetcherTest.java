@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgReposi
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.MessagePayloadProjection;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import org.junit.jupiter.api.Test;
@@ -73,23 +74,23 @@ class BlockMessagePayloadFetcherTest {
         when(flowNodeRegisterMsgRepository.findPayloadByIdIn(List.of(firstId, secondId)))
                 .thenReturn(List.of(payload(secondId), payload(firstId)));
 
-        List<BlockMessagePayload> payloads = fetcher.findPayloads(
+        List<MessagePayloadProjection> payloads = fetcher.findPayloads(
                 MsgTypeEnum.FlowNodeRegisterMsg,
                 List.of(firstId, secondId)
         );
 
-        assertEquals(List.of(firstId, secondId), payloads.stream().map(BlockMessagePayload::getId).toList());
+        assertEquals(List.of(firstId, secondId), payloads.stream().map(MessagePayloadProjection::getId).toList());
     }
 
-    private static List<BlockMessagePayload> payloads(UUID id) {
+    private static List<MessagePayloadProjection> payloads(UUID id) {
         return List.of(payload(id));
     }
 
-    private static BlockMessagePayload payload(UUID id) {
-        return new TestBlockMessagePayload(id, new byte[] {1}, new byte[] {2});
+    private static MessagePayloadProjection payload(UUID id) {
+        return new TestMessagePayloadProjection(id, new byte[] {1}, new byte[] {2});
     }
 
-    private record TestBlockMessagePayload(UUID id, byte[] rawBytes, byte[] txid) implements BlockMessagePayload {
+    private record TestMessagePayloadProjection(UUID id, byte[] rawBytes, byte[] txid) implements MessagePayloadProjection {
 
         @Override
         public UUID getId() {

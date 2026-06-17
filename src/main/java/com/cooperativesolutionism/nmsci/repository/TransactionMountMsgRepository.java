@@ -1,6 +1,5 @@
 package com.cooperativesolutionism.nmsci.repository;
 
-import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -41,5 +40,5 @@ public interface TransactionMountMsgRepository extends JpaRepository<Transaction
             Pageable pageable
     );
 
-    List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
+    List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
 }

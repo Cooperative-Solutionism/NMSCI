@@ -1,6 +1,5 @@
 package com.cooperativesolutionism.nmsci.repository;
 
-import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
@@ -44,5 +43,5 @@ public interface TransactionRecordMsgRepository extends JpaRepository<Transactio
             Pageable pageable
     );
 
-    List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
+    List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
 }

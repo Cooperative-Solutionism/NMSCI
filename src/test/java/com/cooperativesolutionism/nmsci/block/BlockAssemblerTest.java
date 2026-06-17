@@ -7,6 +7,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgReposi
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.MessagePayloadProjection;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
@@ -54,7 +55,7 @@ class BlockAssemblerTest {
         rawBytes[0] = 7;
         byte[] txid = Sha256Util.doubleDigest(rawBytes);
         when(registerRepository.findPayloadByIdIn(List.of(msgId)))
-                .thenReturn(List.of(new TestBlockMessagePayload(msgId, rawBytes, txid)));
+                .thenReturn(List.of(new TestMessagePayloadProjection(msgId, rawBytes, txid)));
 
         AssembledBlock block = assembler.assemble(null, selected(msgId));
 
@@ -132,7 +133,7 @@ class BlockAssemblerTest {
         return rawBlockBytes;
     }
 
-    private record TestBlockMessagePayload(UUID id, byte[] rawBytes, byte[] txid) implements BlockMessagePayload {
+    private record TestMessagePayloadProjection(UUID id, byte[] rawBytes, byte[] txid) implements MessagePayloadProjection {
 
         @Override
         public UUID getId() {

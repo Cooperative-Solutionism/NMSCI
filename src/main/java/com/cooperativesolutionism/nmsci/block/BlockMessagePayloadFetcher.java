@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgReposi
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.MessagePayloadProjection;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import org.springframework.stereotype.Component;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 @Component
 public class BlockMessagePayloadFetcher {
 
-    private final Map<MsgTypeEnum, Function<Collection<UUID>, List<BlockMessagePayload>>> finders;
+    private final Map<MsgTypeEnum, Function<Collection<UUID>, List<MessagePayloadProjection>>> finders;
 
     public BlockMessagePayloadFetcher(
             FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository,
@@ -31,7 +32,7 @@ public class BlockMessagePayloadFetcher {
             TransactionRecordMsgRepository transactionRecordMsgRepository,
             TransactionMountMsgRepository transactionMountMsgRepository
     ) {
-        Map<MsgTypeEnum, Function<Collection<UUID>, List<BlockMessagePayload>>> typedFinders = new EnumMap<>(MsgTypeEnum.class);
+        Map<MsgTypeEnum, Function<Collection<UUID>, List<MessagePayloadProjection>>> typedFinders = new EnumMap<>(MsgTypeEnum.class);
         typedFinders.put(MsgTypeEnum.FlowNodeRegisterMsg, flowNodeRegisterMsgRepository::findPayloadByIdIn);
         typedFinders.put(MsgTypeEnum.CentralPubkeyEmpowerMsg, centralPubkeyEmpowerMsgRepository::findPayloadByIdIn);
         typedFinders.put(MsgTypeEnum.CentralPubkeyLockedMsg, centralPubkeyLockedMsgRepository::findPayloadByIdIn);
@@ -41,24 +42,24 @@ public class BlockMessagePayloadFetcher {
         this.finders = Map.copyOf(typedFinders);
     }
 
-    public List<BlockMessagePayload> findPayloads(MsgTypeEnum msgType, List<UUID> msgIds) {
+    public List<MessagePayloadProjection> findPayloads(MsgTypeEnum msgType, List<UUID> msgIds) {
         if (msgIds.isEmpty()) {
             return List.of();
         }
 
-        Function<Collection<UUID>, List<BlockMessagePayload>> finder = finders.get(msgType);
+        Function<Collection<UUID>, List<MessagePayloadProjection>> finder = finders.get(msgType);
         if (finder == null) {
             return List.of();
         }
 
-        Map<UUID, BlockMessagePayload> payloadsById = new HashMap<>();
-        for (BlockMessagePayload payload : finder.apply(msgIds)) {
+        Map<UUID, MessagePayloadProjection> payloadsById = new HashMap<>();
+        for (MessagePayloadProjection payload : finder.apply(msgIds)) {
             payloadsById.put(payload.getId(), payload);
         }
 
-        List<BlockMessagePayload> orderedPayloads = new ArrayList<>();
+        List<MessagePayloadProjection> orderedPayloads = new ArrayList<>();
         for (UUID msgId : msgIds) {
-            BlockMessagePayload payload = payloadsById.get(msgId);
+            MessagePayloadProjection payload = payloadsById.get(msgId);
             if (payload == null) {
                 throw new IllegalStateException("未找到区块消息正文: " + msgId);
             }

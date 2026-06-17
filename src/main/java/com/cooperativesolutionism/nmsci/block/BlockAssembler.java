@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.constant.BlockConstants;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
+import com.cooperativesolutionism.nmsci.repository.MessagePayloadProjection;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -43,7 +44,7 @@ public class BlockAssembler {
             List<UUID> msgIds = messageIds(msgAbstracts);
 
             write(blockBody, ByteArrayUtil.longToBytes(msgAbstracts.size()));
-            for (BlockMessagePayload msg : blockMessagePayloadFetcher.findPayloads(msgType, msgIds)) {
+            for (MessagePayloadProjection msg : blockMessagePayloadFetcher.findPayloads(msgType, msgIds)) {
                 leafTxids.add(msg.getTxid());
                 write(blockBody, msg.getRawBytes());
             }

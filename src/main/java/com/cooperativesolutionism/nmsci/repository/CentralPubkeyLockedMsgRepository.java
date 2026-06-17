@@ -1,6 +1,5 @@
 package com.cooperativesolutionism.nmsci.repository;
 
-import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -14,6 +13,6 @@ public interface CentralPubkeyLockedMsgRepository extends JpaRepository<CentralP
 
     CentralPubkeyLockedMsg findByCentralPubkey(byte[] centralPubkey);
 
-    List<BlockMessagePayload> findPayloadByIdIn(Collection<UUID> ids);
+    List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
 
 }

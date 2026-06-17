@@ -1,10 +1,10 @@
 package com.cooperativesolutionism.nmsci.concurrency;
 
-import com.cooperativesolutionism.nmsci.block.BlockMessagePayload;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.MessagePayloadProjection;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
@@ -41,7 +41,7 @@ class BlockGenerationOptimizationContractTest {
     }
 
     @Test
-    void messageRepositoriesExposeBlockPayloadProjection() throws NoSuchMethodException {
+    void messageRepositoriesExposeRepositoryPayloadProjection() throws NoSuchMethodException {
         List<Class<?>> repositories = List.of(
                 FlowNodeRegisterMsgRepository.class,
                 CentralPubkeyEmpowerMsgRepository.class,
@@ -54,7 +54,24 @@ class BlockGenerationOptimizationContractTest {
         for (Class<?> repository : repositories) {
             Method method = repository.getMethod("findPayloadByIdIn", Collection.class);
             assertEquals(List.class, method.getReturnType());
-            assertTrue(method.getGenericReturnType().getTypeName().contains(BlockMessagePayload.class.getName()));
+            assertTrue(method.getGenericReturnType().getTypeName().contains(MessagePayloadProjection.class.getName()));
+        }
+    }
+
+    @Test
+    void repositoriesDoNotImportBlockPackageTypes() throws IOException {
+        List<Path> repositorySources = List.of(
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/FlowNodeRegisterMsgRepository.java"),
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/CentralPubkeyEmpowerMsgRepository.java"),
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/CentralPubkeyLockedMsgRepository.java"),
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/FlowNodeLockedMsgRepository.java"),
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/TransactionRecordMsgRepository.java"),
+                Path.of("src/main/java/com/cooperativesolutionism/nmsci/repository/TransactionMountMsgRepository.java")
+        );
+
+        for (Path repositorySource : repositorySources) {
+            String source = Files.readString(repositorySource);
+            assertTrue(!source.contains("com.cooperativesolutionism.nmsci.block."), repositorySource + " must not depend on block package types");
         }
     }
 
