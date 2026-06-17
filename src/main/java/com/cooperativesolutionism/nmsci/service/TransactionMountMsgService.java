@@ -3,10 +3,8 @@ package com.cooperativesolutionism.nmsci.service;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
 
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
-import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.protocol.BlockDifficultyService;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
@@ -15,18 +13,14 @@ import com.cooperativesolutionism.nmsci.protocol.ProofOfWorkValidator;
 import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.Arrays;
 import java.util.UUID;
 
 @Service
@@ -36,16 +30,13 @@ public class TransactionMountMsgService {
     private BlockDifficultyService blockDifficultyService;
 
     @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
-
-    @Resource
     private TransactionMountMsgRepository transactionMountMsgRepository;
 
     @Resource
     private MessageWritePipeline messageWritePipeline;
 
     @Resource
-    private ConsumeChainAllocationService consumeChainAllocationService;
+    private TransactionMountWriteService transactionMountWriteService;
 
     @Resource
     private FlowNodeStateValidator flowNodeStateValidator;
@@ -64,7 +55,7 @@ public class TransactionMountMsgService {
 
     @Resource
     private CentralSignatureService centralSignatureService;
-    @Transactional
+
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
         messageWritePipeline.requireMsgType(transactionMountMsg, MsgTypeEnum.TransactionMountMsg);
 
@@ -74,23 +65,9 @@ public class TransactionMountMsgService {
                 () -> "该交易挂载信息id(" + transactionMountMsg.getId() + ")已存在"
         );
 
-        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgRepository.findByIdForUpdate(transactionMountMsg.getMountedTransactionRecordId())
-                .orElseThrow(() -> new IllegalArgumentException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")不存在"));
-
-        if (transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(transactionMountMsg.getMountedTransactionRecordId())) {
-            throw new ConflictException("挂载的交易记录信息id(" + transactionMountMsg.getMountedTransactionRecordId() + ")已被挂载");
-        }
-
         int transactionDifficultyTargetNbits = blockDifficultyService.currentTransactionDifficultyTarget();
         if (!transactionMountMsg.getTransactionDifficultyTarget().equals(transactionDifficultyTargetNbits)) {
             throw new IllegalArgumentException("交易难度目标与前区块中的交易难度目标不一致");
-        }
-
-        // 消费节点公钥与要挂载的交易信息中的消费节点公钥需相同
-        byte[] consumeNodePubkey = transactionRecordMsg.getConsumeNodePubkey();
-        if (!Arrays.equals(transactionMountMsg.getConsumeNodePubkey(), consumeNodePubkey)) {
-            String consumeNodePubkeyBase64 = ByteArrayUtil.bytesToBase64(consumeNodePubkey);
-            throw new IllegalArgumentException("挂载的交易记录信息中的消费节点公钥(" + consumeNodePubkeyBase64 + ")与当前交易挂载信息中的消费节点公钥不一致");
         }
 
         flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
@@ -112,13 +89,7 @@ public class TransactionMountMsgService {
                 transactionMountMsg.getFlowNodeSignature()
         );
 
-        TransactionMountMsg transactionMountMsgInDb = messageWritePipeline.saveEntityThenAbstract(
-                transactionMountMsg,
-                transactionMountMsgRepository::save
-        );
-        consumeChainAllocationService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
-
-        return transactionMountMsgInDb;
+        return transactionMountWriteService.saveAndAllocate(transactionMountMsg);
     }
     public TransactionMountMsg getTransactionMountMsgById(UUID id) {
         return EntityLookup.requireById(id, "交易挂载信息", transactionMountMsgRepository::findById);

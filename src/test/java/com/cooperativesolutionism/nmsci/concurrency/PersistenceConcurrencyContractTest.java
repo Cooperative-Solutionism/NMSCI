@@ -11,7 +11,7 @@ import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
+import com.cooperativesolutionism.nmsci.service.TransactionMountWriteService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.Table;
@@ -100,8 +100,8 @@ class PersistenceConcurrencyContractTest {
                 TransactionRecordMsg.class
         );
         assertTransactional(
-                TransactionMountMsgService.class,
-                "saveTransactionMountMsg",
+                TransactionMountWriteService.class,
+                "saveAndAllocate",
                 TransactionMountMsg.class
         );
         assertNotNull(
@@ -110,8 +110,8 @@ class PersistenceConcurrencyContractTest {
         );
     }
 
-    private void assertTransactional(Class<?> serviceClass, String methodName, Class<?> parameterType) throws NoSuchMethodException {
-        Method method = serviceClass.getMethod(methodName, parameterType);
+    private void assertTransactional(Class<?> serviceClass, String methodName, Class<?>... parameterTypes) throws NoSuchMethodException {
+        Method method = serviceClass.getMethod(methodName, parameterTypes);
 
         assertNotNull(
                 method.getAnnotation(Transactional.class),
