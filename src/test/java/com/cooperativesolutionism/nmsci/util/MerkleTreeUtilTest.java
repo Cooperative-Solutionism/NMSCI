@@ -35,4 +35,24 @@ class MerkleTreeUtilTest {
 
         assertEquals(64, ByteArrayUtil.bytesToHex(MerkleTreeUtil.calcMerkleRoot(List.of(left, right))).length());
     }
+
+    @Test
+    void duplicatesOddTailWhenBuildingMerkleLevels() {
+        byte[] first = ByteArrayUtil.hexToBytes("1111111111111111111111111111111111111111111111111111111111111111");
+        byte[] second = ByteArrayUtil.hexToBytes("2222222222222222222222222222222222222222222222222222222222222222");
+        byte[] third = ByteArrayUtil.hexToBytes("3333333333333333333333333333333333333333333333333333333333333333");
+
+        byte[] leftParent = merkleParent(first, second);
+        byte[] duplicatedTailParent = merkleParent(third, third);
+        byte[] expectedRoot = merkleParent(leftParent, duplicatedTailParent);
+
+        assertArrayEquals(expectedRoot, MerkleTreeUtil.calcMerkleRoot(List.of(first, second, third)));
+    }
+
+    private static byte[] merkleParent(byte[] left, byte[] right) {
+        byte[] combined = new byte[64];
+        System.arraycopy(ByteArrayUtil.reverseBytes(left), 0, combined, 0, 32);
+        System.arraycopy(ByteArrayUtil.reverseBytes(right), 0, combined, 32, 32);
+        return ByteArrayUtil.reverseBytes(Sha256Util.doubleDigest(combined));
+    }
 }
