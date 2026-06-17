@@ -11,10 +11,9 @@ import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_RECORD_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
 @RequestMapping("/transaction-records")
@@ -34,7 +33,7 @@ public class TransactionRecordMsgController {
 
     @GetMapping("/{id}")
     public ResponseResult<TransactionRecordMsg> getTransactionRecordMsgById(@PathVariable("id") String id) {
-        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgService.getTransactionRecordMsgById(UUID.fromString(id));
+        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgService.getTransactionRecordMsgById(uuid(id));
         return ResponseResult.success(transactionRecordMsg);
     }
 

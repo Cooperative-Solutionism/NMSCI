@@ -13,10 +13,9 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
@@ -34,7 +33,7 @@ public class ConsumeChainController {
 
     @GetMapping("/{id}")
     public ResponseResult<ConsumeChainResponseDTO> getConsumeChainById(@PathVariable String id) {
-        ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainQueryService.getConsumeChainById(UUID.fromString(id));
+        ConsumeChainResponseDTO consumeChainResponseDTO = consumeChainQueryService.getConsumeChainById(uuid(id));
         return ResponseResult.success(consumeChainResponseDTO);
     }
 

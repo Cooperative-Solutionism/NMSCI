@@ -5,7 +5,6 @@ import com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO;
 import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +14,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytes;
 
 @RestController
 @RequestMapping("/flow-nodes")
@@ -27,7 +28,7 @@ public class FlowNodeController {
 
     @GetMapping("/{flowNodePubkey}")
     public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@PathVariable String flowNodePubkey) {
-        return ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(ByteArrayUtil.hexToBytes(flowNodePubkey)));
+        return ResponseResult.success(flowNodeRegisterMsgService.getFlowNodeState(hexBytes(flowNodePubkey)));
     }
 
     @GetMapping

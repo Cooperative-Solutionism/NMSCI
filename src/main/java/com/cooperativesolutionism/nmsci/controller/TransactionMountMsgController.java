@@ -11,10 +11,9 @@ import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_MOUNT_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
@@ -35,7 +34,7 @@ public class TransactionMountMsgController {
 
     @GetMapping("/{id}")
     public ResponseResult<TransactionMountMsg> getTransactionMountMsgById(@PathVariable String id) {
-        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgById(UUID.fromString(id));
+        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgById(uuid(id));
         return ResponseResult.success(transactionMountMsg);
     }
 

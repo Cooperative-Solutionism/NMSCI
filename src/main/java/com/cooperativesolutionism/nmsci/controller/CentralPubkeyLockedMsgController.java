@@ -13,10 +13,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
 @RequestMapping("/central-pubkey-locks")
@@ -37,7 +37,7 @@ public class CentralPubkeyLockedMsgController {
 
     @GetMapping("/{id}")
     public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgById(@PathVariable String id) {
-        return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id)));
+        return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(uuid(id)));
     }
 
     @GetMapping

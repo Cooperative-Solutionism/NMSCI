@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.util;
 
+import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
@@ -29,24 +30,49 @@ class RequestParamParserTest {
     }
 
     @Test
-    void parsesUuidAndPropagatesInvalidUuid() {
+    void parsesRequiredAndOptionalUuidParameters() {
         UUID expected = UUID.fromString("11111111-2222-3333-4444-555555555555");
 
+        assertEquals(expected, RequestParamParser.uuid(expected.toString()));
         assertEquals(expected, RequestParamParser.uuidOrNull(expected.toString()));
-        assertThrows(IllegalArgumentException.class, () -> RequestParamParser.uuidOrNull("not-a-uuid"));
     }
 
     @Test
-    void parsesHexBytesAndPropagatesInvalidHex() {
+    void malformedUuidParametersBecomeBadRequest() {
+        BadRequestException required = assertThrows(
+                BadRequestException.class,
+                () -> RequestParamParser.uuid("not-a-uuid")
+        );
+        assertEquals("UUID格式不正确", required.getMessage());
+
+        BadRequestException optional = assertThrows(
+                BadRequestException.class,
+                () -> RequestParamParser.uuidOrNull("not-a-uuid")
+        );
+        assertEquals("UUID格式不正确", optional.getMessage());
+    }
+
+    @Test
+    void parsesRequiredAndOptionalHexBytes() {
         assertNull(RequestParamParser.hexBytesOrNull(null));
         assertNull(RequestParamParser.hexBytesOrNull(""));
         assertNull(RequestParamParser.hexBytesOrNull("  "));
+        assertArrayEquals(new byte[]{0x00, 0x0f, (byte) 0xab}, RequestParamParser.hexBytes("000fab"));
         assertArrayEquals(new byte[]{0x00, 0x0f, (byte) 0xab}, RequestParamParser.hexBytesOrNull("000fab"));
+    }
 
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
+    @Test
+    void malformedHexParametersBecomeBadRequest() {
+        BadRequestException required = assertThrows(
+                BadRequestException.class,
+                () -> RequestParamParser.hexBytes("0g")
+        );
+        assertEquals("十六进制字符串包含非法字符", required.getMessage());
+
+        BadRequestException optional = assertThrows(
+                BadRequestException.class,
                 () -> RequestParamParser.hexBytesOrNull("0g")
         );
-        assertEquals("十六进制字符串包含非法字符", exception.getMessage());
+        assertEquals("十六进制字符串包含非法字符", optional.getMessage());
     }
 }

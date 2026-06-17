@@ -12,10 +12,9 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
 @RequestMapping("/flow-node-registrations")
@@ -38,7 +37,7 @@ public class FlowNodeRegisterMsgController {
 
     @GetMapping("/{id}")
     public ResponseResult<FlowNodeRegisterMsg> getFlowNodeRegisterMsgById(@PathVariable("id") String id) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgById(UUID.fromString(id));
+        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgById(uuid(id));
         return ResponseResult.success(flowNodeRegisterMsgMsg);
     }
 

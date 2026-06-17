@@ -13,10 +13,10 @@ import org.springframework.data.domain.Slice;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
-import java.util.UUID;
 
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_LOCKED_INBOUND_BYTES;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
 @RequestMapping("/flow-node-locks")
@@ -36,7 +36,7 @@ public class FlowNodeLockedMsgController {
 
     @GetMapping("/{id}")
     public ResponseResult<FlowNodeLockedMsg> getFlowNodeLockedMsgById(@PathVariable("id") String id) {
-        FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgService.getFlowNodeLockedMsgById(UUID.fromString(id));
+        FlowNodeLockedMsg flowNodeLockedMsg = flowNodeLockedMsgService.getFlowNodeLockedMsgById(uuid(id));
         return ResponseResult.success(flowNodeLockedMsg);
     }
 
