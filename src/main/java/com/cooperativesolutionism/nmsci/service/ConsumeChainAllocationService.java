@@ -5,6 +5,7 @@ import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocationPlan;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainAllocator;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainPersistenceService;
 import com.cooperativesolutionism.nmsci.consume.ConsumeChainSupport;
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
@@ -36,25 +37,30 @@ public class ConsumeChainAllocationService {
     @Resource
     private ConsumeChainPersistenceService consumeChainPersistenceService;
 
+    @Resource
+    private NmsciMetrics nmsciMetrics;
+
     @Transactional
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
-        FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(transactionMountMsg.getFlowNodePubkey(), "源");
-        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(transactionRecordMsg.getFlowNodePubkey(), "目标");
+        nmsciMetrics.timeConsumeChainAllocation(() -> {
+            FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(transactionMountMsg.getFlowNodePubkey(), "源");
+            FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(transactionRecordMsg.getFlowNodePubkey(), "目标");
 
-        List<ConsumeChain> mountChains = getMountChainsForAllocation(
-                source,
-                transactionRecordMsg.getCurrencyType(),
-                transactionRecordMsg.getAmount()
-        );
+            List<ConsumeChain> mountChains = getMountChainsForAllocation(
+                    source,
+                    transactionRecordMsg.getCurrencyType(),
+                    transactionRecordMsg.getAmount()
+            );
 
-        ConsumeChainAllocationPlan plan = consumeChainAllocator.allocate(
-                transactionMountMsg,
-                transactionRecordMsg,
-                source,
-                target,
-                getConsumeChainAllocationCandidates(mountChains)
-        );
-        consumeChainPersistenceService.save(plan);
+            ConsumeChainAllocationPlan plan = consumeChainAllocator.allocate(
+                    transactionMountMsg,
+                    transactionRecordMsg,
+                    source,
+                    target,
+                    getConsumeChainAllocationCandidates(mountChains)
+            );
+            consumeChainPersistenceService.save(plan);
+        });
     }
 
     private List<ConsumeChain> getMountChainsForAllocation(

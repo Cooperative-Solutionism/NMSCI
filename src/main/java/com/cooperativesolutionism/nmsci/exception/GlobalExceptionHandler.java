@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.exception;
 
 import com.cooperativesolutionism.nmsci.response.ResponseCode;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,9 @@ import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -26,19 +30,19 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ResponseResult<Void>> handleBadRequest(BadRequestException e) {
-        logger.warn("Bad request: {}", e.getMessage());
+        logger.warn("Bad request [{}]: {}", requestContext(), e.getMessage());
         return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ResponseResult<Void>> handleNotFoundException(NotFoundException e) {
-        logger.warn("Not found: {}", e.getMessage());
+        logger.warn("Not found [{}]: {}", requestContext(), e.getMessage());
         return failure(HttpStatus.NOT_FOUND, ResponseCode.NOT_FOUND, e.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ResponseResult<Void>> handleConflictException(ConflictException e) {
-        logger.warn("Conflict: {}", e.getMessage());
+        logger.warn("Conflict [{}]: {}", requestContext(), e.getMessage());
         return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, e.getMessage());
     }
 
@@ -51,23 +55,33 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException.class
     })
     public ResponseEntity<ResponseResult<Void>> handleValidationExceptions(Exception e) {
-        logger.warn("Validation failed: {}", e.getMessage());
+        logger.warn("Validation failed [{}]: {}", requestContext(), e.getMessage());
         return failure(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, VALIDATION_ERROR_MESSAGE);
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ResponseResult<Void>> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
-        logger.warn("Data integrity conflict: {}", e.getMessage());
+        logger.warn("Data integrity conflict [{}]: {}", requestContext(), e.getMessage());
         return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, CONFLICT_MESSAGE);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ResponseResult<Void>> handleAllExceptions(Exception e) {
-        logger.error("An unexpected error occurred: {}", e.getMessage(), e);
+        logger.error("An unexpected error occurred [{}]: {}", requestContext(), e.getMessage(), e);
         return failure(HttpStatus.INTERNAL_SERVER_ERROR, ResponseCode.INTERNAL_SERVER_ERROR, INTERNAL_ERROR_MESSAGE);
     }
 
     private ResponseEntity<ResponseResult<Void>> failure(HttpStatus status, ResponseCode responseCode, String detail) {
         return ResponseEntity.status(status).body(ResponseResult.failure(responseCode, detail));
+    }
+
+    /** 当前请求的「方法 + 路径」，便于将拒绝/错误日志关联到具体端点；非请求上下文返回 "-"。 */
+    private static String requestContext() {
+        RequestAttributes attributes = RequestContextHolder.getRequestAttributes();
+        if (attributes instanceof ServletRequestAttributes servletRequestAttributes) {
+            HttpServletRequest request = servletRequestAttributes.getRequest();
+            return request.getMethod() + " " + request.getRequestURI();
+        }
+        return "-";
     }
 }

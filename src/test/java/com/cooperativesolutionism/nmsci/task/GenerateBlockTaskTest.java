@@ -1,7 +1,10 @@
 package com.cooperativesolutionism.nmsci.task;
 
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,6 +30,7 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask();
         ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         assertDoesNotThrow(task::execute);
 
@@ -41,6 +45,7 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask();
         ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -60,6 +65,7 @@ class GenerateBlockTaskTest {
         BlockChainService blockChainService = mock(BlockChainService.class);
         GenerateBlockTask task = new GenerateBlockTask();
         ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<Security> security = mockStatic(Security.class)) {
             security.when(() -> Security.addProvider(any(Provider.class)))
@@ -78,6 +84,7 @@ class GenerateBlockTaskTest {
         BlockChainService blockChainService = mock(BlockChainService.class);
         GenerateBlockTask task = new GenerateBlockTask();
         ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -101,6 +108,7 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask();
         ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         assertDoesNotThrow(task::execute);
         assertDoesNotThrow(task::execute);

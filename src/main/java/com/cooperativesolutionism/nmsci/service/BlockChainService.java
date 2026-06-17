@@ -8,6 +8,7 @@ import com.cooperativesolutionism.nmsci.block.BlockMessageSelector;
 import com.cooperativesolutionism.nmsci.block.SelectedBlockMessages;
 import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
@@ -16,6 +17,8 @@ import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Service
 public class BlockChainService {
@@ -39,6 +42,9 @@ public class BlockChainService {
 
     @Resource
     private BlockGenerationLock blockGenerationLock;
+
+    @Resource
+    private NmsciMetrics nmsciMetrics;
     @Transactional
     public void generateBlock() {
         blockGenerationLock.lock();
@@ -65,6 +71,26 @@ public class BlockChainService {
         blockInfo.setDatFilepath(blockFileStore.appendBlock(previousDatFilepath(previousBlock), assembledBlock.getDatBytes()));
         blockInfo.setSourceCodeZipFilepath(sourceCodeArchiveStore.copyArchiveForVersion(blockInfo.getVersion()));
         blockInfoRepository.save(blockInfo);
+
+        // 仅在事务成功提交后记录指标，避免回滚时计入「幻影区块」/ 高度网关超前于已持久化的链。
+        recordBlockMetricsOnCommit(
+                blockInfo.getRawBytes().length,
+                assembledBlock.getSelectedMsgAbstracts().size(),
+                blockInfo.getHeight()
+        );
+    }
+
+    private void recordBlockMetricsOnCommit(long sizeBytes, long messageCount, long height) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    nmsciMetrics.recordGeneratedBlock(sizeBytes, messageCount, height);
+                }
+            });
+        } else {
+            nmsciMetrics.recordGeneratedBlock(sizeBytes, messageCount, height);
+        }
     }
     @Transactional
     public void generateBlockUntilNoNotInBlockMsgs() {

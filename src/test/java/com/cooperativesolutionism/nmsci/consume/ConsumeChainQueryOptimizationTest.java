@@ -8,12 +8,15 @@ import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainAllocationService;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -306,6 +309,7 @@ class ConsumeChainQueryOptimizationTest {
         ReflectionTestUtils.setField(service, "consumeChainRepository", chainRepository);
         ReflectionTestUtils.setField(service, "consumeChainAllocator", allocator);
         ReflectionTestUtils.setField(service, "consumeChainPersistenceService", persistenceService);
+        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
     }
 
     private static void injectQuery(

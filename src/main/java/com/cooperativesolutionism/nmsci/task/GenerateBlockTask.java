@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.task;
 
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import jakarta.annotation.Resource;
@@ -25,6 +26,9 @@ public class GenerateBlockTask {
     @Resource
     private BlockChainService blockChainService;
 
+    @Resource
+    private NmsciMetrics nmsciMetrics;
+
     /**
      * 定时任务：应用启动后立即开始生成区块，之后每10分钟开始生成区块
      */
@@ -37,7 +41,7 @@ public class GenerateBlockTask {
             Security.addProvider(new BouncyCastleProvider());
             logger.info("开始生成区块: {}", startTime);
 
-            blockChainService.generateBlock();
+            nmsciMetrics.timeBlockGeneration(blockChainService::generateBlock);
 
             if (isFirstTimeRun) {
                 blockChainService.generateBlockUntilNoNotInBlockMsgs();
@@ -49,6 +53,7 @@ public class GenerateBlockTask {
             logger.info("成功生成区块: {}", endTime);
             logger.info("生成区块用时: {} 毫秒", (endTime - startTime) / 1000);
         } catch (Exception ex) {
+            nmsciMetrics.recordBlockGenerationError();
             logFailure(startTime, ex);
         }
     }

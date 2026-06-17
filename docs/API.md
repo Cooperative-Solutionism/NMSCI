@@ -200,6 +200,9 @@ curl -X POST http://localhost:8080/transaction-records \
 
 > 仅做只读核验，不修改任何数据。无需运行本服务的离线第三方核验见仓库内 `com.cooperativesolutionism.nmsci.verifier.VerifyChainCli`（退出码 0=通过 / 1=不通过 / 2=用法错误）。
 
+### 可观测性（Actuator）
+`GET /actuator/health`、`GET /actuator/info`、`GET /actuator/metrics`（`/actuator/metrics/{name}` 查单项）、`GET /actuator/prometheus`（Prometheus 抓取）。自定义业务指标（出块耗时/大小/积压、消费链分配耗时等）与公共标签 `application=nmsci` 见 [README《可观测性》](../README.md#可观测性)。
+
 ---
 
 ## 4. 元数据 `/metadata`

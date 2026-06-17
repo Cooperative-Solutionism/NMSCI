@@ -3,9 +3,12 @@ package com.cooperativesolutionism.nmsci.block;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
+import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
+import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -58,6 +61,8 @@ class BlockChainServiceLoopTest {
         BlockGenerationLock blockGenerationLock = mock(BlockGenerationLock.class);
         SelectedBlockMessages selectedMessages = new SelectedBlockMessages(new LinkedHashMap<>(), 0L);
         BlockInfo blockInfo = new BlockInfo();
+        blockInfo.setHeight(0L);
+        blockInfo.setRawBytes(new byte[]{1, 2, 3});
         AssembledBlock assembledBlock = new AssembledBlock(blockInfo, new byte[]{1, 2, 3}, List.of());
         ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
         ReflectionTestUtils.setField(service, "msgAbstractRepository", msgAbstractRepository);
@@ -66,6 +71,7 @@ class BlockChainServiceLoopTest {
         ReflectionTestUtils.setField(service, "blockFileStore", blockFileStore);
         ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", sourceCodeArchiveStore);
         ReflectionTestUtils.setField(service, "blockGenerationLock", blockGenerationLock);
+        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
@@ -93,6 +99,8 @@ class BlockChainServiceLoopTest {
         SelectedBlockMessages selectedMessages = selectedMessages(msgAbstract);
         BlockInfo blockInfo = new BlockInfo();
         blockInfo.setVersion(0);
+        blockInfo.setHeight(0L);
+        blockInfo.setRawBytes(new byte[]{1, 2, 3});
         AssembledBlock assembledBlock = new AssembledBlock(blockInfo, new byte[]{1, 2, 3}, List.of(msgAbstract));
         ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
         ReflectionTestUtils.setField(service, "msgAbstractRepository", msgAbstractRepository);
@@ -101,6 +109,7 @@ class BlockChainServiceLoopTest {
         ReflectionTestUtils.setField(service, "blockFileStore", blockFileStore);
         ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", sourceCodeArchiveStore);
         ReflectionTestUtils.setField(service, "blockGenerationLock", blockGenerationLock);
+        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");

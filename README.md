@@ -21,6 +21,7 @@
 - 构建时生成当前源码压缩包并写入源码包哈希。
 - REST 读侧查询：自然键（pubkey/txid 等）统一走查询参数，列表端点统一分页（Slice）。
 - 运维与协议元数据端点：系统状态、存储用量、消息类型/货币类型/区块格式/难度目标。
+- 可观测性：Micrometer 业务指标（出块耗时/大小/积压、消费链分配耗时等）+ 内置 HTTP/JVM/HikariCP 指标，经 `/actuator/prometheus` 暴露；拒绝/错误日志带请求端点上下文。
 
 ## 技术栈
 
@@ -422,6 +423,25 @@ java -Dloader.main=com.cooperativesolutionism.nmsci.verifier.VerifyChainCli \
 ```
 
 `.dat` 首块非创世（如分发的是某段子链）时，用 `--starting-prev-hash` 提供该段应衔接的前区块 id 作为信任锚；`--central-pubkey` / `--source-zip` 提供带信任锚的更严格核验。
+
+## 可观测性
+
+指标经 Micrometer 暴露，抓取端点 `GET /actuator/prometheus`（另有 `GET /actuator/metrics/{name}` 查单项、`/actuator/health`、`/actuator/info`）。除内置的 `http.server.requests`（按端点+状态码的入账/拒绝/错误速率与时延直方图）、JVM、HikariCP 连接池等指标外，新增业务指标：
+
+| 指标 | 类型 | 含义 |
+| --- | --- | --- |
+| `nmsci.block.generation` | Timer（含直方图） | 每次出块周期耗时 |
+| `nmsci.block.generation.errors` | Counter | 出块失败次数 |
+| `nmsci.block.size.bytes` | DistributionSummary | 每个区块原始字节数 |
+| `nmsci.block.messages` | DistributionSummary | 每个区块消息条数 |
+| `nmsci.block.height` | Gauge | 最新区块高度 |
+| `nmsci.mempool.pending` | Gauge | 待入块消息积压数 |
+| `nmsci.consumechain.allocation` | Timer（含直方图） | 消费链分配（交易挂载）耗时 |
+| `nmsci.block.difficulty.lookup` | Timer | 最新区块难度查询时延 |
+
+所有指标带 `application=nmsci` 公共标签。拒绝（4xx/409）与服务器错误（5xx）日志带 `方法 + 路径` 上下文，便于关联到具体端点。
+
+> 生产部署注意：actuator 端点暴露在对外业务端口（8080）且无鉴权，仅开放 `health/info/metrics/prometheus`（不含 `env`/`configprops`/`beans`/`heapdump` 等敏感端点，无密钥泄露）。但 `/actuator/metrics`、`/actuator/prometheus` 会暴露运行态（积压、时延等），生产环境应通过防火墙/反向代理限制访问，或改用独立管理端口（`management.server.port` + `management.server.address=127.0.0.1`）。
 
 ## 项目结构
 
