@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.protocol;
 
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
 
+import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +20,8 @@ public class SignatureValidator {
                 throw new IllegalArgumentException(errorMessage);
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            // 解析客户端提交的签名字节失败属客户端输入错误，映射为 400 而非 500
+            throw new BadRequestException(errorMessage, e);
         }
     }
 
@@ -36,7 +38,8 @@ public class SignatureValidator {
         } catch (IllegalArgumentException e) {
             throw e;
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            // DER 解析、曲线点解码等失败均源于客户端提交的签名/公钥字节，映射为 400 而非 500
+            throw new BadRequestException(errorMessage, e);
         }
     }
 }

@@ -1,15 +1,21 @@
 package com.cooperativesolutionism.nmsci.protocol;
 
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyEmpowerMsgConverter;
+import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
+import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
+import java.io.IOException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
 
 class SignatureValidatorTest {
 
@@ -55,6 +61,35 @@ class SignatureValidatorTest {
         );
 
         assertEquals("签名必须为64字节RS格式", exception.getMessage());
+    }
+
+    @Test
+    void mapsLowSDecodeFailureToBadRequest() {
+        try (MockedStatic<Secp256k1EncryptUtil> mocked = mockStatic(Secp256k1EncryptUtil.class)) {
+            mocked.when(() -> Secp256k1EncryptUtil.isNotLowS(any())).thenThrow(new IOException("decode failed"));
+
+            BadRequestException exception = assertThrows(
+                    BadRequestException.class,
+                    () -> signatureValidator.validateLowS(new byte[64], "中心预签名不符合低S标准")
+            );
+
+            assertEquals("中心预签名不符合低S标准", exception.getMessage());
+        }
+    }
+
+    @Test
+    void mapsSignatureDecodeFailureToBadRequest() {
+        try (MockedStatic<Secp256k1EncryptUtil> mocked = mockStatic(Secp256k1EncryptUtil.class)) {
+            mocked.when(() -> Secp256k1EncryptUtil.verifySignature(any(), any(), any()))
+                    .thenThrow(new IllegalStateException("point decode failed"));
+
+            BadRequestException exception = assertThrows(
+                    BadRequestException.class,
+                    () -> signatureValidator.validateSignature(new byte[1], new byte[64], new byte[33], "签名验证失败")
+            );
+
+            assertEquals("签名验证失败", exception.getMessage());
+        }
     }
 
     private CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg() {
