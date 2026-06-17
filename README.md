@@ -17,6 +17,7 @@
 - 交易记录与交易挂载。
 - 消费链生成与回流率查询。
 - 定时生成区块，并写入 `.dat` 区块文件。
+- 独立链验证器：仅凭落盘 `.dat` 重新解析并核验帧格式、哈希链、各区块中心签名、默克尔根与每条消息的 PoW/签名（端点 `GET /verify/chain`，离线 CLI `VerifyChainCli`）。
 - 构建时生成当前源码压缩包并写入源码包哈希。
 - REST 读侧查询：自然键（pubkey/txid 等）统一走查询参数，列表端点统一分页（Slice）。
 - 运维与协议元数据端点：系统状态、存储用量、消息类型/货币类型/区块格式/难度目标。
@@ -351,6 +352,9 @@ GET  /system/params
 GET  /system/status
 GET  /system/storage
 
+# 链完整性验证（只读）
+GET  /verify/chain            # 重新解析本地 .dat 并独立核验整条链；?stateful=false 可关闭有状态回放
+
 # 元数据
 GET  /metadata/message-types
 GET  /metadata/currency-types
@@ -392,6 +396,32 @@ GET  /transaction-mounts                  GET /transaction-mounts/{id}          
 /dat/**
 /source-code/**
 ```
+
+## 链完整性独立验证
+
+链的防篡改与分发保障在于：任意第三方只凭分发出去的 `blk*.dat` 区块文件即可独立重建并核验整条链，无需信任本服务进程或数据库。`com.cooperativesolutionism.nmsci.verifier` 提供这一能力，所有哈希/签名/PoW 运算复用写入侧同一批工具类，保证与生成侧逐字节一致。
+
+**核验项**
+
+- 结构：`.dat` 帧格式（大端魔数 `0x6A466D85` + 长度前缀）、区块头/消息定长布局、区块版本、难度字段良构、消息内嵌类型与分段一致。
+- 密码学：哈希链衔接（`前区块头摘要 == 上一区块 dblSHA256(完整区块头)`）、高度连续、区块中心签名（对区块头 [0,165) 验签）、默克尔根重算、最大消息时间戳。
+- 单条消息：金额/币种、成员签名低 S、工作量证明、各方成员签名验证、中心签名验证。
+- 有状态回放（可选，默认开启）：全链消息 id 唯一、流转节点注册唯一、冻结唯一、引用的流转节点均已注册、交易流转节点均已授权、挂载引用的交易记录存在且消费公钥一致。
+- **暂未覆盖**（与消息入账时序强相关，按「全链存在即违规」会对合法的较早消息误报）：消息发生时未冻结/未授权、难度目标等于入账时最新区块难度。
+
+**端点（运维自检）**：`GET /verify/chain`（见 [docs/API.md](./docs/API.md)）。每个区块在其自身头部公钥下验签，故对中心公钥轮换/版本升级稳健；不强制中心公钥/源码哈希等于本节点配置。
+
+**离线 CLI（独立第三方，仅需 jar，无需数据库与运行中的服务）**：
+
+```bash
+java -Dloader.main=com.cooperativesolutionism.nmsci.verifier.VerifyChainCli \
+     -cp target/nmsci-*.jar org.springframework.boot.loader.launch.PropertiesLauncher \
+     <datDir> [--central-pubkey <hex|base64>] [--source-zip <path>|--source-hash <hex>] \
+     [--starting-prev-hash <hex>] [--no-stateful]
+# 退出码：0=通过，1=不通过，2=用法错误
+```
+
+`.dat` 首块非创世（如分发的是某段子链）时，用 `--starting-prev-hash` 提供该段应衔接的前区块 id 作为信任锚；`--central-pubkey` / `--source-zip` 提供带信任锚的更严格核验。
 
 ## 项目结构
 

@@ -21,7 +21,7 @@
   - [1.7 id 与 pubkey 不可混用](#17-id-与-pubkey-不可混用)
   - [1.8 常见参数错误](#18-常见参数错误)
 - [2. 区块 `/blocks`](#2-区块-blocks)
-- [3. 系统 `/system`](#3-系统-system)
+- [3. 系统与验证 `/system`、`/verify`](#3-系统与验证-systemverify)
 - [4. 元数据 `/metadata`](#4-元数据-metadata)
 - [5. 流转节点 `/flow-nodes`](#5-流转节点-flow-nodes)
 - [6. 消费链 `/consume-chains`](#6-消费链-consume-chains)
@@ -178,7 +178,9 @@ curl -X POST http://localhost:8080/transaction-records \
 
 ---
 
-## 3. 系统 `/system`
+## 3. 系统与验证 `/system`、`/verify`
+
+`/system` 为运行参数与状态；`/verify` 为链完整性自检。
 
 ### GET `/system/params`
 系统参数（版本、中心公钥、难度、源码包哈希、最新区块）。响应 `SystemParamsDTO`（[附录 10.9](#109-系统与运维-dto)）。
@@ -188,6 +190,15 @@ curl -X POST http://localhost:8080/transaction-records \
 
 ### GET `/system/storage`
 `.dat` 存储用量：目录、文件数、当前文件名与大小、总字节、单文件上限、当前利用率（%）。响应 `StorageStatusDTO`。
+
+### GET `/verify/chain`
+对本节点落盘的 `blk*.dat` 重新解析并**独立核验链完整性**：帧格式、哈希链衔接、各区块中心签名、默克尔根、最大时间戳，以及每条消息的工作量证明/成员签名/中心签名；可选有状态回放（注册/授权/挂载等引用与唯一性）。每个区块的中心签名均在其**自身区块头公钥**下验证，故对中心公钥轮换/版本升级后的多代链仍稳健；本端点不强制「区块头中心公钥等于本节点配置」与源码哈希一致——这类带信任锚的更严格独立核验请用离线 CLI `VerifyChainCli`。响应 `ChainVerificationSummaryDTO`（[附录 10.9](#109-系统与运维-dto)）。
+
+| 查询参数 | 类型 | 默认 | 说明 |
+| --- | --- | --- | --- |
+| `stateful` | boolean | `true` | 是否执行有状态回放 |
+
+> 仅做只读核验，不修改任何数据。无需运行本服务的离线第三方核验见仓库内 `com.cooperativesolutionism.nmsci.verifier.VerifyChainCli`（退出码 0=通过 / 1=不通过 / 2=用法错误）。
 
 ---
 
@@ -503,6 +514,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
 - **SystemStatusDTO**：`latestBlockHeight`(Long)、`latestBlockHash`(hex)、`latestBlockTimestamp`(Long，微秒)、`pendingMessageCount`(long)、`oldestPendingConfirmTimestamp`(Long)、`blockIntervalMs`(long，**毫秒**)、`currentCentralPubkeyLocked`(boolean)。
 - **StorageStatusDTO**：`datDirectory`、`datFileCount`(int)、`currentDatFileName`、`currentDatFileSizeBytes`(long)、`totalDatBytes`(long)、`datMaxSizePerFileBytes`(long)、`currentDatUtilizationPct`(double)。
 - **LockedMessageResponseDTO\<T\>**：`locked`(boolean)、`lockedMsg`(T，对应冻结消息实体或 null)。
+- **ChainVerificationSummaryDTO**：`valid`(boolean，链是否通过核验)、`datDirectory`、`blockCount`(int)、`messageCount`(long)、`passedChecks`/`failedChecks`/`skippedChecks`(long)、`statefulReplayIncluded`(boolean)、`failureCount`(int)、`failures`(列表，每项 `{scope, name, category, detail}`，最多 100 条)、`configuredCentralPubkeyHex`、`runningSourceCodeZipHash`。
 
 ---
 
