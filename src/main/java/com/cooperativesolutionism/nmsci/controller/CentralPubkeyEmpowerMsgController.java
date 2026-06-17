@@ -9,6 +9,7 @@ import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +29,7 @@ public class CentralPubkeyEmpowerMsgController {
     private CentralPubkeyEmpowerMsgConverter centralPubkeyEmpowerMsgConverter;
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseResult<CentralPubkeyEmpowerMsg> saveCentralPubkeyEmpowerMsg(@RequestBody @ByteArraySize(CENTRAL_PUBKEY_EMPOWER_INBOUND_BYTES) byte[] byteData) {
         return badRequestOnIllegalArgument(() -> {
             CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg = centralPubkeyEmpowerMsgConverter.fromByteArray(byteData);

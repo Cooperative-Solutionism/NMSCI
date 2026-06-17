@@ -314,7 +314,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(id, flowNode, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
     }
 
@@ -322,7 +322,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/central-pubkey-empowerments")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.centralPubkeyEmpower(id, flowNode, TestKeyPairs.CENTRAL)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
         assertTrue(centralPubkeyEmpowerMsgRepository.existsById(id));
     }
@@ -331,7 +331,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/transaction-records")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionRecord(id, amount, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
     }
 
@@ -339,7 +339,7 @@ class ProtocolLifecycleIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/transaction-mounts")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.transactionMount(id, recordId, consumeNode, flowNode, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
     }
 }

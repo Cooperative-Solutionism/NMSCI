@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.domain.Slice;
 
 import java.util.List;
@@ -56,6 +57,7 @@ public class SliceResponseDTO<T> {
         this.numberOfElements = numberOfElements;
     }
 
+    @JsonProperty("hasNext")
     public boolean getHasNext() {
         return hasNext;
     }
@@ -64,6 +66,7 @@ public class SliceResponseDTO<T> {
         this.hasNext = hasNext;
     }
 
+    @JsonProperty("hasPrevious")
     public boolean getHasPrevious() {
         return hasPrevious;
     }

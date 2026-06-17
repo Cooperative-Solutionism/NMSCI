@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.dto;
 
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * 运营快照：最新区块、待入块消息池、出块周期与中心公钥冻结状态。
@@ -94,6 +95,7 @@ public class SystemStatusDTO {
         this.blockIntervalMs = blockIntervalMs;
     }
 
+    @JsonProperty("currentCentralPubkeyLocked")
     public boolean isCurrentCentralPubkeyLocked() {
         return currentCentralPubkeyLocked;
     }

@@ -63,7 +63,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(firstId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         mockMvc.perform(post("/flow-node-registrations")
@@ -83,7 +83,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         mockMvc.perform(post("/transaction-records")
@@ -104,13 +104,13 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         mockMvc.perform(post("/central-pubkey-empowerments")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.centralPubkeyEmpower(empowerId, TestKeyPairs.FLOW_NODE_A, TestKeyPairs.CENTRAL)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         byte[] valid = builder.transactionRecord(recordId, 100L, TestKeyPairs.CONSUME_NODE_A, TestKeyPairs.FLOW_NODE_A, TestKeyPairs.CENTRAL, TRANSACTION_DIFFICULTY_NBITS);
@@ -140,7 +140,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(targetId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         mockMvc.perform(get("/returning-flow-rates")
@@ -201,7 +201,7 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(targetId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         mockMvc.perform(get("/consume-chains/edges")

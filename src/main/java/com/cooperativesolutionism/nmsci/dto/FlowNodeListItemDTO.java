@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.dto;
 
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.UUID;
@@ -52,6 +53,7 @@ public class FlowNodeListItemDTO {
         this.flowNodePubkey = flowNodePubkey;
     }
 
+    @JsonProperty("registered")
     public boolean getRegistered() {
         return registered;
     }
@@ -60,6 +62,7 @@ public class FlowNodeListItemDTO {
         this.registered = registered;
     }
 
+    @JsonProperty("authorized")
     public boolean getAuthorized() {
         return authorized;
     }
@@ -68,6 +71,7 @@ public class FlowNodeListItemDTO {
         this.authorized = authorized;
     }
 
+    @JsonProperty("locked")
     public boolean getLocked() {
         return locked;
     }
@@ -76,6 +80,7 @@ public class FlowNodeListItemDTO {
         this.locked = locked;
     }
 
+    @JsonProperty("currentCentralPubkeyAuthorized")
     public boolean getCurrentCentralPubkeyAuthorized() {
         return currentCentralPubkeyAuthorized;
     }

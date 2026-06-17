@@ -11,6 +11,10 @@ public class IdentifiableToStringSerializer extends JsonSerializer<Identifiable>
 
     @Override
     public void serialize(Identifiable value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        if (value == null) {
+            gen.writeNull();
+            return;
+        }
         gen.writeString(value.getId().toString());
     }
 

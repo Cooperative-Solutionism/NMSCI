@@ -10,6 +10,7 @@ import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
 import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,6 +33,7 @@ public class FlowNodeRegisterMsgController {
     private FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter;
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(FLOW_NODE_REGISTER_INBOUND_BYTES) byte[] byteData) {
         return badRequestOnIllegalArgument(() -> {
             FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgConverter.fromByteArray(byteData);

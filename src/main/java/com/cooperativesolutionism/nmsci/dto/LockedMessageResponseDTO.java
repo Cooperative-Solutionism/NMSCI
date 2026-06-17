@@ -1,5 +1,7 @@
 package com.cooperativesolutionism.nmsci.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class LockedMessageResponseDTO<T> {
 
     private boolean locked;
@@ -10,6 +12,7 @@ public class LockedMessageResponseDTO<T> {
         this.lockedMsg = lockedMsg;
     }
 
+    @JsonProperty("locked")
     public boolean getLocked() {
         return locked;
     }

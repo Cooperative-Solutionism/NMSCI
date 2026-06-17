@@ -48,7 +48,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
         mockMvc.perform(post("/flow-node-registrations")
                         .contentType(MediaType.APPLICATION_OCTET_STREAM)
                         .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value(200));
 
         assertEquals(1L, msgAbstractRepository.countByIsInBlockFalseOrderByConfirmTimestampAsc());
@@ -89,7 +89,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
             mockMvc.perform(post("/flow-node-registrations")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
                             .content(builder.flowNodeRegister(flowNodeId, TestKeyPairs.FLOW_NODE_A, REGISTER_DIFFICULTY_NBITS)))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.code").value(200));
 
             blockChainService.generateBlock();
@@ -115,7 +115,7 @@ class BlockChainIntegrationTest extends NmsciIntegrationTestBase {
             mockMvc.perform(post("/flow-node-registrations")
                             .contentType(MediaType.APPLICATION_OCTET_STREAM)
                             .content(flowNodeRegisterMsg))
-                    .andExpect(status().isOk())
+                    .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.code").value(200));
 
             blockChainService.generateBlock();

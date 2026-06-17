@@ -8,13 +8,17 @@ import com.cooperativesolutionism.nmsci.converter.TransactionMountMsgConverter;
 import com.cooperativesolutionism.nmsci.converter.TransactionRecordMsgConverter;
 import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.lang.reflect.Method;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -28,6 +32,16 @@ class BinaryWriteEndpointContractTest {
         assertConsumesOctetStream(CentralPubkeyLockedMsgController.class, "saveCentralPubkeyLockedMsg");
         assertConsumesOctetStream(TransactionRecordMsgController.class, "saveTransactionRecordMsg");
         assertConsumesOctetStream(TransactionMountMsgController.class, "saveTransactionMountMsg");
+    }
+
+    @Test
+    void binaryWriteEndpointsDeclareCreatedResponseStatus() throws NoSuchMethodException {
+        assertCreatedResponseStatus(FlowNodeRegisterMsgController.class, "saveFlowNodeRegisterMsg");
+        assertCreatedResponseStatus(CentralPubkeyEmpowerMsgController.class, "saveCentralPubkeyEmpowerMsg");
+        assertCreatedResponseStatus(FlowNodeLockedMsgController.class, "saveFlowNodeLockedMsg");
+        assertCreatedResponseStatus(CentralPubkeyLockedMsgController.class, "saveCentralPubkeyLockedMsg");
+        assertCreatedResponseStatus(TransactionRecordMsgController.class, "saveTransactionRecordMsg");
+        assertCreatedResponseStatus(TransactionMountMsgController.class, "saveTransactionMountMsg");
     }
 
     @Test
@@ -62,6 +76,14 @@ class BinaryWriteEndpointContractTest {
         PostMapping postMapping = method.getAnnotation(PostMapping.class);
 
         assertArrayEquals(new String[]{MediaType.APPLICATION_OCTET_STREAM_VALUE}, postMapping.consumes());
+    }
+
+    private void assertCreatedResponseStatus(Class<?> controllerType, String methodName) throws NoSuchMethodException {
+        Method method = controllerType.getMethod(methodName, byte[].class);
+        ResponseStatus responseStatus = method.getAnnotation(ResponseStatus.class);
+
+        assertNotNull(responseStatus);
+        assertEquals(HttpStatus.CREATED, responseStatus.value());
     }
 
     private void assertInvalidBody(ThrowingCall call) {
