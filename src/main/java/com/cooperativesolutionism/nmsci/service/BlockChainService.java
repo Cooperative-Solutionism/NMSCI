@@ -14,7 +14,6 @@ import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -22,29 +21,35 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Service
 public class BlockChainService {
-    @Resource
-    private BlockInfoRepository blockInfoRepository;
+    private final BlockInfoRepository blockInfoRepository;
+    private final MsgAbstractRepository msgAbstractRepository;
+    private final BlockMessageSelector blockMessageSelector;
+    private final BlockAssembler blockAssembler;
+    private final BlockFileStore blockFileStore;
+    private final SourceCodeArchiveStore sourceCodeArchiveStore;
+    private final BlockGenerationLock blockGenerationLock;
+    private final NmsciMetrics nmsciMetrics;
 
-    @Resource
-    private MsgAbstractRepository msgAbstractRepository;
+    public BlockChainService(
+            BlockInfoRepository blockInfoRepository,
+            MsgAbstractRepository msgAbstractRepository,
+            BlockMessageSelector blockMessageSelector,
+            BlockAssembler blockAssembler,
+            BlockFileStore blockFileStore,
+            SourceCodeArchiveStore sourceCodeArchiveStore,
+            BlockGenerationLock blockGenerationLock,
+            NmsciMetrics nmsciMetrics
+    ) {
+        this.blockInfoRepository = blockInfoRepository;
+        this.msgAbstractRepository = msgAbstractRepository;
+        this.blockMessageSelector = blockMessageSelector;
+        this.blockAssembler = blockAssembler;
+        this.blockFileStore = blockFileStore;
+        this.sourceCodeArchiveStore = sourceCodeArchiveStore;
+        this.blockGenerationLock = blockGenerationLock;
+        this.nmsciMetrics = nmsciMetrics;
+    }
 
-    @Resource
-    private BlockMessageSelector blockMessageSelector;
-
-    @Resource
-    private BlockAssembler blockAssembler;
-
-    @Resource
-    private BlockFileStore blockFileStore;
-
-    @Resource
-    private SourceCodeArchiveStore sourceCodeArchiveStore;
-
-    @Resource
-    private BlockGenerationLock blockGenerationLock;
-
-    @Resource
-    private NmsciMetrics nmsciMetrics;
     @Transactional
     public void generateBlock() {
         blockGenerationLock.lock();

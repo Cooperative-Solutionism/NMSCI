@@ -14,7 +14,6 @@ import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -28,26 +27,32 @@ import java.util.UUID;
 @Validated
 public class CentralPubkeyEmpowerMsgService {
 
-    @Resource
-    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+    private final CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final FlowNodeStateValidator flowNodeStateValidator;
+    private final CentralPubkeyValidator centralPubkeyValidator;
+    private final SignatureValidator signatureValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final CentralSignatureService centralSignatureService;
 
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
+    public CentralPubkeyEmpowerMsgService(
+            CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            FlowNodeStateValidator flowNodeStateValidator,
+            CentralPubkeyValidator centralPubkeyValidator,
+            SignatureValidator signatureValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            CentralSignatureService centralSignatureService
+    ) {
+        this.centralPubkeyEmpowerMsgRepository = centralPubkeyEmpowerMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.flowNodeStateValidator = flowNodeStateValidator;
+        this.centralPubkeyValidator = centralPubkeyValidator;
+        this.signatureValidator = signatureValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.centralSignatureService = centralSignatureService;
+    }
 
-    @Resource
-    private FlowNodeStateValidator flowNodeStateValidator;
-
-    @Resource
-    private CentralPubkeyValidator centralPubkeyValidator;
-
-    @Resource
-    private SignatureValidator signatureValidator;
-
-    @Resource
-    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
-
-    @Resource
-    private CentralSignatureService centralSignatureService;
     @Transactional
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
         messageWritePipeline.requireMsgType(centralPubkeyEmpowerMsg, MsgTypeEnum.CentralPubkeyEmpowerMsg);

@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.model.ConsumeChain;
 import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -15,14 +14,19 @@ import java.util.Map;
 @Service
 public class ConsumeChainPersistenceService {
 
-    @Resource
-    private ConsumeChainRepository consumeChainRepository;
+    private final ConsumeChainRepository consumeChainRepository;
+    private final ConsumeChainEdgeRepository consumeChainEdgeRepository;
+    private final LoopMarker loopMarker;
 
-    @Resource
-    private ConsumeChainEdgeRepository consumeChainEdgeRepository;
-
-    @Resource
-    private LoopMarker loopMarker;
+    public ConsumeChainPersistenceService(
+            ConsumeChainRepository consumeChainRepository,
+            ConsumeChainEdgeRepository consumeChainEdgeRepository,
+            LoopMarker loopMarker
+    ) {
+        this.consumeChainRepository = consumeChainRepository;
+        this.consumeChainEdgeRepository = consumeChainEdgeRepository;
+        this.loopMarker = loopMarker;
+    }
 
     public void save(ConsumeChainAllocationPlan plan) {
         List<ConsumeChain> chains = new ArrayList<>(plan.chainsToSave());

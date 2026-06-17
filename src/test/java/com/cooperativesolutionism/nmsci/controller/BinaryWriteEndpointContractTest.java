@@ -10,7 +10,6 @@ import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -46,28 +45,22 @@ class BinaryWriteEndpointContractTest {
 
     @Test
     void invalidBinaryBodiesBecomeBadRequestException() {
-        FlowNodeRegisterMsgController registerController = new FlowNodeRegisterMsgController();
-        ReflectionTestUtils.setField(registerController, "flowNodeRegisterMsgConverter", new FlowNodeRegisterMsgConverter());
+        FlowNodeRegisterMsgController registerController = new FlowNodeRegisterMsgController(null, new FlowNodeRegisterMsgConverter());
         assertInvalidBody(() -> registerController.saveFlowNodeRegisterMsg(new byte[1]));
 
-        CentralPubkeyEmpowerMsgController empowerController = new CentralPubkeyEmpowerMsgController();
-        ReflectionTestUtils.setField(empowerController, "centralPubkeyEmpowerMsgConverter", new CentralPubkeyEmpowerMsgConverter());
+        CentralPubkeyEmpowerMsgController empowerController = new CentralPubkeyEmpowerMsgController(null, new CentralPubkeyEmpowerMsgConverter());
         assertInvalidBody(() -> empowerController.saveCentralPubkeyEmpowerMsg(new byte[1]));
 
-        FlowNodeLockedMsgController flowNodeLockedController = new FlowNodeLockedMsgController();
-        ReflectionTestUtils.setField(flowNodeLockedController, "flowNodeLockedMsgConverter", new FlowNodeLockedMsgConverter());
+        FlowNodeLockedMsgController flowNodeLockedController = new FlowNodeLockedMsgController(null, new FlowNodeLockedMsgConverter());
         assertInvalidBody(() -> flowNodeLockedController.saveFlowNodeLockedMsg(new byte[1]));
 
-        CentralPubkeyLockedMsgController centralLockedController = new CentralPubkeyLockedMsgController();
-        ReflectionTestUtils.setField(centralLockedController, "centralPubkeyLockedMsgConverter", new CentralPubkeyLockedMsgConverter());
+        CentralPubkeyLockedMsgController centralLockedController = new CentralPubkeyLockedMsgController(null, new CentralPubkeyLockedMsgConverter());
         assertInvalidBody(() -> centralLockedController.saveCentralPubkeyLockedMsg(new byte[1]));
 
-        TransactionRecordMsgController recordController = new TransactionRecordMsgController();
-        ReflectionTestUtils.setField(recordController, "transactionRecordMsgConverter", new TransactionRecordMsgConverter());
+        TransactionRecordMsgController recordController = new TransactionRecordMsgController(null, new TransactionRecordMsgConverter());
         assertInvalidBody(() -> recordController.saveTransactionRecordMsg(new byte[1]));
 
-        TransactionMountMsgController mountController = new TransactionMountMsgController();
-        ReflectionTestUtils.setField(mountController, "transactionMountMsgConverter", new TransactionMountMsgConverter());
+        TransactionMountMsgController mountController = new TransactionMountMsgController(null, new TransactionMountMsgConverter());
         assertInvalidBody(() -> mountController.saveTransactionMountMsg(new byte[1]));
     }
 

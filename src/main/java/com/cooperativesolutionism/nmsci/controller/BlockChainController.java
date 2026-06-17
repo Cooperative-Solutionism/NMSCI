@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
-import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,8 +16,11 @@ import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.bad
 @RequestMapping("/blocks")
 public class BlockChainController {
 
-    @Resource
-    private BlockChainService blockChainService;
+    private final BlockChainService blockChainService;
+
+    public BlockChainController(BlockChainService blockChainService) {
+        this.blockChainService = blockChainService;
+    }
 
     @GetMapping("/latest")
     public ResponseResult<BlockInfo> getLastBlock() {

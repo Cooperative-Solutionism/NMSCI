@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyEmpowerMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,11 +21,16 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 @RequestMapping("/central-pubkey-empowerments")
 public class CentralPubkeyEmpowerMsgController {
 
-    @Resource
-    private CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService;
+    private final CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService;
+    private final CentralPubkeyEmpowerMsgConverter centralPubkeyEmpowerMsgConverter;
 
-    @Resource
-    private CentralPubkeyEmpowerMsgConverter centralPubkeyEmpowerMsgConverter;
+    public CentralPubkeyEmpowerMsgController(
+            CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService,
+            CentralPubkeyEmpowerMsgConverter centralPubkeyEmpowerMsgConverter
+    ) {
+        this.centralPubkeyEmpowerMsgService = centralPubkeyEmpowerMsgService;
+        this.centralPubkeyEmpowerMsgConverter = centralPubkeyEmpowerMsgConverter;
+    }
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

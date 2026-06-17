@@ -19,7 +19,6 @@ import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateValidator;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.UUID;
 
@@ -30,7 +29,6 @@ class TransactionMountMsgServiceTest {
 
     @Test
     void lowSFailureHappensBeforeTransactionalWriteAndAllocation() {
-        TransactionMountMsgService service = new TransactionMountMsgService();
         TransactionMountMsgRepository transactionMountMsgRepository = mock(TransactionMountMsgRepository.class);
         BlockDifficultyService blockDifficultyService = mock(BlockDifficultyService.class);
         FlowNodeStateValidator flowNodeStateValidator = mock(FlowNodeStateValidator.class);
@@ -39,13 +37,18 @@ class TransactionMountMsgServiceTest {
         TransactionMountWriteService writeService = mock(TransactionMountWriteService.class);
         TransactionMountMsg transactionMountMsg = transactionMountMsg();
 
-        ReflectionTestUtils.setField(service, "transactionMountMsgRepository", transactionMountMsgRepository);
-        ReflectionTestUtils.setField(service, "blockDifficultyService", blockDifficultyService);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(mock(MsgAbstractService.class)));
-        ReflectionTestUtils.setField(service, "flowNodeStateValidator", flowNodeStateValidator);
-        ReflectionTestUtils.setField(service, "centralPubkeyValidator", centralPubkeyValidator);
-        ReflectionTestUtils.setField(service, "signatureValidator", signatureValidator);
-        ReflectionTestUtils.setField(service, "transactionMountWriteService", writeService);
+        TransactionMountMsgService service = new TransactionMountMsgService(
+                blockDifficultyService,
+                transactionMountMsgRepository,
+                new MessageWritePipeline(mock(MsgAbstractService.class)),
+                writeService,
+                flowNodeStateValidator,
+                centralPubkeyValidator,
+                signatureValidator,
+                null,
+                null,
+                null
+        );
 
         when(transactionMountMsgRepository.existsById(transactionMountMsg.getId())).thenReturn(false);
         when(blockDifficultyService.currentTransactionDifficultyTarget()).thenReturn(CURRENT_TRANSACTION_DIFFICULTY);

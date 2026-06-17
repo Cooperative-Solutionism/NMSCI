@@ -10,7 +10,6 @@ import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
-import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,11 +22,13 @@ import java.util.stream.Collectors;
 @RequestMapping("/metadata")
 public class MetadataController {
 
-    @Resource
-    private NmsciProperties nmsciProperties;
+    private final NmsciProperties nmsciProperties;
+    private final BlockChainService blockChainService;
 
-    @Resource
-    private BlockChainService blockChainService;
+    public MetadataController(NmsciProperties nmsciProperties, BlockChainService blockChainService) {
+        this.nmsciProperties = nmsciProperties;
+        this.blockChainService = blockChainService;
+    }
 
     @GetMapping("/message-types")
     public ResponseResult<List<MsgTypeMetadataDTO>> getMsgTypes() {

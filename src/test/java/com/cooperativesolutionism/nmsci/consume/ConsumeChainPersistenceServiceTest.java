@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,10 +20,7 @@ class ConsumeChainPersistenceServiceTest {
     void savesChainsAndEdgesInBatches() {
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
-        ConsumeChainPersistenceService service = new ConsumeChainPersistenceService();
-        ReflectionTestUtils.setField(service, "consumeChainRepository", chainRepository);
-        ReflectionTestUtils.setField(service, "consumeChainEdgeRepository", edgeRepository);
-        ReflectionTestUtils.setField(service, "loopMarker", new LoopMarker());
+        ConsumeChainPersistenceService service = new ConsumeChainPersistenceService(chainRepository, edgeRepository, new LoopMarker());
 
         ConsumeChain firstChain = chain("11111111-1111-1111-1111-111111111111");
         ConsumeChain secondChain = chain("22222222-2222-2222-2222-222222222222");

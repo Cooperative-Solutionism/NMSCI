@@ -11,7 +11,6 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgReposit
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -89,16 +88,17 @@ class CentralPubkeyLockedMsgServiceTest {
         }).when(transactionTemplate).executeWithoutResult(any());
 
         ProtocolRawBytesBuilder rawBytesBuilder = new ProtocolRawBytesBuilder();
-        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
-        ReflectionTestUtils.setField(service, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
-        ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
-        ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
-        ReflectionTestUtils.setField(service, "centralSignatureService", new CentralSignatureService(properties(), rawBytesBuilder));
-        ReflectionTestUtils.setField(service, "transactionTemplate", transactionTemplate);
-        ReflectionTestUtils.setField(service, "shutdownService", shutdownService);
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
+                properties(),
+                repository,
+                new MessageWritePipeline(msgAbstractService),
+                new SignatureValidator(),
+                rawBytesBuilder,
+                new CentralSignatureService(properties(), rawBytesBuilder),
+                transactionTemplate,
+                shutdownService,
+                blockChainService
+        );
 
         service.saveCentralPubkeyLockedMsg(msg);
 
@@ -152,16 +152,17 @@ class CentralPubkeyLockedMsgServiceTest {
         }).when(transactionTemplate).executeWithoutResult(any());
 
         ProtocolRawBytesBuilder rawBytesBuilder = new ProtocolRawBytesBuilder();
-        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
-        ReflectionTestUtils.setField(service, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
-        ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
-        ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
-        ReflectionTestUtils.setField(service, "centralSignatureService", new CentralSignatureService(properties(), rawBytesBuilder));
-        ReflectionTestUtils.setField(service, "transactionTemplate", transactionTemplate);
-        ReflectionTestUtils.setField(service, "shutdownService", shutdownService);
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
+                properties(),
+                repository,
+                new MessageWritePipeline(msgAbstractService),
+                new SignatureValidator(),
+                rawBytesBuilder,
+                new CentralSignatureService(properties(), rawBytesBuilder),
+                transactionTemplate,
+                shutdownService,
+                blockChainService
+        );
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> service.saveCentralPubkeyLockedMsg(msg));
 
@@ -205,16 +206,17 @@ class CentralPubkeyLockedMsgServiceTest {
         }).when(transactionTemplate).executeWithoutResult(any());
 
         ProtocolRawBytesBuilder rawBytesBuilder = new ProtocolRawBytesBuilder();
-        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
-        ReflectionTestUtils.setField(service, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
-        ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
-        ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
-        ReflectionTestUtils.setField(service, "centralSignatureService", new CentralSignatureService(properties(), rawBytesBuilder));
-        ReflectionTestUtils.setField(service, "transactionTemplate", transactionTemplate);
-        ReflectionTestUtils.setField(service, "shutdownService", shutdownService);
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
+                properties(),
+                repository,
+                new MessageWritePipeline(msgAbstractService),
+                new SignatureValidator(),
+                rawBytesBuilder,
+                new CentralSignatureService(properties(), rawBytesBuilder),
+                transactionTemplate,
+                shutdownService,
+                blockChainService
+        );
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> service.saveCentralPubkeyLockedMsg(msg));
 

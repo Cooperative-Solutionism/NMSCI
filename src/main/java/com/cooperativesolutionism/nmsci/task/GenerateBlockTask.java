@@ -3,7 +3,6 @@ package com.cooperativesolutionism.nmsci.task;
 import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
-import jakarta.annotation.Resource;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,11 +22,13 @@ public class GenerateBlockTask {
      */
     private boolean isFirstTimeRun = true;
 
-    @Resource
-    private BlockChainService blockChainService;
+    private final BlockChainService blockChainService;
+    private final NmsciMetrics nmsciMetrics;
 
-    @Resource
-    private NmsciMetrics nmsciMetrics;
+    public GenerateBlockTask(BlockChainService blockChainService, NmsciMetrics nmsciMetrics) {
+        this.blockChainService = blockChainService;
+        this.nmsciMetrics = nmsciMetrics;
+    }
 
     /**
      * 定时任务：应用启动后立即开始生成区块，之后每10分钟开始生成区块

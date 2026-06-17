@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.UUID;
 
@@ -23,10 +22,7 @@ class FlowNodeRegisterMsgServiceTest {
         when(blockInfoRepository.findTopByOrderByHeightDesc()).thenReturn(null);
 
         FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository = mock(FlowNodeRegisterMsgRepository.class);
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
-        ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
-        ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", flowNodeRegisterMsgRepository);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(mock(MsgAbstractService.class)));
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(blockInfoRepository, flowNodeRegisterMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class)), null, null, null, null);
 
         FlowNodeRegisterMsg msg = new FlowNodeRegisterMsg();
         msg.setMsgType(MsgTypeEnum.FlowNodeRegisterMsg.getValue());

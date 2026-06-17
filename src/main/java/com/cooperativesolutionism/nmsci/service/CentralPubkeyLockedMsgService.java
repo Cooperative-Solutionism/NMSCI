@@ -13,7 +13,6 @@ import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,32 +31,37 @@ public class CentralPubkeyLockedMsgService {
 
     private static final Logger logger = LoggerFactory.getLogger(CentralPubkeyLockedMsgService.class);
 
-    @Resource
-    private NmsciProperties nmsciProperties;
+    private final NmsciProperties nmsciProperties;
+    private final CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final SignatureValidator signatureValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final CentralSignatureService centralSignatureService;
+    private final TransactionTemplate transactionTemplate;
+    private final CentralPubkeyLockShutdownService shutdownService;
+    private final BlockChainService blockChainService;
 
-    @Resource
-    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
-
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
-
-    @Resource
-    private SignatureValidator signatureValidator;
-
-    @Resource
-    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
-
-    @Resource
-    private CentralSignatureService centralSignatureService;
-
-    @Resource
-    private TransactionTemplate transactionTemplate;
-
-    @Resource
-    private CentralPubkeyLockShutdownService shutdownService;
-
-    @Resource
-    private BlockChainService blockChainService;
+    public CentralPubkeyLockedMsgService(
+            NmsciProperties nmsciProperties,
+            CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            SignatureValidator signatureValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            CentralSignatureService centralSignatureService,
+            TransactionTemplate transactionTemplate,
+            CentralPubkeyLockShutdownService shutdownService,
+            BlockChainService blockChainService
+    ) {
+        this.nmsciProperties = nmsciProperties;
+        this.centralPubkeyLockedMsgRepository = centralPubkeyLockedMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.signatureValidator = signatureValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.centralSignatureService = centralSignatureService;
+        this.transactionTemplate = transactionTemplate;
+        this.shutdownService = shutdownService;
+        this.blockChainService = blockChainService;
+    }
 
     public void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
         String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();

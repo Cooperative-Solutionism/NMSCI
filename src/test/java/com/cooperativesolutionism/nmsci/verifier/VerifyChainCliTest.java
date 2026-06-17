@@ -22,7 +22,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -131,7 +130,6 @@ class VerifyChainCliTest {
         byte[] rawBytes = new ProtocolMessageBuilder().flowNodeRegister(msgId, TestKeyPairs.FLOW_NODE_A, EASY_NBITS);
         byte[] txid = MerkleTreeUtil.calcTxid(rawBytes);
 
-        BlockAssembler assembler = new BlockAssembler();
         FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
         when(registerRepository.findPayloadByIdIn(List.of(msgId)))
                 .thenReturn(List.of(new MessagePayloadProjection() {
@@ -162,8 +160,7 @@ class VerifyChainCliTest {
         centralKeyPair.setPrikey(TestKeyPairs.CENTRAL.prikeyBase64());
         properties.setCentralKeyPair(centralKeyPair);
 
-        ReflectionTestUtils.setField(assembler, "nmsciProperties", properties);
-        ReflectionTestUtils.setField(assembler, "blockMessagePayloadFetcher", new BlockMessagePayloadFetcher(
+        BlockAssembler assembler = new BlockAssembler(properties, new BlockMessagePayloadFetcher(
                 registerRepository,
                 mock(CentralPubkeyEmpowerMsgRepository.class),
                 mock(CentralPubkeyLockedMsgRepository.class),

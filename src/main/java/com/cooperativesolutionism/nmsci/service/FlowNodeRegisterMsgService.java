@@ -17,7 +17,6 @@ import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.util.*;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -33,26 +32,32 @@ import java.util.UUID;
 @Validated
 public class FlowNodeRegisterMsgService {
 
-    @Resource
-    private BlockInfoRepository blockInfoRepository;
+    private final BlockInfoRepository blockInfoRepository;
+    private final FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final CentralPubkeyValidator centralPubkeyValidator;
+    private final SignatureValidator signatureValidator;
+    private final ProofOfWorkValidator proofOfWorkValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
 
-    @Resource
-    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    public FlowNodeRegisterMsgService(
+            BlockInfoRepository blockInfoRepository,
+            FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            CentralPubkeyValidator centralPubkeyValidator,
+            SignatureValidator signatureValidator,
+            ProofOfWorkValidator proofOfWorkValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder
+    ) {
+        this.blockInfoRepository = blockInfoRepository;
+        this.flowNodeRegisterMsgRepository = flowNodeRegisterMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.centralPubkeyValidator = centralPubkeyValidator;
+        this.signatureValidator = signatureValidator;
+        this.proofOfWorkValidator = proofOfWorkValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+    }
 
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
-
-    @Resource
-    private CentralPubkeyValidator centralPubkeyValidator;
-
-    @Resource
-    private SignatureValidator signatureValidator;
-
-    @Resource
-    private ProofOfWorkValidator proofOfWorkValidator;
-
-    @Resource
-    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
     @Transactional
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
         messageWritePipeline.requireMsgType(flowNodeRegisterMsg, MsgTypeEnum.FlowNodeRegisterMsg);

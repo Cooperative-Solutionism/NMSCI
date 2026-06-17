@@ -11,7 +11,6 @@ import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,17 +29,18 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateUntilNoMessagesStopsOnEmptySelectionWithoutCounting() {
-        BlockChainService service = new BlockChainService();
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
         BlockAssembler assembler = mock(BlockAssembler.class);
-        ReflectionTestUtils.setField(service, "blockInfoRepository", mock(BlockInfoRepository.class));
-        ReflectionTestUtils.setField(service, "msgAbstractRepository", msgAbstractRepository);
-        ReflectionTestUtils.setField(service, "blockMessageSelector", selector);
-        ReflectionTestUtils.setField(service, "blockAssembler", assembler);
-        ReflectionTestUtils.setField(service, "blockFileStore", mock(BlockFileStore.class));
-        ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", mock(SourceCodeArchiveStore.class));
-        ReflectionTestUtils.setField(service, "blockGenerationLock", mock(BlockGenerationLock.class));
+        BlockChainService service = new BlockChainService(
+                mock(BlockInfoRepository.class),
+                msgAbstractRepository,
+                selector,
+                assembler,
+                mock(BlockFileStore.class),
+                mock(SourceCodeArchiveStore.class),
+                mock(BlockGenerationLock.class),
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(new SelectedBlockMessages(new LinkedHashMap<>(), 0L));
 
         service.generateBlockUntilNoNotInBlockMsgs();
@@ -51,7 +51,6 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateBlockLocksBeforeSelectingPreviousState() {
-        BlockChainService service = new BlockChainService();
         BlockInfoRepository blockInfoRepository = mock(BlockInfoRepository.class);
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
@@ -64,14 +63,15 @@ class BlockChainServiceLoopTest {
         blockInfo.setHeight(0L);
         blockInfo.setRawBytes(new byte[]{1, 2, 3});
         AssembledBlock assembledBlock = new AssembledBlock(blockInfo, new byte[]{1, 2, 3}, List.of());
-        ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
-        ReflectionTestUtils.setField(service, "msgAbstractRepository", msgAbstractRepository);
-        ReflectionTestUtils.setField(service, "blockMessageSelector", selector);
-        ReflectionTestUtils.setField(service, "blockAssembler", assembler);
-        ReflectionTestUtils.setField(service, "blockFileStore", blockFileStore);
-        ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", sourceCodeArchiveStore);
-        ReflectionTestUtils.setField(service, "blockGenerationLock", blockGenerationLock);
-        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        BlockChainService service = new BlockChainService(
+                blockInfoRepository,
+                msgAbstractRepository,
+                selector,
+                assembler,
+                blockFileStore,
+                sourceCodeArchiveStore,
+                blockGenerationLock,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
@@ -87,7 +87,6 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateBlockMarksSelectedMessagesBeforeSavingThem() {
-        BlockChainService service = new BlockChainService();
         BlockInfoRepository blockInfoRepository = mock(BlockInfoRepository.class);
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
@@ -102,14 +101,15 @@ class BlockChainServiceLoopTest {
         blockInfo.setHeight(0L);
         blockInfo.setRawBytes(new byte[]{1, 2, 3});
         AssembledBlock assembledBlock = new AssembledBlock(blockInfo, new byte[]{1, 2, 3}, List.of(msgAbstract));
-        ReflectionTestUtils.setField(service, "blockInfoRepository", blockInfoRepository);
-        ReflectionTestUtils.setField(service, "msgAbstractRepository", msgAbstractRepository);
-        ReflectionTestUtils.setField(service, "blockMessageSelector", selector);
-        ReflectionTestUtils.setField(service, "blockAssembler", assembler);
-        ReflectionTestUtils.setField(service, "blockFileStore", blockFileStore);
-        ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", sourceCodeArchiveStore);
-        ReflectionTestUtils.setField(service, "blockGenerationLock", blockGenerationLock);
-        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        BlockChainService service = new BlockChainService(
+                blockInfoRepository,
+                msgAbstractRepository,
+                selector,
+                assembler,
+                blockFileStore,
+                sourceCodeArchiveStore,
+                blockGenerationLock,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
@@ -127,16 +127,17 @@ class BlockChainServiceLoopTest {
 
     @Test
     void generateUntilLocksBeforeCheckingForMoreMessages() {
-        BlockChainService service = new BlockChainService();
         BlockMessageSelector selector = mock(BlockMessageSelector.class);
         BlockGenerationLock blockGenerationLock = mock(BlockGenerationLock.class);
-        ReflectionTestUtils.setField(service, "blockInfoRepository", mock(BlockInfoRepository.class));
-        ReflectionTestUtils.setField(service, "msgAbstractRepository", mock(MsgAbstractRepository.class));
-        ReflectionTestUtils.setField(service, "blockMessageSelector", selector);
-        ReflectionTestUtils.setField(service, "blockAssembler", mock(BlockAssembler.class));
-        ReflectionTestUtils.setField(service, "blockFileStore", mock(BlockFileStore.class));
-        ReflectionTestUtils.setField(service, "sourceCodeArchiveStore", mock(SourceCodeArchiveStore.class));
-        ReflectionTestUtils.setField(service, "blockGenerationLock", blockGenerationLock);
+        BlockChainService service = new BlockChainService(
+                mock(BlockInfoRepository.class),
+                mock(MsgAbstractRepository.class),
+                selector,
+                mock(BlockAssembler.class),
+                mock(BlockFileStore.class),
+                mock(SourceCodeArchiveStore.class),
+                blockGenerationLock,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
         when(selector.select()).thenReturn(new SelectedBlockMessages(new LinkedHashMap<>(), 0L));
 
         service.generateBlockUntilNoNotInBlockMsgs();

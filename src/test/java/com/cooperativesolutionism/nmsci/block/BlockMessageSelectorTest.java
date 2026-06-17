@@ -5,7 +5,6 @@ import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -20,9 +19,7 @@ class BlockMessageSelectorTest {
     @Test
     void selectsMessagesWithKeysetBatches() {
         MsgAbstractRepository msgAbstractRepository = mock(MsgAbstractRepository.class);
-        BlockMessageSelector selector = new BlockMessageSelector();
-        ReflectionTestUtils.setField(selector, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(selector, "msgAbstractRepository", msgAbstractRepository);
+        BlockMessageSelector selector = new BlockMessageSelector(properties(), msgAbstractRepository);
 
         MsgAbstract first = msgAbstract(1, 10L);
         MsgAbstract second = msgAbstract(2, 20L);

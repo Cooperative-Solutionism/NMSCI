@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,11 +21,16 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 @RequestMapping("/transaction-records")
 public class TransactionRecordMsgController {
 
-    @Resource
-    private TransactionRecordMsgService transactionRecordMsgService;
+    private final TransactionRecordMsgService transactionRecordMsgService;
+    private final TransactionRecordMsgConverter transactionRecordMsgConverter;
 
-    @Resource
-    private TransactionRecordMsgConverter transactionRecordMsgConverter;
+    public TransactionRecordMsgController(
+            TransactionRecordMsgService transactionRecordMsgService,
+            TransactionRecordMsgConverter transactionRecordMsgConverter
+    ) {
+        this.transactionRecordMsgService = transactionRecordMsgService;
+        this.transactionRecordMsgConverter = transactionRecordMsgConverter;
+    }
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

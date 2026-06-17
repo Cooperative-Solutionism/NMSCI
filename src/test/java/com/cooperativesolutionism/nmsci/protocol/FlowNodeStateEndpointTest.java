@@ -9,7 +9,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -69,9 +68,7 @@ class FlowNodeStateEndpointTest {
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
 
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
-        ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "centralPubkeyValidator", centralPubkeyValidator);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null);
 
         Object response = FlowNodeRegisterMsgService.class
                 .getMethod("getFlowNodeState", byte[].class)
@@ -95,8 +92,7 @@ class FlowNodeStateEndpointTest {
         AtomicReference<byte[]> serviceFlowNodePubkey = new AtomicReference<>();
         FlowNodeRegisterMsgService service = serviceProxy(dto, serviceFlowNodePubkey);
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
-        ReflectionTestUtils.setField(controller, "flowNodeRegisterMsgService", service);
+        Object controller = controllerType.getConstructor(FlowNodeRegisterMsgService.class).newInstance(service);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType
                 .getMethod("getFlowNodeState", String.class)

@@ -15,7 +15,6 @@ import com.cooperativesolutionism.nmsci.util.Sha256Util;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.Security;
 import java.util.ArrayList;
@@ -45,9 +44,8 @@ class BlockAssemblerTest {
 
     @Test
     void assemblesBlockFromPayloadProjectionsWithoutLoadingFullEntities() {
-        BlockAssembler assembler = new BlockAssembler();
         FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
-        inject(assembler, registerRepository);
+        BlockAssembler assembler = newAssembler(registerRepository);
 
         UUID msgId = UUID.fromString("11111111-1111-1111-1111-111111111111");
         byte[] rawBytes = new byte[123];
@@ -67,9 +65,8 @@ class BlockAssemblerTest {
 
     @Test
     void leavesSelectedMessagesUnmarkedWhenPayloadLookupFails() {
-        BlockAssembler assembler = new BlockAssembler();
         FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
-        inject(assembler, registerRepository);
+        BlockAssembler assembler = newAssembler(registerRepository);
 
         UUID msgId = UUID.fromString("22222222-2222-2222-2222-222222222222");
         when(registerRepository.findPayloadByIdIn(List.of(msgId))).thenReturn(List.of());
@@ -81,11 +78,9 @@ class BlockAssemblerTest {
         assertFalse(msgAbstract.getIsInBlock());
     }
 
-    private static void inject(BlockAssembler assembler, FlowNodeRegisterMsgRepository registerRepository) {
-        ReflectionTestUtils.setField(assembler, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(
-                assembler,
-                "blockMessagePayloadFetcher",
+    private static BlockAssembler newAssembler(FlowNodeRegisterMsgRepository registerRepository) {
+        return new BlockAssembler(
+                properties(),
                 new BlockMessagePayloadFetcher(
                         registerRepository,
                         mock(CentralPubkeyEmpowerMsgRepository.class),

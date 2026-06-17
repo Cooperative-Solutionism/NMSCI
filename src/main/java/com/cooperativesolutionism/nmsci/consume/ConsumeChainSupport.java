@@ -9,7 +9,6 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -21,11 +20,16 @@ import java.util.UUID;
 @Component
 public class ConsumeChainSupport {
 
-    @Resource
-    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    private final FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    private final ConsumeChainEdgeRepository consumeChainEdgeRepository;
 
-    @Resource
-    private ConsumeChainEdgeRepository consumeChainEdgeRepository;
+    public ConsumeChainSupport(
+            FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository,
+            ConsumeChainEdgeRepository consumeChainEdgeRepository
+    ) {
+        this.flowNodeRegisterMsgRepository = flowNodeRegisterMsgRepository;
+        this.consumeChainEdgeRepository = consumeChainEdgeRepository;
+    }
 
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgByPubkey(byte[] flowNodePubkey, String roleName) {
         if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {

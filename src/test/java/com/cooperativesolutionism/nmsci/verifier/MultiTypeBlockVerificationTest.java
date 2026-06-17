@@ -22,7 +22,6 @@ import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.security.Security;
@@ -75,7 +74,6 @@ class MultiTypeBlockVerificationTest {
 
         long maxMsgTimestamp = 2000L;
 
-        BlockAssembler assembler = new BlockAssembler();
         FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
         CentralPubkeyEmpowerMsgRepository empowerRepository = mock(CentralPubkeyEmpowerMsgRepository.class);
         TransactionRecordMsgRepository recordRepository = mock(TransactionRecordMsgRepository.class);
@@ -86,8 +84,7 @@ class MultiTypeBlockVerificationTest {
         lenient().when(recordRepository.findPayloadByIdIn(List.of(recordId)))
                 .thenReturn(List.of(projection(recordId, recordStored)));
 
-        ReflectionTestUtils.setField(assembler, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(assembler, "blockMessagePayloadFetcher", new BlockMessagePayloadFetcher(
+        BlockAssembler assembler = new BlockAssembler(properties(), new BlockMessagePayloadFetcher(
                 registerRepository,
                 empowerRepository,
                 mock(CentralPubkeyLockedMsgRepository.class),

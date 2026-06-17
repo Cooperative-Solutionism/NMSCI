@@ -14,7 +14,6 @@ import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -26,35 +25,40 @@ import java.util.UUID;
 @Service
 @Validated
 public class TransactionMountMsgService {
-    @Resource
-    private BlockDifficultyService blockDifficultyService;
+    private final BlockDifficultyService blockDifficultyService;
+    private final TransactionMountMsgRepository transactionMountMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final TransactionMountWriteService transactionMountWriteService;
+    private final FlowNodeStateValidator flowNodeStateValidator;
+    private final CentralPubkeyValidator centralPubkeyValidator;
+    private final SignatureValidator signatureValidator;
+    private final ProofOfWorkValidator proofOfWorkValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final CentralSignatureService centralSignatureService;
 
-    @Resource
-    private TransactionMountMsgRepository transactionMountMsgRepository;
-
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
-
-    @Resource
-    private TransactionMountWriteService transactionMountWriteService;
-
-    @Resource
-    private FlowNodeStateValidator flowNodeStateValidator;
-
-    @Resource
-    private CentralPubkeyValidator centralPubkeyValidator;
-
-    @Resource
-    private SignatureValidator signatureValidator;
-
-    @Resource
-    private ProofOfWorkValidator proofOfWorkValidator;
-
-    @Resource
-    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
-
-    @Resource
-    private CentralSignatureService centralSignatureService;
+    public TransactionMountMsgService(
+            BlockDifficultyService blockDifficultyService,
+            TransactionMountMsgRepository transactionMountMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            TransactionMountWriteService transactionMountWriteService,
+            FlowNodeStateValidator flowNodeStateValidator,
+            CentralPubkeyValidator centralPubkeyValidator,
+            SignatureValidator signatureValidator,
+            ProofOfWorkValidator proofOfWorkValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            CentralSignatureService centralSignatureService
+    ) {
+        this.blockDifficultyService = blockDifficultyService;
+        this.transactionMountMsgRepository = transactionMountMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.transactionMountWriteService = transactionMountWriteService;
+        this.flowNodeStateValidator = flowNodeStateValidator;
+        this.centralPubkeyValidator = centralPubkeyValidator;
+        this.signatureValidator = signatureValidator;
+        this.proofOfWorkValidator = proofOfWorkValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.centralSignatureService = centralSignatureService;
+    }
 
     public TransactionMountMsg saveTransactionMountMsg(@Valid @Nonnull TransactionMountMsg transactionMountMsg) {
         messageWritePipeline.requireMsgType(transactionMountMsg, MsgTypeEnum.TransactionMountMsg);

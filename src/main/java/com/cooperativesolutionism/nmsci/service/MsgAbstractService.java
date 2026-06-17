@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.stereotype.Service;
@@ -17,8 +16,11 @@ import java.util.List;
 @Service
 @Validated
 public class MsgAbstractService {
-    @Resource
-    private MsgAbstractRepository msgAbstractRepository;
+    private final MsgAbstractRepository msgAbstractRepository;
+
+    public MsgAbstractService(MsgAbstractRepository msgAbstractRepository) {
+        this.msgAbstractRepository = msgAbstractRepository;
+    }
 
     /**
      * 待入块（未装入区块）消息数量。

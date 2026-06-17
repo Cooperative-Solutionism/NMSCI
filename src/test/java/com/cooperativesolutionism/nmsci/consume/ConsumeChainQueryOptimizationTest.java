@@ -22,7 +22,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,14 +42,13 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void saveConsumeChainLocksOpenChainsInOneWindowedQueryAndLoadsSelectedEdgesInOneBatch() {
-        ConsumeChainAllocationService service = new ConsumeChainAllocationService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainAllocator allocator = mock(ConsumeChainAllocator.class);
         ConsumeChainPersistenceService persistenceService = mock(ConsumeChainPersistenceService.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectAllocation(service, support, chainRepository, allocator, persistenceService);
+        ConsumeChainAllocationService service = allocationService(support, chainRepository, allocator, persistenceService);
 
         byte[] sourcePubkey = pubkey(1);
         byte[] targetPubkey = pubkey(2);
@@ -96,12 +94,11 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByStartLoadsEdgesForAllChainsInOneBatch() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
 
         FlowNodeRegisterMsg start = node("11111111-1111-1111-1111-111111111111", pubkey(1));
         ConsumeChain firstChain = chain("22222222-2222-2222-2222-222222222222", start);
@@ -127,13 +124,12 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByMountedTransactionReadsDistinctChainsDirectly() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         TransactionMountMsgRepository mountRepository = mock(TransactionMountMsgRepository.class);
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mountRepository);
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mountRepository);
 
         TransactionMountMsg mount = mount(pubkey(1));
         ConsumeChain chain = chain("11111111-1111-1111-1111-111111111111", node("22222222-2222-2222-2222-222222222222", pubkey(2)));
@@ -156,12 +152,11 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByNodeLoadsAllContainingChainsAndEdgesInOneBatch() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
 
         FlowNodeRegisterMsg node = node("11111111-1111-1111-1111-111111111111", pubkey(1));
         ConsumeChain firstChain = chain("22222222-2222-2222-2222-222222222222", node);
@@ -188,12 +183,11 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByPubkeyUsesExactlyOnePubkeyFilterAndLoadsEdgesInOneBatch() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
 
         byte[] startPubkey = pubkey(1);
         FlowNodeRegisterMsg start = node("11111111-1111-1111-1111-111111111111", startPubkey);
@@ -221,12 +215,11 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void getConsumeChainByRelatedIdUsesExactlyOneIdFilterAndLoadsEdgesInOneBatch() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
 
         FlowNodeRegisterMsg node = node("11111111-1111-1111-1111-111111111111", pubkey(1));
         ConsumeChain chain = chain("22222222-2222-2222-2222-222222222222", node);
@@ -253,12 +246,11 @@ class ConsumeChainQueryOptimizationTest {
 
     @Test
     void nodeIdHelpersPreserveCurrentNullAndNotFoundMessages() {
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
         FlowNodeRegisterMsgRepository flowNodeRepository = mock(FlowNodeRegisterMsgRepository.class);
         ConsumeChainRepository chainRepository = mock(ConsumeChainRepository.class);
         ConsumeChainEdgeRepository edgeRepository = mock(ConsumeChainEdgeRepository.class);
         ConsumeChainSupport support = support(flowNodeRepository, edgeRepository);
-        injectQuery(service, support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
+        ConsumeChainQueryService service = queryService(support, flowNodeRepository, chainRepository, edgeRepository, mock(TransactionMountMsgRepository.class));
         UUID missing = UUID.fromString("11111111-1111-1111-1111-111111111111");
         Pageable pageable = PageRequest.of(0, 50);
 
@@ -292,39 +284,38 @@ class ConsumeChainQueryOptimizationTest {
             FlowNodeRegisterMsgRepository flowNodeRepository,
             ConsumeChainEdgeRepository edgeRepository
     ) {
-        ConsumeChainSupport support = new ConsumeChainSupport();
-        ReflectionTestUtils.setField(support, "flowNodeRegisterMsgRepository", flowNodeRepository);
-        ReflectionTestUtils.setField(support, "consumeChainEdgeRepository", edgeRepository);
-        return support;
+        return new ConsumeChainSupport(flowNodeRepository, edgeRepository);
     }
 
-    private static void injectAllocation(
-            ConsumeChainAllocationService service,
+    private static ConsumeChainAllocationService allocationService(
             ConsumeChainSupport support,
             ConsumeChainRepository chainRepository,
             ConsumeChainAllocator allocator,
             ConsumeChainPersistenceService persistenceService
     ) {
-        ReflectionTestUtils.setField(service, "consumeChainSupport", support);
-        ReflectionTestUtils.setField(service, "consumeChainRepository", chainRepository);
-        ReflectionTestUtils.setField(service, "consumeChainAllocator", allocator);
-        ReflectionTestUtils.setField(service, "consumeChainPersistenceService", persistenceService);
-        ReflectionTestUtils.setField(service, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        return new ConsumeChainAllocationService(
+                support,
+                chainRepository,
+                allocator,
+                persistenceService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class))
+        );
     }
 
-    private static void injectQuery(
-            ConsumeChainQueryService service,
+    private static ConsumeChainQueryService queryService(
             ConsumeChainSupport support,
             FlowNodeRegisterMsgRepository flowNodeRepository,
             ConsumeChainRepository chainRepository,
             ConsumeChainEdgeRepository edgeRepository,
             TransactionMountMsgRepository mountRepository
     ) {
-        ReflectionTestUtils.setField(service, "consumeChainSupport", support);
-        ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", flowNodeRepository);
-        ReflectionTestUtils.setField(service, "consumeChainRepository", chainRepository);
-        ReflectionTestUtils.setField(service, "consumeChainEdgeRepository", edgeRepository);
-        ReflectionTestUtils.setField(service, "transactionMountMsgRepository", mountRepository);
+        return new ConsumeChainQueryService(
+                support,
+                flowNodeRepository,
+                chainRepository,
+                edgeRepository,
+                mountRepository
+        );
     }
 
     private static FlowNodeRegisterMsg node(String id, byte[] pubkey) {

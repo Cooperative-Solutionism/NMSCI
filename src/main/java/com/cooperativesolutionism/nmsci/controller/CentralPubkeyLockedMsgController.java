@@ -8,7 +8,6 @@ import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,11 +24,16 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 @RequestMapping("/central-pubkey-locks")
 public class CentralPubkeyLockedMsgController {
 
-    @Resource
-    private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+    private final CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+    private final CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
 
-    @Resource
-    private CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
+    public CentralPubkeyLockedMsgController(
+            CentralPubkeyLockedMsgService centralPubkeyLockedMsgService,
+            CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter
+    ) {
+        this.centralPubkeyLockedMsgService = centralPubkeyLockedMsgService;
+        this.centralPubkeyLockedMsgConverter = centralPubkeyLockedMsgConverter;
+    }
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

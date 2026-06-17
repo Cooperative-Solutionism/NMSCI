@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,11 +22,16 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNul
 @RequestMapping("/transaction-mounts")
 public class TransactionMountMsgController {
 
-    @Resource
-    private TransactionMountMsgService transactionMountMsgService;
+    private final TransactionMountMsgService transactionMountMsgService;
+    private final TransactionMountMsgConverter transactionMountMsgConverter;
 
-    @Resource
-    private TransactionMountMsgConverter transactionMountMsgConverter;
+    public TransactionMountMsgController(
+            TransactionMountMsgService transactionMountMsgService,
+            TransactionMountMsgConverter transactionMountMsgConverter
+    ) {
+        this.transactionMountMsgService = transactionMountMsgService;
+        this.transactionMountMsgConverter = transactionMountMsgConverter;
+    }
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

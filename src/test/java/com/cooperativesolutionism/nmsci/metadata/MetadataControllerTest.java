@@ -42,7 +42,7 @@ class MetadataControllerTest {
     @Test
     void msgTypesReturnProtocolValuesAndSizeUnits() throws Exception {
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
+        Object controller = controllerType.getConstructors()[0].newInstance(null, null);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType.getMethod("getMsgTypes").invoke(controller);
 
@@ -69,7 +69,7 @@ class MetadataControllerTest {
     @Test
     void currencyTypesReturnProtocolValuesAndSmallestUnitDescriptions() throws Exception {
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
+        Object controller = controllerType.getConstructors()[0].newInstance(null, null);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType.getMethod("getCurrencyTypes").invoke(controller);
 

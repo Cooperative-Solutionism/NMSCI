@@ -16,7 +16,6 @@ import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
@@ -33,20 +32,25 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class ConsumeChainQueryService {
 
-    @Resource
-    private ConsumeChainSupport consumeChainSupport;
+    private final ConsumeChainSupport consumeChainSupport;
+    private final FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    private final ConsumeChainRepository consumeChainRepository;
+    private final ConsumeChainEdgeRepository consumeChainEdgeRepository;
+    private final TransactionMountMsgRepository transactionMountMsgRepository;
 
-    @Resource
-    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
-
-    @Resource
-    private ConsumeChainRepository consumeChainRepository;
-
-    @Resource
-    private ConsumeChainEdgeRepository consumeChainEdgeRepository;
-
-    @Resource
-    private TransactionMountMsgRepository transactionMountMsgRepository;
+    public ConsumeChainQueryService(
+            ConsumeChainSupport consumeChainSupport,
+            FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository,
+            ConsumeChainRepository consumeChainRepository,
+            ConsumeChainEdgeRepository consumeChainEdgeRepository,
+            TransactionMountMsgRepository transactionMountMsgRepository
+    ) {
+        this.consumeChainSupport = consumeChainSupport;
+        this.flowNodeRegisterMsgRepository = flowNodeRegisterMsgRepository;
+        this.consumeChainRepository = consumeChainRepository;
+        this.consumeChainEdgeRepository = consumeChainEdgeRepository;
+        this.transactionMountMsgRepository = transactionMountMsgRepository;
+    }
 
     public ReturningFlowRateResponseDTO getReturningFlowRateById(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
         if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {

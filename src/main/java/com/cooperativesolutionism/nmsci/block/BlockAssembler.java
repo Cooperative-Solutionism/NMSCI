@@ -11,7 +11,6 @@ import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
 import com.cooperativesolutionism.nmsci.util.Sha256Util;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
@@ -23,11 +22,13 @@ import java.util.UUID;
 @Component
 public class BlockAssembler {
 
-    @Resource
-    private NmsciProperties nmsciProperties;
+    private final NmsciProperties nmsciProperties;
+    private final BlockMessagePayloadFetcher blockMessagePayloadFetcher;
 
-    @Resource
-    private BlockMessagePayloadFetcher blockMessagePayloadFetcher;
+    public BlockAssembler(NmsciProperties nmsciProperties, BlockMessagePayloadFetcher blockMessagePayloadFetcher) {
+        this.nmsciProperties = nmsciProperties;
+        this.blockMessagePayloadFetcher = blockMessagePayloadFetcher;
+    }
 
     public AssembledBlock assemble(BlockInfo previousBlock, SelectedBlockMessages selectedMessages) {
         ByteArrayOutputStream blockHeader = new ByteArrayOutputStream(nmsciProperties.getBlockHeaderSize());

@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,17 +14,22 @@ import java.util.Arrays;
 @Service
 public class TransactionMountWriteService {
 
-    @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
+    private final TransactionRecordMsgRepository transactionRecordMsgRepository;
+    private final TransactionMountMsgRepository transactionMountMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final ConsumeChainAllocationService consumeChainAllocationService;
 
-    @Resource
-    private TransactionMountMsgRepository transactionMountMsgRepository;
-
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
-
-    @Resource
-    private ConsumeChainAllocationService consumeChainAllocationService;
+    public TransactionMountWriteService(
+            TransactionRecordMsgRepository transactionRecordMsgRepository,
+            TransactionMountMsgRepository transactionMountMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            ConsumeChainAllocationService consumeChainAllocationService
+    ) {
+        this.transactionRecordMsgRepository = transactionRecordMsgRepository;
+        this.transactionMountMsgRepository = transactionMountMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.consumeChainAllocationService = consumeChainAllocationService;
+    }
 
     @Transactional
     public TransactionMountMsg saveAndAllocate(TransactionMountMsg transactionMountMsg) {

@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,8 +23,11 @@ public class FlowNodeController {
 
     private static final Sort FLOW_NODE_QUERY_SORT = Sort.by(Sort.Order.asc("id"));
 
-    @Resource
-    private FlowNodeRegisterMsgService flowNodeRegisterMsgService;
+    private final FlowNodeRegisterMsgService flowNodeRegisterMsgService;
+
+    public FlowNodeController(FlowNodeRegisterMsgService flowNodeRegisterMsgService) {
+        this.flowNodeRegisterMsgService = flowNodeRegisterMsgService;
+    }
 
     @GetMapping("/{flowNodePubkey}")
     public ResponseResult<FlowNodeStateResponseDTO> getFlowNodeState(@PathVariable String flowNodePubkey) {

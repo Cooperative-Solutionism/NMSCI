@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
@@ -42,7 +41,6 @@ class SystemParamsControllerTest {
     @Test
     void returnsCurrentConfigAndLatestBlockParams() throws Exception {
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
         NmsciProperties properties = properties();
         byte[] latestBlockHash = bytes(0x22, 32);
         BlockInfo latestBlock = new BlockInfo();
@@ -50,8 +48,8 @@ class SystemParamsControllerTest {
         latestBlock.setHeight(42L);
         BlockChainService blockChainService = mock(BlockChainService.class);
         when(blockChainService.getLastBlock()).thenReturn(latestBlock);
-        ReflectionTestUtils.setField(controller, "nmsciProperties", properties);
-        ReflectionTestUtils.setField(controller, "blockChainService", blockChainService);
+        Object controller = controllerType.getConstructors()[0]
+                .newInstance(properties, blockChainService, null, null, null);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType.getMethod("getParams").invoke(controller);
 
@@ -71,11 +69,10 @@ class SystemParamsControllerTest {
     @Test
     void returnsNullLatestBlockFieldsWhenNoBlockExists() throws Exception {
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
         BlockChainService blockChainService = mock(BlockChainService.class);
         when(blockChainService.getLastBlock()).thenReturn(null);
-        ReflectionTestUtils.setField(controller, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(controller, "blockChainService", blockChainService);
+        Object controller = controllerType.getConstructors()[0]
+                .newInstance(properties(), blockChainService, null, null, null);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType.getMethod("getParams").invoke(controller);
 

@@ -5,7 +5,6 @@ import com.cooperativesolutionism.nmsci.constant.BlockConstants;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -24,11 +23,13 @@ public class BlockMessageSelector {
             .min()
             .orElse(1);
 
-    @Resource
-    private NmsciProperties nmsciProperties;
+    private final NmsciProperties nmsciProperties;
+    private final MsgAbstractRepository msgAbstractRepository;
 
-    @Resource
-    private MsgAbstractRepository msgAbstractRepository;
+    public BlockMessageSelector(NmsciProperties nmsciProperties, MsgAbstractRepository msgAbstractRepository) {
+        this.nmsciProperties = nmsciProperties;
+        this.msgAbstractRepository = msgAbstractRepository;
+    }
 
     public SelectedBlockMessages select() {
         long blockSize = nmsciProperties.getBlockHeaderSize();

@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -87,8 +86,7 @@ class FlowNodeListEndpointTest {
                 pageable
         );
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
-        Object controller = controllerType.getConstructor().newInstance();
-        ReflectionTestUtils.setField(controller, "flowNodeRegisterMsgService", service);
+        Object controller = controllerType.getConstructor(FlowNodeRegisterMsgService.class).newInstance(service);
 
         ResponseResult<?> result = (ResponseResult<?>) controllerType
                 .getMethod("listFlowNodes", Boolean.class, Boolean.class, Boolean.class, int.class, int.class)
@@ -123,9 +121,7 @@ class FlowNodeListEndpointTest {
         );
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
-        ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
-        ReflectionTestUtils.setField(service, "centralPubkeyValidator", centralPubkeyValidator);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null);
 
         Slice<?> result = service.listFlowNodes(true, true, false, pageable);
 
@@ -146,8 +142,7 @@ class FlowNodeListEndpointTest {
                 new AtomicReference<>(),
                 new AtomicReference<>()
         );
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService();
-        ReflectionTestUtils.setField(service, "flowNodeRegisterMsgRepository", repository);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, null, null, null, null);
 
         Slice<?> result = service.listFlowNodes(false, null, null, pageable);
 

@@ -7,7 +7,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -47,8 +46,7 @@ class ConsumeChainQueryServiceTest {
                         edge("cccccccc-cccc-cccc-cccc-cccccccccccc")
                 ));
 
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
-        ReflectionTestUtils.setField(service, "consumeChainEdgeRepository", repository);
+        ConsumeChainQueryService service = new ConsumeChainQueryService(null, null, null, repository, null);
         Pageable pageable = PageRequest.of(0, 2, EDGE_SORT);
 
         Slice<ConsumeChainEdge> result = service.getConsumeChainEdgesById(null, targetId, (short) 1, 0L, Long.MAX_VALUE, pageable);
@@ -68,8 +66,7 @@ class ConsumeChainQueryServiceTest {
         when(repository.findConsumeChainEdges(sourceId, targetId, (short) 1, 100L, 200L, 3, 2L))
                 .thenReturn(List.of(edge("dddddddd-dddd-dddd-dddd-dddddddddddd")));
 
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
-        ReflectionTestUtils.setField(service, "consumeChainEdgeRepository", repository);
+        ConsumeChainQueryService service = new ConsumeChainQueryService(null, null, null, repository, null);
         Pageable pageable = PageRequest.of(1, 2, EDGE_SORT);
 
         Slice<ConsumeChainEdge> result = service.getConsumeChainEdgesById(sourceId, targetId, (short) 1, 100L, 200L, pageable);
@@ -81,7 +78,7 @@ class ConsumeChainQueryServiceTest {
     @Test
     void edgeQueryLimitFailsFastWhenPageSizeWouldOverflowExtraRow() {
         UUID targetId = UUID.fromString("11111111-1111-1111-1111-111111111111");
-        ConsumeChainQueryService service = new ConsumeChainQueryService();
+        ConsumeChainQueryService service = new ConsumeChainQueryService(null, null, null, null, null);
 
         assertThrows(ArithmeticException.class, () -> service.getConsumeChainEdgesById(
                 null,

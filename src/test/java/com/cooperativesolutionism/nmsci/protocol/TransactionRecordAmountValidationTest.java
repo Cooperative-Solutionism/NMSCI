@@ -9,7 +9,6 @@ import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.UUID;
 
@@ -32,12 +31,9 @@ class TransactionRecordAmountValidationTest {
 
     @BeforeEach
     void setUp() {
-        service = new TransactionRecordMsgService();
         transactionRecordMsgRepository = mock(TransactionRecordMsgRepository.class);
         blockDifficultyService = mock(BlockDifficultyService.class);
-        ReflectionTestUtils.setField(service, "transactionRecordMsgRepository", transactionRecordMsgRepository);
-        ReflectionTestUtils.setField(service, "blockDifficultyService", blockDifficultyService);
-        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(mock(MsgAbstractService.class)));
+        service = new TransactionRecordMsgService(blockDifficultyService, transactionRecordMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class)), null, null, null, null, null, null);
     }
 
     @Test

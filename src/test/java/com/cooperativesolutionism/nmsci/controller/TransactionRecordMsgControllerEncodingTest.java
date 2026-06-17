@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.SliceImpl;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 
@@ -22,9 +21,8 @@ class TransactionRecordMsgControllerEncodingTest {
 
     @Test
     void searchDecodesPubkeyQueryParametersAsHex() {
-        TransactionRecordMsgController controller = new TransactionRecordMsgController();
         TransactionRecordMsgService service = mock(TransactionRecordMsgService.class);
-        ReflectionTestUtils.setField(controller, "transactionRecordMsgService", service);
+        TransactionRecordMsgController controller = new TransactionRecordMsgController(service, null);
         when(service.searchTransactionRecordMsgs(
                 any(), any(), any(), any(), any(), any(Pageable.class)
         )).thenReturn(new SliceImpl<TransactionRecordMsg>(List.of()));

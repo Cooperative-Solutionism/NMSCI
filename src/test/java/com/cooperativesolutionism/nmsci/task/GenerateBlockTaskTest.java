@@ -7,7 +7,6 @@ import com.cooperativesolutionism.nmsci.util.DateUtil;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.Provider;
 import java.security.Security;
@@ -28,9 +27,9 @@ class GenerateBlockTaskTest {
         BlockChainService blockChainService = mock(BlockChainService.class);
         doThrow(new IllegalStateException("db unavailable")).when(blockChainService).generateBlock();
 
-        GenerateBlockTask task = new GenerateBlockTask();
-        ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         assertDoesNotThrow(task::execute);
 
@@ -43,9 +42,9 @@ class GenerateBlockTaskTest {
         BlockChainService blockChainService = mock(BlockChainService.class);
         doThrow(new IllegalStateException("db unavailable")).when(blockChainService).generateBlock();
 
-        GenerateBlockTask task = new GenerateBlockTask();
-        ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -63,9 +62,9 @@ class GenerateBlockTaskTest {
     @Test
     void logsAndSuppressesProviderSetupFailureForScheduler() {
         BlockChainService blockChainService = mock(BlockChainService.class);
-        GenerateBlockTask task = new GenerateBlockTask();
-        ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<Security> security = mockStatic(Security.class)) {
             security.when(() -> Security.addProvider(any(Provider.class)))
@@ -82,9 +81,9 @@ class GenerateBlockTaskTest {
     @Test
     void logsAndSuppressesTimestampFailureForScheduler() {
         BlockChainService blockChainService = mock(BlockChainService.class);
-        GenerateBlockTask task = new GenerateBlockTask();
-        ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -106,9 +105,9 @@ class GenerateBlockTaskTest {
                 .when(blockChainService)
                 .generateBlockUntilNoNotInBlockMsgs();
 
-        GenerateBlockTask task = new GenerateBlockTask();
-        ReflectionTestUtils.setField(task, "blockChainService", blockChainService);
-        ReflectionTestUtils.setField(task, "nmsciMetrics", new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
 
         assertDoesNotThrow(task::execute);
         assertDoesNotThrow(task::execute);

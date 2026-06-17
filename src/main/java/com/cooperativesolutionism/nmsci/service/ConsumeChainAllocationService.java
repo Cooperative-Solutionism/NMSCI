@@ -13,7 +13,6 @@ import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,20 +24,25 @@ import java.util.UUID;
 @Service
 public class ConsumeChainAllocationService {
 
-    @Resource
-    private ConsumeChainSupport consumeChainSupport;
+    private final ConsumeChainSupport consumeChainSupport;
+    private final ConsumeChainRepository consumeChainRepository;
+    private final ConsumeChainAllocator consumeChainAllocator;
+    private final ConsumeChainPersistenceService consumeChainPersistenceService;
+    private final NmsciMetrics nmsciMetrics;
 
-    @Resource
-    private ConsumeChainRepository consumeChainRepository;
-
-    @Resource
-    private ConsumeChainAllocator consumeChainAllocator;
-
-    @Resource
-    private ConsumeChainPersistenceService consumeChainPersistenceService;
-
-    @Resource
-    private NmsciMetrics nmsciMetrics;
+    public ConsumeChainAllocationService(
+            ConsumeChainSupport consumeChainSupport,
+            ConsumeChainRepository consumeChainRepository,
+            ConsumeChainAllocator consumeChainAllocator,
+            ConsumeChainPersistenceService consumeChainPersistenceService,
+            NmsciMetrics nmsciMetrics
+    ) {
+        this.consumeChainSupport = consumeChainSupport;
+        this.consumeChainRepository = consumeChainRepository;
+        this.consumeChainAllocator = consumeChainAllocator;
+        this.consumeChainPersistenceService = consumeChainPersistenceService;
+        this.nmsciMetrics = nmsciMetrics;
+    }
 
     @Transactional
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {

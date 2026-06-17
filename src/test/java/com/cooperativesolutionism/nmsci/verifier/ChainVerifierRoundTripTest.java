@@ -23,7 +23,6 @@ import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.security.Security;
@@ -192,13 +191,11 @@ class ChainVerifierRoundTripTest {
         byte[] rawBytes = builder.flowNodeRegister(msgId, flowNode, registerMsgNbits);
         byte[] txid = MerkleTreeUtil.calcTxid(rawBytes);
 
-        BlockAssembler assembler = new BlockAssembler();
         FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
         when(registerRepository.findPayloadByIdIn(List.of(msgId)))
                 .thenReturn(List.of(new StubProjection(msgId, rawBytes, txid)));
 
-        ReflectionTestUtils.setField(assembler, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(assembler, "blockMessagePayloadFetcher", new BlockMessagePayloadFetcher(
+        BlockAssembler assembler = new BlockAssembler(properties(), new BlockMessagePayloadFetcher(
                 registerRepository,
                 mock(CentralPubkeyEmpowerMsgRepository.class),
                 mock(CentralPubkeyLockedMsgRepository.class),

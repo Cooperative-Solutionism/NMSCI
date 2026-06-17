@@ -8,7 +8,6 @@ import com.cooperativesolutionism.nmsci.model.FlowNodeLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeLockedMsgService;
 import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
-import jakarta.annotation.Resource;
 import org.springframework.data.domain.Slice;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -25,11 +24,16 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 @RequestMapping("/flow-node-locks")
 public class FlowNodeLockedMsgController {
 
-    @Resource
-    private FlowNodeLockedMsgService flowNodeLockedMsgService;
+    private final FlowNodeLockedMsgService flowNodeLockedMsgService;
+    private final FlowNodeLockedMsgConverter flowNodeLockedMsgConverter;
 
-    @Resource
-    private FlowNodeLockedMsgConverter flowNodeLockedMsgConverter;
+    public FlowNodeLockedMsgController(
+            FlowNodeLockedMsgService flowNodeLockedMsgService,
+            FlowNodeLockedMsgConverter flowNodeLockedMsgConverter
+    ) {
+        this.flowNodeLockedMsgService = flowNodeLockedMsgService;
+        this.flowNodeLockedMsgConverter = flowNodeLockedMsgConverter;
+    }
 
     @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
     @ResponseStatus(HttpStatus.CREATED)

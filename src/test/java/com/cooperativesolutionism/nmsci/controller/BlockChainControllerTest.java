@@ -4,7 +4,6 @@ import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -14,9 +13,7 @@ import static org.mockito.Mockito.when;
 class BlockChainControllerTest {
 
     private BlockChainController controllerWith(BlockChainService service) {
-        BlockChainController controller = new BlockChainController();
-        ReflectionTestUtils.setField(controller, "blockChainService", service);
-        return controller;
+        return new BlockChainController(service);
     }
 
     @Test

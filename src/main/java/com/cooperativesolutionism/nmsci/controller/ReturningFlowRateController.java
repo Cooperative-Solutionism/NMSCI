@@ -5,7 +5,6 @@ import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
 import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
-import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
 
 import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
@@ -17,8 +16,11 @@ import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNul
 @RequestMapping("/returning-flow-rates")
 public class ReturningFlowRateController {
 
-    @Resource
-    private ConsumeChainQueryService consumeChainQueryService;
+    private final ConsumeChainQueryService consumeChainQueryService;
+
+    public ReturningFlowRateController(ConsumeChainQueryService consumeChainQueryService) {
+        this.consumeChainQueryService = consumeChainQueryService;
+    }
 
     /**
      * 回流率查询（统一集合根）：target 必填（targetId 或 targetPubkey），source 可选；

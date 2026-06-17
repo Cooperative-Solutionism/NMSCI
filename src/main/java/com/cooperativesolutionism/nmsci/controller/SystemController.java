@@ -11,7 +11,6 @@ import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,20 +22,25 @@ public class SystemController {
     /** 出块周期：10 分钟，与 GenerateBlockTask 的 fixedRate 一致。 */
     private static final long BLOCK_INTERVAL_MS = 600_000L;
 
-    @Resource
-    private NmsciProperties nmsciProperties;
+    private final NmsciProperties nmsciProperties;
+    private final BlockChainService blockChainService;
+    private final MsgAbstractService msgAbstractService;
+    private final CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+    private final BlockFileStore blockFileStore;
 
-    @Resource
-    private BlockChainService blockChainService;
-
-    @Resource
-    private MsgAbstractService msgAbstractService;
-
-    @Resource
-    private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
-
-    @Resource
-    private BlockFileStore blockFileStore;
+    public SystemController(
+            NmsciProperties nmsciProperties,
+            BlockChainService blockChainService,
+            MsgAbstractService msgAbstractService,
+            CentralPubkeyLockedMsgService centralPubkeyLockedMsgService,
+            BlockFileStore blockFileStore
+    ) {
+        this.nmsciProperties = nmsciProperties;
+        this.blockChainService = blockChainService;
+        this.msgAbstractService = msgAbstractService;
+        this.centralPubkeyLockedMsgService = centralPubkeyLockedMsgService;
+        this.blockFileStore = blockFileStore;
+    }
 
     @GetMapping("/params")
     public ResponseResult<SystemParamsDTO> getParams() {

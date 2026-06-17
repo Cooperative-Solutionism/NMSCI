@@ -6,7 +6,6 @@ import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgReposit
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -19,8 +18,17 @@ class ProtocolNotFoundSemanticsTest {
         byte[] pubkey = TestKeyPairs.CENTRAL.pubkey();
         CentralPubkeyLockedMsgRepository repository = mock(CentralPubkeyLockedMsgRepository.class);
         when(repository.findByCentralPubkey(pubkey)).thenReturn(null);
-        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
-        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
+                null,
+                repository,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
         assertThrows(NotFoundException.class, () -> service.getCentralPubkeyLockedMsgByCentralPubkey(pubkey));
     }
@@ -30,8 +38,15 @@ class ProtocolNotFoundSemanticsTest {
         byte[] pubkey = TestKeyPairs.FLOW_NODE_A.pubkey();
         FlowNodeLockedMsgRepository repository = mock(FlowNodeLockedMsgRepository.class);
         when(repository.findByFlowNodePubkey(pubkey)).thenReturn(null);
-        FlowNodeLockedMsgService service = new FlowNodeLockedMsgService();
-        ReflectionTestUtils.setField(service, "flowNodeLockedMsgRepository", repository);
+        FlowNodeLockedMsgService service = new FlowNodeLockedMsgService(
+                repository,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
         assertThrows(NotFoundException.class, () -> service.getFlowNodeLockedMsgByFlowNodePubkey(pubkey));
     }
@@ -41,17 +56,30 @@ class ProtocolNotFoundSemanticsTest {
         byte[] pubkey = TestKeyPairs.FLOW_NODE_A.pubkey();
         CentralPubkeyEmpowerMsgRepository repository = mock(CentralPubkeyEmpowerMsgRepository.class);
         when(repository.findByFlowNodePubkey(pubkey)).thenReturn(null);
-        CentralPubkeyEmpowerMsgService service = new CentralPubkeyEmpowerMsgService();
-        ReflectionTestUtils.setField(service, "centralPubkeyEmpowerMsgRepository", repository);
+        CentralPubkeyEmpowerMsgService service = new CentralPubkeyEmpowerMsgService(
+                repository,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
 
         assertThrows(NotFoundException.class, () -> service.getCentralPubkeyEmpowerMsgByFlowNodePubkey(pubkey));
     }
 
     @Test
     void malformedPubkeyStillReturnsBadRequestType() {
-        CentralPubkeyLockedMsgService centralPubkeyLockedMsgService = new CentralPubkeyLockedMsgService();
-        FlowNodeLockedMsgService flowNodeLockedMsgService = new FlowNodeLockedMsgService();
-        CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService = new CentralPubkeyEmpowerMsgService();
+        CentralPubkeyLockedMsgService centralPubkeyLockedMsgService = new CentralPubkeyLockedMsgService(
+                null, null, null, null, null, null, null, null, null
+        );
+        FlowNodeLockedMsgService flowNodeLockedMsgService = new FlowNodeLockedMsgService(
+                null, null, null, null, null, null, null
+        );
+        CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService = new CentralPubkeyEmpowerMsgService(
+                null, null, null, null, null, null, null
+        );
 
         assertThrows(IllegalArgumentException.class, () -> centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(new byte[32]));
         assertThrows(IllegalArgumentException.class, () -> flowNodeLockedMsgService.getFlowNodeLockedMsgByFlowNodePubkey(new byte[32]));

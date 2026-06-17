@@ -14,7 +14,6 @@ import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
 import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -28,32 +27,38 @@ import java.util.UUID;
 @Validated
 public class TransactionRecordMsgService {
 
-    @Resource
-    private BlockDifficultyService blockDifficultyService;
+    private final BlockDifficultyService blockDifficultyService;
+    private final TransactionRecordMsgRepository transactionRecordMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final FlowNodeStateValidator flowNodeStateValidator;
+    private final CentralPubkeyValidator centralPubkeyValidator;
+    private final SignatureValidator signatureValidator;
+    private final ProofOfWorkValidator proofOfWorkValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final CentralSignatureService centralSignatureService;
 
-    @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
+    public TransactionRecordMsgService(
+            BlockDifficultyService blockDifficultyService,
+            TransactionRecordMsgRepository transactionRecordMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            FlowNodeStateValidator flowNodeStateValidator,
+            CentralPubkeyValidator centralPubkeyValidator,
+            SignatureValidator signatureValidator,
+            ProofOfWorkValidator proofOfWorkValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            CentralSignatureService centralSignatureService
+    ) {
+        this.blockDifficultyService = blockDifficultyService;
+        this.transactionRecordMsgRepository = transactionRecordMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.flowNodeStateValidator = flowNodeStateValidator;
+        this.centralPubkeyValidator = centralPubkeyValidator;
+        this.signatureValidator = signatureValidator;
+        this.proofOfWorkValidator = proofOfWorkValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.centralSignatureService = centralSignatureService;
+    }
 
-    @Resource
-    private MessageWritePipeline messageWritePipeline;
-
-    @Resource
-    private FlowNodeStateValidator flowNodeStateValidator;
-
-    @Resource
-    private CentralPubkeyValidator centralPubkeyValidator;
-
-    @Resource
-    private SignatureValidator signatureValidator;
-
-    @Resource
-    private ProofOfWorkValidator proofOfWorkValidator;
-
-    @Resource
-    private ProtocolRawBytesBuilder protocolRawBytesBuilder;
-
-    @Resource
-    private CentralSignatureService centralSignatureService;
     @Transactional
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
         messageWritePipeline.requireMsgType(transactionRecordMsg, MsgTypeEnum.TransactionRecordMsg);
