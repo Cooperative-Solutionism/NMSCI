@@ -29,6 +29,32 @@ class LoopMarkerTest {
     }
 
     @Test
+    void samePersistentIdOnDifferentInstancesMarksChainAndEdgesAsLoop() {
+        FlowNodeRegisterMsg start = node("11111111-1111-1111-1111-111111111111");
+        FlowNodeRegisterMsg end = node("11111111-1111-1111-1111-111111111111");
+        ConsumeChain chain = chain(start, end);
+        ConsumeChainEdge edge = edge(chain);
+
+        loopMarker.markChain(chain);
+        loopMarker.markEdges(List.of(edge));
+
+        assertTrue(chain.getIsLoop());
+        assertTrue(edge.getIsLoop());
+    }
+
+    @Test
+    void missingPersistentIdsDoNotMarkDifferentInstancesAsLoop() {
+        ConsumeChain chain = chain(new FlowNodeRegisterMsg(), new FlowNodeRegisterMsg());
+        ConsumeChainEdge edge = edge(chain);
+
+        loopMarker.markChain(chain);
+        loopMarker.markEdges(List.of(edge));
+
+        assertFalse(chain.getIsLoop());
+        assertFalse(edge.getIsLoop());
+    }
+
+    @Test
     void differentStartAndEndMarksChainAndEdgesAsNotLoop() {
         ConsumeChain chain = chain(
                 node("11111111-1111-1111-1111-111111111111"),
