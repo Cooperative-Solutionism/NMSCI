@@ -1,6 +1,6 @@
 package com.cooperativesolutionism.nmsci.dto;
 
-import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateOverview;
+import com.cooperativesolutionism.nmsci.repository.projection.FlowNodeStateOverview;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class FlowNodeStateResponseDTO {

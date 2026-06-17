@@ -2,8 +2,8 @@ package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.dto.FlowNodeListItemDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
-import com.cooperativesolutionism.nmsci.protocol.FlowNodeState;
-import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateOverview;
+import com.cooperativesolutionism.nmsci.repository.projection.FlowNodeState;
+import com.cooperativesolutionism.nmsci.repository.projection.FlowNodeStateOverview;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;

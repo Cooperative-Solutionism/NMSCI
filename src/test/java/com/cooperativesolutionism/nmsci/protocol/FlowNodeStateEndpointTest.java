@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 class FlowNodeStateEndpointTest {
 
     private static final String DTO_TYPE = "com.cooperativesolutionism.nmsci.dto.FlowNodeStateResponseDTO";
-    private static final String OVERVIEW_TYPE = "com.cooperativesolutionism.nmsci.protocol.FlowNodeStateOverview";
+    private static final String OVERVIEW_TYPE = "com.cooperativesolutionism.nmsci.repository.projection.FlowNodeStateOverview";
     private static final String CONTROLLER_TYPE = "com.cooperativesolutionism.nmsci.controller.FlowNodeController";
 
     @Test

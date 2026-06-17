@@ -3,6 +3,7 @@ package com.cooperativesolutionism.nmsci.protocol;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.projection.FlowNodeState;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import org.springframework.stereotype.Component;
 

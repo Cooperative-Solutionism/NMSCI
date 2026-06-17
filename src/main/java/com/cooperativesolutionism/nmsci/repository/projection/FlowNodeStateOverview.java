@@ -1,4 +1,4 @@
-package com.cooperativesolutionism.nmsci.protocol;
+package com.cooperativesolutionism.nmsci.repository.projection;
 
 public interface FlowNodeStateOverview {
 
