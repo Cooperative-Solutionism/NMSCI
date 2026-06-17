@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.controller;
 
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
@@ -21,7 +22,11 @@ public class BlockChainController {
 
     @GetMapping("/latest")
     public ResponseResult<BlockInfo> getLastBlock() {
-        return ResponseResult.success(blockChainService.getLastBlock());
+        BlockInfo lastBlock = blockChainService.getLastBlock();
+        if (lastBlock == null) {
+            throw new NotFoundException("区块链尚未初始化，暂无区块");
+        }
+        return ResponseResult.success(lastBlock);
     }
 
     @GetMapping("/{height}")
