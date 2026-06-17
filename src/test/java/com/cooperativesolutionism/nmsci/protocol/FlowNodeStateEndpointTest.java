@@ -5,6 +5,9 @@ import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -14,6 +17,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -114,6 +118,29 @@ class FlowNodeStateEndpointTest {
         assertFlowNodeStateResponse(dto, false, true, true, false);
     }
 
+    @Test
+    void dtoDeclaresAndSerializesBooleanJsonContract() throws Exception {
+        Class<?> dtoType = Class.forName(DTO_TYPE);
+        Object dto = dtoType.getConstructor().newInstance();
+        setBoolean(dto, "setRegistered", true);
+        setBoolean(dto, "setAuthorized", false);
+        setBoolean(dto, "setLocked", true);
+        setBoolean(dto, "setCurrentCentralPubkeyAuthorized", false);
+
+        assertJsonProperty(dtoType, "getRegistered", "registered");
+        assertJsonProperty(dtoType, "getAuthorized", "authorized");
+        assertJsonProperty(dtoType, "getLocked", "locked");
+        assertJsonProperty(dtoType, "getCurrentCentralPubkeyAuthorized", "currentCentralPubkeyAuthorized");
+
+        JsonNode json = new ObjectMapper().readTree(new ObjectMapper().writeValueAsString(dto));
+        assertTrue(json.get("registered").asBoolean());
+        assertFalse(json.get("authorized").asBoolean());
+        assertTrue(json.get("locked").asBoolean());
+        assertFalse(json.get("currentCentralPubkeyAuthorized").asBoolean());
+        assertFalse(json.has("isLocked"));
+        assertEquals(4, json.size());
+    }
+
     private Object flowNodeStateOverview(
             Class<?> overviewType,
             boolean registered,
@@ -188,6 +215,11 @@ class FlowNodeStateEndpointTest {
                 currentCentralPubkeyAuthorized,
                 response.getClass().getMethod("getCurrentCentralPubkeyAuthorized").invoke(response)
         );
+    }
+
+    private void assertJsonProperty(Class<?> dtoType, String methodName, String expectedName) throws Exception {
+        JsonProperty jsonProperty = dtoType.getMethod(methodName).getAnnotation(JsonProperty.class);
+        assertEquals(expectedName, jsonProperty.value());
     }
 
     private void setBoolean(Object target, String methodName, boolean value) throws Exception {

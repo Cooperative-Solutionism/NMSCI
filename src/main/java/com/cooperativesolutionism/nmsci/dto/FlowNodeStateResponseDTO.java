@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.dto;
 
 import com.cooperativesolutionism.nmsci.protocol.FlowNodeStateOverview;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class FlowNodeStateResponseDTO {
 
@@ -18,6 +19,7 @@ public class FlowNodeStateResponseDTO {
         return response;
     }
 
+    @JsonProperty("registered")
     public boolean getRegistered() {
         return registered;
     }
@@ -26,6 +28,7 @@ public class FlowNodeStateResponseDTO {
         this.registered = registered;
     }
 
+    @JsonProperty("authorized")
     public boolean getAuthorized() {
         return authorized;
     }
@@ -34,6 +37,7 @@ public class FlowNodeStateResponseDTO {
         this.authorized = authorized;
     }
 
+    @JsonProperty("locked")
     public boolean getLocked() {
         return locked;
     }
@@ -42,6 +46,7 @@ public class FlowNodeStateResponseDTO {
         this.locked = locked;
     }
 
+    @JsonProperty("currentCentralPubkeyAuthorized")
     public boolean getCurrentCentralPubkeyAuthorized() {
         return currentCentralPubkeyAuthorized;
     }
