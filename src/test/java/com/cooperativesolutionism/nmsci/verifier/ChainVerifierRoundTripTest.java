@@ -98,6 +98,26 @@ class ChainVerifierRoundTripTest {
     }
 
     @Test
+    void detectsMessageDifficultyNotMatchingPredecessorBlock() {
+        // 创世块难度 EASY；次块的注册消息携带不同难度 → 应被「消息难度=入账难度」检出（与前区块难度比对）
+        AssembledBlock genesis = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"));
+        AssembledBlock second = assembleRegisterBlock(
+                genesis.getBlockInfo(), TestKeyPairs.FLOW_NODE_B,
+                UUID.fromString("22222222-2222-2222-2222-222222222222"), 0x20fffffe);
+
+        ByteArrayOutputStream concatenated = new ByteArrayOutputStream();
+        concatenated.writeBytes(genesis.getDatBytes());
+        concatenated.writeBytes(second.getDatBytes());
+
+        ChainVerificationResult result = verifier.verify(
+                DatBlockReader.readConcatenated(concatenated.toByteArray(), "blk00000000.dat"), optionsWithCentral());
+        assertFalse(result.ok());
+        assertTrue(result.allFailures().stream().anyMatch(check -> check.name().equals("消息难度=入账难度")),
+                () -> "应检出消息难度与前区块不一致:\n" + result.render());
+    }
+
+    @Test
     void rejectsCorruptedMagic() {
         AssembledBlock block = assembleRegisterBlock(null, TestKeyPairs.FLOW_NODE_A,
                 UUID.fromString("11111111-1111-1111-1111-111111111111"));
@@ -165,7 +185,11 @@ class ChainVerifierRoundTripTest {
     }
 
     private AssembledBlock assembleRegisterBlock(BlockInfo previousBlock, TestKeyPair flowNode, UUID msgId) {
-        byte[] rawBytes = builder.flowNodeRegister(msgId, flowNode, EASY_NBITS);
+        return assembleRegisterBlock(previousBlock, flowNode, msgId, EASY_NBITS);
+    }
+
+    private AssembledBlock assembleRegisterBlock(BlockInfo previousBlock, TestKeyPair flowNode, UUID msgId, int registerMsgNbits) {
+        byte[] rawBytes = builder.flowNodeRegister(msgId, flowNode, registerMsgNbits);
         byte[] txid = MerkleTreeUtil.calcTxid(rawBytes);
 
         BlockAssembler assembler = new BlockAssembler();
