@@ -5,12 +5,6 @@ import com.cooperativesolutionism.nmsci.constant.BlockConstants;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
-import com.cooperativesolutionism.nmsci.repository.TransactionRecordMsgRepository;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
@@ -21,8 +15,6 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -34,22 +26,7 @@ public class BlockAssembler {
     private NmsciProperties nmsciProperties;
 
     @Resource
-    private CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository;
-
-    @Resource
-    private CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
-
-    @Resource
-    private FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
-
-    @Resource
-    private FlowNodeLockedMsgRepository flowNodeLockedMsgRepository;
-
-    @Resource
-    private TransactionRecordMsgRepository transactionRecordMsgRepository;
-
-    @Resource
-    private TransactionMountMsgRepository transactionMountMsgRepository;
+    private BlockMessagePayloadFetcher blockMessagePayloadFetcher;
 
     public AssembledBlock assemble(BlockInfo previousBlock, SelectedBlockMessages selectedMessages) {
         ByteArrayOutputStream blockHeader = new ByteArrayOutputStream(nmsciProperties.getBlockHeaderSize());
@@ -63,15 +40,10 @@ public class BlockAssembler {
         for (Map.Entry<MsgTypeEnum, List<MsgAbstract>> entry : selectedMessages.getMessagesByType().entrySet()) {
             MsgTypeEnum msgType = entry.getKey();
             List<MsgAbstract> msgAbstracts = entry.getValue();
-            List<UUID> msgIds = new ArrayList<>();
-
-            for (MsgAbstract msgAbstract : msgAbstracts) {
-                msgIds.add(msgAbstract.getMsgId());
-                msgAbstract.setIsInBlock(true);
-            }
+            List<UUID> msgIds = messageIds(msgAbstracts);
 
             write(blockBody, ByteArrayUtil.longToBytes(msgAbstracts.size()));
-            for (BlockMessagePayload msg : findMessages(msgType, msgIds)) {
+            for (BlockMessagePayload msg : blockMessagePayloadFetcher.findPayloads(msgType, msgIds)) {
                 leafTxids.add(msg.getTxid());
                 write(blockBody, msg.getRawBytes());
             }
@@ -115,6 +87,7 @@ public class BlockAssembler {
             write(dat, ByteArrayUtil.longToBytes(rawBlockBytes.length));
             write(dat, rawBlockBytes);
 
+            markSelectedInBlock(selectedMessages);
             return new AssembledBlock(blockInfo, dat.toByteArray(), selectedMessages.getAllMessages());
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -161,43 +134,18 @@ public class BlockAssembler {
         return previousBlock.getId();
     }
 
-    private List<BlockMessagePayload> findMessages(MsgTypeEnum msgType, List<UUID> msgIds) {
-        if (msgIds.isEmpty()) {
-            return List.of();
+    private List<UUID> messageIds(List<MsgAbstract> msgAbstracts) {
+        List<UUID> msgIds = new ArrayList<>(msgAbstracts.size());
+        for (MsgAbstract msgAbstract : msgAbstracts) {
+            msgIds.add(msgAbstract.getMsgId());
         }
+        return msgIds;
+    }
 
-        List<BlockMessagePayload> payloads;
-        if (msgType.equals(MsgTypeEnum.FlowNodeRegisterMsg)) {
-            payloads = flowNodeRegisterMsgRepository.findPayloadByIdIn(msgIds);
-        } else if (msgType.equals(MsgTypeEnum.CentralPubkeyEmpowerMsg)) {
-            payloads = centralPubkeyEmpowerMsgRepository.findPayloadByIdIn(msgIds);
-        } else if (msgType.equals(MsgTypeEnum.CentralPubkeyLockedMsg)) {
-            payloads = centralPubkeyLockedMsgRepository.findPayloadByIdIn(msgIds);
-        } else if (msgType.equals(MsgTypeEnum.FlowNodeLockedMsg)) {
-            payloads = flowNodeLockedMsgRepository.findPayloadByIdIn(msgIds);
-        } else if (msgType.equals(MsgTypeEnum.TransactionRecordMsg)) {
-            payloads = transactionRecordMsgRepository.findPayloadByIdIn(msgIds);
-        } else if (msgType.equals(MsgTypeEnum.TransactionMountMsg)) {
-            payloads = transactionMountMsgRepository.findPayloadByIdIn(msgIds);
-        } else {
-            return List.of();
+    private void markSelectedInBlock(SelectedBlockMessages selectedMessages) {
+        for (MsgAbstract msgAbstract : selectedMessages.getAllMessages()) {
+            msgAbstract.setIsInBlock(true);
         }
-
-        Map<UUID, BlockMessagePayload> payloadsById = new HashMap<>();
-        for (BlockMessagePayload payload : payloads) {
-            payloadsById.put(payload.getId(), payload);
-        }
-
-        List<BlockMessagePayload> orderedPayloads = new ArrayList<>();
-        for (UUID msgId : msgIds) {
-            BlockMessagePayload payload = payloadsById.get(msgId);
-            if (payload == null) {
-                throw new IllegalStateException("未找到区块消息正文: " + msgId);
-            }
-            orderedPayloads.add(payload);
-        }
-
-        return orderedPayloads;
     }
 
     private void write(ByteArrayOutputStream outputStream, byte[] bytes) {

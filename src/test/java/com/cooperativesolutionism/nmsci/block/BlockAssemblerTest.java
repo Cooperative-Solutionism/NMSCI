@@ -25,6 +25,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -63,14 +65,36 @@ class BlockAssemblerTest {
         verify(registerRepository, never()).findAllById(any());
     }
 
+    @Test
+    void leavesSelectedMessagesUnmarkedWhenPayloadLookupFails() {
+        BlockAssembler assembler = new BlockAssembler();
+        FlowNodeRegisterMsgRepository registerRepository = mock(FlowNodeRegisterMsgRepository.class);
+        inject(assembler, registerRepository);
+
+        UUID msgId = UUID.fromString("22222222-2222-2222-2222-222222222222");
+        when(registerRepository.findPayloadByIdIn(List.of(msgId))).thenReturn(List.of());
+        SelectedBlockMessages selectedMessages = selected(msgId);
+        MsgAbstract msgAbstract = selectedMessages.getMessagesByType().get(MsgTypeEnum.FlowNodeRegisterMsg).get(0);
+
+        assertThrows(IllegalStateException.class, () -> assembler.assemble(null, selectedMessages));
+
+        assertFalse(msgAbstract.getIsInBlock());
+    }
+
     private static void inject(BlockAssembler assembler, FlowNodeRegisterMsgRepository registerRepository) {
         ReflectionTestUtils.setField(assembler, "nmsciProperties", properties());
-        ReflectionTestUtils.setField(assembler, "flowNodeRegisterMsgRepository", registerRepository);
-        ReflectionTestUtils.setField(assembler, "centralPubkeyEmpowerMsgRepository", mock(CentralPubkeyEmpowerMsgRepository.class));
-        ReflectionTestUtils.setField(assembler, "centralPubkeyLockedMsgRepository", mock(CentralPubkeyLockedMsgRepository.class));
-        ReflectionTestUtils.setField(assembler, "flowNodeLockedMsgRepository", mock(FlowNodeLockedMsgRepository.class));
-        ReflectionTestUtils.setField(assembler, "transactionRecordMsgRepository", mock(TransactionRecordMsgRepository.class));
-        ReflectionTestUtils.setField(assembler, "transactionMountMsgRepository", mock(TransactionMountMsgRepository.class));
+        ReflectionTestUtils.setField(
+                assembler,
+                "blockMessagePayloadFetcher",
+                new BlockMessagePayloadFetcher(
+                        registerRepository,
+                        mock(CentralPubkeyEmpowerMsgRepository.class),
+                        mock(CentralPubkeyLockedMsgRepository.class),
+                        mock(FlowNodeLockedMsgRepository.class),
+                        mock(TransactionRecordMsgRepository.class),
+                        mock(TransactionMountMsgRepository.class)
+                )
+        );
     }
 
     private static NmsciProperties properties() {
