@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_INBOUND_BYTES;
-import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
@@ -52,7 +52,7 @@ public class FlowNodeRegisterMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<FlowNodeRegisterMsg> flowNodeRegisterMsgs = flowNodeRegisterMsgMsgService.listFlowNodeRegisterMsgs(
-                hexBytesOrNull(flowNodePubkey),
+                compressedPubkeyHexOrNull(flowNodePubkey),
                 PageRequestUtil.of(page, size, REGISTER_QUERY_SORT)
         );
         return ResponseResult.success(SliceResponseDTO.from(flowNodeRegisterMsgs));

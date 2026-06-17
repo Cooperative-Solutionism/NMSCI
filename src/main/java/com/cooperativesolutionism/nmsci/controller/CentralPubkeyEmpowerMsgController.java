@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_EMPOWER_INBOUND_BYTES;
-import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
@@ -48,7 +48,7 @@ public class CentralPubkeyEmpowerMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<CentralPubkeyEmpowerMsg> centralPubkeyEmpowerMsgs = centralPubkeyEmpowerMsgService.listCentralPubkeyEmpowerMsgs(
-                hexBytesOrNull(flowNodePubkey),
+                compressedPubkeyHexOrNull(flowNodePubkey),
                 PageRequestUtil.ofMessageQuery(page, size)
         );
         return ResponseResult.success(SliceResponseDTO.from(centralPubkeyEmpowerMsgs));

@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_MOUNT_INBOUND_BYTES;
-import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
@@ -53,8 +53,8 @@ public class TransactionMountMsgController {
             @RequestParam(defaultValue = "50") int size
     ) {
         Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.searchTransactionMountMsgs(
-                hexBytesOrNull(consumeNodePubkey),
-                hexBytesOrNull(flowNodePubkey),
+                compressedPubkeyHexOrNull(consumeNodePubkey),
+                compressedPubkeyHexOrNull(flowNodePubkey),
                 uuidOrNull(mountedTransactionRecordId),
                 startTime,
                 endTime,

@@ -285,6 +285,46 @@ class ProtocolErrorIntegrationTest extends NmsciIntegrationTestBase {
     }
 
     @Test
+    void rejectsFlowNodeRegistrationSearchWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/flow-node-registrations")
+                        .param("flowNodePubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("公钥长度错误")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsCentralPubkeyEmpowermentSearchWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/central-pubkey-empowerments")
+                        .param("flowNodePubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("公钥长度错误")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsTransactionRecordSearchWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/transaction-records")
+                        .param("flowNodePubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("公钥长度错误")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
+    void rejectsTransactionMountSearchWhenPubkeyHasWrongLength() throws Exception {
+        mockMvc.perform(get("/transaction-mounts")
+                        .param("consumeNodePubkey", "00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(400))
+                .andExpect(jsonPath("$.message").value(containsString("公钥长度错误")))
+                .andExpect(jsonPath("$.data").value(nullValue()));
+    }
+
+    @Test
     void rejectsMissingBlockLookupByHeight() throws Exception {
         mockMvc.perform(get("/blocks/{height}", 999L))
                 .andExpect(status().isNotFound())

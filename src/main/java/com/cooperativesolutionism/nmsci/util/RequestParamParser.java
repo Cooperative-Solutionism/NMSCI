@@ -4,9 +4,12 @@ import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 
 import java.util.UUID;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
 public final class RequestParamParser {
 
     private static final String INVALID_UUID_MESSAGE = "UUID格式不正确";
+    private static final String INVALID_COMPRESSED_PUBKEY_LENGTH_MESSAGE = "公钥长度错误，必须为33字节";
 
     private RequestParamParser() {
     }
@@ -45,5 +48,16 @@ public final class RequestParamParser {
         }
 
         return hexBytes(value);
+    }
+
+    public static byte[] compressedPubkeyHexOrNull(String value) {
+        byte[] bytes = hexBytesOrNull(value);
+        if (bytes == null) {
+            return null;
+        }
+        if (bytes.length != COMPRESSED_PUBLIC_KEY_BYTES) {
+            throw new BadRequestException(INVALID_COMPRESSED_PUBKEY_LENGTH_MESSAGE);
+        }
+        return bytes;
     }
 }

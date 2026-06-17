@@ -62,6 +62,26 @@ class RequestParamParserTest {
     }
 
     @Test
+    void parsesCompressedPubkeyHexParametersOnlyWhenLengthMatchesProtocol() {
+        String pubkey = "02" + "00".repeat(32);
+
+        assertNull(RequestParamParser.compressedPubkeyHexOrNull(null));
+        assertNull(RequestParamParser.compressedPubkeyHexOrNull(""));
+        assertNull(RequestParamParser.compressedPubkeyHexOrNull("  "));
+        assertArrayEquals(RequestParamParser.hexBytes(pubkey), RequestParamParser.compressedPubkeyHexOrNull(pubkey));
+    }
+
+    @Test
+    void compressedPubkeyHexParametersRejectWrongLength() {
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> RequestParamParser.compressedPubkeyHexOrNull("00")
+        );
+
+        assertEquals("公钥长度错误，必须为33字节", exception.getMessage());
+    }
+
+    @Test
     void malformedHexParametersBecomeBadRequest() {
         BadRequestException required = assertThrows(
                 BadRequestException.class,
