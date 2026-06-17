@@ -97,11 +97,31 @@ public class CentralPubkeyLockedMsgService {
                 messageWritePipeline.saveEntityThenAbstract(centralPubkeyLockedMsg, centralPubkeyLockedMsgRepository::save)
         );
 
-        blockChainService.generateBlockUntilNoNotInBlockMsgs();
-
-        logger.warn("中心公钥冻结成功，所有未装块的信息装块成功，程序即将优雅终止");
-        shutdownService.requestShutdown();
+        finalizeCentralPubkeyLock();
     }
+
+    public void finalizeCentralPubkeyLock() {
+        RuntimeException drainFailure = null;
+        try {
+            blockChainService.generateBlockUntilNoNotInBlockMsgs();
+            logger.warn("中心公钥冻结成功，所有未装块的信息装块成功，程序即将优雅终止");
+        } catch (RuntimeException e) {
+            drainFailure = e;
+            logger.error("中心公钥冻结信息已提交，但未装块消息排空失败，程序仍将请求优雅终止", e);
+            throw e;
+        } finally {
+            if (drainFailure == null) {
+                shutdownService.requestShutdown();
+            } else {
+                try {
+                    shutdownService.requestShutdown();
+                } catch (RuntimeException shutdownFailure) {
+                    drainFailure.addSuppressed(shutdownFailure);
+                }
+            }
+        }
+    }
+
     public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(UUID id) {
         return EntityLookup.requireById(id, "中心公钥冻结信息", centralPubkeyLockedMsgRepository::findById);
     }

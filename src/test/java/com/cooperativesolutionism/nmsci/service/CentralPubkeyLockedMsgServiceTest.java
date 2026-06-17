@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -119,6 +121,109 @@ class CentralPubkeyLockedMsgServiceTest {
                 ),
                 phases
         );
+    }
+
+    @Test
+    void requestsShutdownAndRethrowsWhenDrainFailsAfterLockMessageCommitted() {
+        CentralPubkeyLockedMsg msg = new CentralPubkeyLockedMsgConverter().fromByteArray(
+                messageBuilder.centralPubkeyLocked(
+                        UUID.fromString("99999999-9999-9999-9999-999999999999"),
+                        TestKeyPairs.CENTRAL
+                )
+        );
+
+        CentralPubkeyLockedMsgRepository repository = mock(CentralPubkeyLockedMsgRepository.class);
+        when(repository.existsById(msg.getId())).thenReturn(false);
+        when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
+
+        MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
+        BlockChainService blockChainService = mock(BlockChainService.class);
+        CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
+        RuntimeException drainFailure = new RuntimeException("drain failed");
+        org.mockito.Mockito.doThrow(drainFailure)
+                .when(blockChainService)
+                .generateBlockUntilNoNotInBlockMsgs();
+
+        TransactionTemplate transactionTemplate = mock(TransactionTemplate.class);
+        doAnswer(invocation -> {
+            Consumer<TransactionStatus> action = invocation.getArgument(0);
+            action.accept(new SimpleTransactionStatus());
+            return null;
+        }).when(transactionTemplate).executeWithoutResult(any());
+
+        ProtocolRawBytesBuilder rawBytesBuilder = new ProtocolRawBytesBuilder();
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
+        ReflectionTestUtils.setField(service, "nmsciProperties", properties());
+        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
+        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
+        ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
+        ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
+        ReflectionTestUtils.setField(service, "centralSignatureService", new CentralSignatureService(properties(), rawBytesBuilder));
+        ReflectionTestUtils.setField(service, "transactionTemplate", transactionTemplate);
+        ReflectionTestUtils.setField(service, "shutdownService", shutdownService);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> service.saveCentralPubkeyLockedMsg(msg));
+
+        assertSame(drainFailure, thrown);
+        verify(repository).save(msg);
+        verify(msgAbstractService).saveMsgAbstract(msg);
+        verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
+        verify(shutdownService).requestShutdown();
+    }
+
+    @Test
+    void rethrowsDrainFailureAndSuppressesShutdownFailureWhenBothFail() {
+        CentralPubkeyLockedMsg msg = new CentralPubkeyLockedMsgConverter().fromByteArray(
+                messageBuilder.centralPubkeyLocked(
+                        UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+                        TestKeyPairs.CENTRAL
+                )
+        );
+
+        CentralPubkeyLockedMsgRepository repository = mock(CentralPubkeyLockedMsgRepository.class);
+        when(repository.existsById(msg.getId())).thenReturn(false);
+        when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
+
+        MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
+        BlockChainService blockChainService = mock(BlockChainService.class);
+        CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
+        RuntimeException drainFailure = new RuntimeException("drain failed");
+        RuntimeException shutdownFailure = new RuntimeException("shutdown failed");
+        org.mockito.Mockito.doThrow(drainFailure)
+                .when(blockChainService)
+                .generateBlockUntilNoNotInBlockMsgs();
+        org.mockito.Mockito.doThrow(shutdownFailure)
+                .when(shutdownService)
+                .requestShutdown();
+
+        TransactionTemplate transactionTemplate = mock(TransactionTemplate.class);
+        doAnswer(invocation -> {
+            Consumer<TransactionStatus> action = invocation.getArgument(0);
+            action.accept(new SimpleTransactionStatus());
+            return null;
+        }).when(transactionTemplate).executeWithoutResult(any());
+
+        ProtocolRawBytesBuilder rawBytesBuilder = new ProtocolRawBytesBuilder();
+        CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService();
+        ReflectionTestUtils.setField(service, "nmsciProperties", properties());
+        ReflectionTestUtils.setField(service, "centralPubkeyLockedMsgRepository", repository);
+        ReflectionTestUtils.setField(service, "messageWritePipeline", new MessageWritePipeline(msgAbstractService));
+        ReflectionTestUtils.setField(service, "blockChainService", blockChainService);
+        ReflectionTestUtils.setField(service, "signatureValidator", new SignatureValidator());
+        ReflectionTestUtils.setField(service, "protocolRawBytesBuilder", rawBytesBuilder);
+        ReflectionTestUtils.setField(service, "centralSignatureService", new CentralSignatureService(properties(), rawBytesBuilder));
+        ReflectionTestUtils.setField(service, "transactionTemplate", transactionTemplate);
+        ReflectionTestUtils.setField(service, "shutdownService", shutdownService);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> service.saveCentralPubkeyLockedMsg(msg));
+
+        assertSame(drainFailure, thrown);
+        assertTrue(List.of(thrown.getSuppressed()).contains(shutdownFailure));
+        verify(repository).save(msg);
+        verify(msgAbstractService).saveMsgAbstract(msg);
+        verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
+        verify(shutdownService).requestShutdown();
     }
 
     @Test
