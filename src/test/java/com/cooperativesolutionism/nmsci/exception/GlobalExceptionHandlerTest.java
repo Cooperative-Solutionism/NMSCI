@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -109,6 +110,7 @@ class GlobalExceptionHandlerTest {
         // 修复前会被兜底的 Exception 处理器吞为 500，修复后须为 405。
         mockMvc.perform(post("/failure/not-found"))
                 .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().string("Allow", containsString("GET")))
                 .andExpect(jsonPath("$.code").value(405))
                 .andExpect(jsonPath("$.message").value("请求方法不被支持"))
                 .andExpect(jsonPath("$.data").value(nullValue()));
@@ -122,6 +124,7 @@ class GlobalExceptionHandlerTest {
                         .contentType(MediaType.TEXT_PLAIN)
                         .content("plain-text-body"))
                 .andExpect(status().isUnsupportedMediaType())
+                .andExpect(header().string("Accept", containsString(MediaType.APPLICATION_JSON_VALUE)))
                 .andExpect(jsonPath("$.code").value(415))
                 .andExpect(jsonPath("$.message").value("不支持的媒体类型"))
                 .andExpect(jsonPath("$.data").value(nullValue()));

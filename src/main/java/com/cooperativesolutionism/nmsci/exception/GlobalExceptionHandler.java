@@ -7,7 +7,9 @@ import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -22,6 +24,9 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.util.List;
+import java.util.Set;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -54,13 +59,25 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<ResponseResult<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
         logger.warn("Method not allowed [{}]: {}", requestContext(), e.getMessage());
-        return failure(HttpStatus.METHOD_NOT_ALLOWED, ResponseCode.METHOD_NOT_ALLOWED, METHOD_NOT_ALLOWED_MESSAGE);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED);
+        // RFC 7231：405 响应必须带 Allow 头列出该资源支持的方法。
+        Set<HttpMethod> supportedMethods = e.getSupportedHttpMethods();
+        if (supportedMethods != null && !supportedMethods.isEmpty()) {
+            builder.allow(supportedMethods.toArray(new HttpMethod[0]));
+        }
+        return builder.body(ResponseResult.failure(ResponseCode.METHOD_NOT_ALLOWED, METHOD_NOT_ALLOWED_MESSAGE));
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ResponseResult<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
         logger.warn("Unsupported media type [{}]: {}", requestContext(), e.getMessage());
-        return failure(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ResponseCode.UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_MEDIA_TYPE_MESSAGE);
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE);
+        // RFC 7231：415 响应可用 Accept 头告知该资源接受的媒体类型，便于客户端纠正。
+        List<MediaType> supportedMediaTypes = e.getSupportedMediaTypes();
+        if (supportedMediaTypes != null && !supportedMediaTypes.isEmpty()) {
+            builder.headers(headers -> headers.setAccept(supportedMediaTypes));
+        }
+        return builder.body(ResponseResult.failure(ResponseCode.UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_MEDIA_TYPE_MESSAGE));
     }
 
     @ExceptionHandler({

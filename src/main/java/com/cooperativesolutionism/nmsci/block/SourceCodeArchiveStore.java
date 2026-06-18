@@ -59,11 +59,13 @@ public class SourceCodeArchiveStore {
 
     /** 以临时文件 + 原子 move 从类路径资源发布源码包，确保读取方永远看不到半写入的文件。 */
     private void publishFromClasspath(String sourceCodeZipFilename, Path sourceCodePath) throws IOException {
-        Files.createDirectories(sourceCodePath.getParent());
-        Path tempFile = Files.createTempFile(sourceCodePath.getParent(), sourceCodeZipFilename + ".", ".tmp");
+        // 临时文件放在专用 .staging 子目录（与目标同卷，原子 move 仍可用），避免 .tmp 出现在被消费的源码目录里，
+        // 杜绝任何按目录枚举的逻辑偶发看到半成品文件。
+        Path stagingDir = sourceCodePath.getParent().resolve(".staging");
+        Files.createDirectories(stagingDir);
+        Path tempFile = Files.createTempFile(stagingDir, sourceCodeZipFilename + ".", ".tmp");
         try {
-            ClassPathResource classPathResource = new ClassPathResource("static/" + sourceCodeZipFilename);
-            try (InputStream inputStream = classPathResource.getInputStream()) {
+            try (InputStream inputStream = openArchiveResource(sourceCodeZipFilename)) {
                 Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
             }
             atomicMove(tempFile, sourceCodePath);
@@ -71,6 +73,11 @@ public class SourceCodeArchiveStore {
             // move 成功后临时文件已不存在，此处为失败路径的清理，避免遗留 .tmp。
             Files.deleteIfExists(tempFile);
         }
+    }
+
+    /** 打开类路径中的源码包资源。提取为可重写方法，便于单测以已知字节替换类路径读取（不依赖构建期生成的真实 zip）。 */
+    InputStream openArchiveResource(String sourceCodeZipFilename) throws IOException {
+        return new ClassPathResource("static/" + sourceCodeZipFilename).getInputStream();
     }
 
     private static void atomicMove(Path source, Path target) throws IOException {

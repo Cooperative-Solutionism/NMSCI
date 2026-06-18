@@ -6,13 +6,17 @@ import com.cooperativesolutionism.nmsci.util.Sha256Util;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -67,6 +71,38 @@ class SourceCodeArchiveStoreTest {
         assertEquals("source_code_v" + VERSION + ".zip", filename);
     }
 
+    @Test
+    void publishesFromClasspathViaStagingWhenTargetMissing() throws IOException {
+        byte[] freshBytes = "fresh-classpath-archive-bytes".getBytes(StandardCharsets.UTF_8);
+        Path target = appRoot.resolve("file").resolve("source-code").resolve("source_code_v" + VERSION + ".zip");
+        assertFalse(Files.exists(target));
+        SourceCodeArchiveStore store = storeWithArchiveSource(hashOf(freshBytes), freshBytes);
+
+        String filename = store.copyArchiveForVersion(VERSION);
+
+        assertEquals("source_code_v" + VERSION + ".zip", filename);
+        assertTrue(Files.exists(target));
+        assertArrayEquals(freshBytes, Files.readAllBytes(target));
+        // 发布后被消费的源码目录里不应残留任何 .tmp
+        try (Stream<Path> entries = Files.list(target.getParent())) {
+            assertTrue(entries.noneMatch(p -> p.getFileName().toString().endsWith(".tmp")));
+        }
+    }
+
+    @Test
+    void rejectsFreshlyCopiedArchiveWhenHashMismatchesBoundHash() {
+        byte[] freshBytes = "fresh-classpath-archive-bytes".getBytes(StandardCharsets.UTF_8);
+        String wrongButBoundHash = "1111111111111111111111111111111111111111111111111111111111111111";
+        SourceCodeArchiveStore store = storeWithArchiveSource(wrongButBoundHash, freshBytes);
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> store.copyArchiveForVersion(VERSION)
+        );
+
+        assertTrue(exception.getMessage().contains("完整性校验失败"), exception.getMessage());
+    }
+
     private Path writeExistingArchive(byte[] bytes) throws IOException {
         Path archive = appRoot.resolve("file").resolve("source-code").resolve("source_code_v" + VERSION + ".zip");
         Files.createDirectories(archive.getParent());
@@ -75,11 +111,25 @@ class SourceCodeArchiveStoreTest {
     }
 
     private SourceCodeArchiveStore store(String sourceCodeZipHash) {
+        return new SourceCodeArchiveStore(propertiesWith(sourceCodeZipHash), appRoot);
+    }
+
+    /** 用一个以已知字节代替类路径读取的 store，独立测试「目标不存在→复制+原子发布」首次复制路径。 */
+    private SourceCodeArchiveStore storeWithArchiveSource(String sourceCodeZipHash, byte[] archiveBytes) {
+        return new SourceCodeArchiveStore(propertiesWith(sourceCodeZipHash), appRoot) {
+            @Override
+            InputStream openArchiveResource(String sourceCodeZipFilename) {
+                return new ByteArrayInputStream(archiveBytes);
+            }
+        };
+    }
+
+    private static NmsciProperties propertiesWith(String sourceCodeZipHash) {
         NmsciProperties properties = new NmsciProperties();
         properties.setFileRootDir("file");
         properties.setFileSourceCodeDir("source-code");
         properties.setSourceCodeZipHash(sourceCodeZipHash);
-        return new SourceCodeArchiveStore(properties, appRoot);
+        return properties;
     }
 
     private static String hashOf(byte[] bytes) {

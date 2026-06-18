@@ -44,6 +44,11 @@ public class ConsumeChainAllocationService {
         this.nmsciMetrics = nmsciMetrics;
     }
 
+    /**
+     * 必须沿用调用方 {@code TransactionMountWriteService.saveAndAllocate} 的同一事务（默认 REQUIRED 传播）。
+     * 切勿改为 {@code REQUIRES_NEW}：否则挂载落库与链分配将分属两个事务，破坏其同事务原子性与那里
+     * 针对并发锁定/授权的二次状态校验（review #4），可能产生「校验通过但分配落在另一事务」的不一致。
+     */
     @Transactional
     public void saveConsumeChain(@Nonnull TransactionMountMsg transactionMountMsg, @Nonnull TransactionRecordMsg transactionRecordMsg) {
         nmsciMetrics.timeConsumeChainAllocation(() -> {
