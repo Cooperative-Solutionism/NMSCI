@@ -132,6 +132,13 @@ curl -X POST http://localhost:8080/transaction-records \
   --data-binary @transaction-record.bin
 ```
 
+> **如何构造 `.bin`（端到端 smoke）**：请求体是按 [PROTOCOL.md](../PROTOCOL.md) 对应章节逐字段拼接的原始字节，其中含 secp256k1 成员签名（low-S）与工作量证明随机数，**无法用纯 shell/curl 手搓**，需程序化生成：
+> 1. 用 [README《配置》](../README.md) 的 `GenerateCentralKeyPairCli` 生成中心密钥对，并为流转/消费节点各生成一对密钥；
+> 2. 按字节布局拼装消息体、对待签数据做 low-S 签名、对带难度目标的消息挖出满足难度的 nonce；
+> 3. 按完整生命周期顺序提交：注册流转节点 → 授权中心公钥 → 交易记录 → 交易挂载。
+>
+> 仓库内已有可执行的参考实现，可直接照搬其字节拼装与签名/挖矿逻辑：测试支撑类 `ProtocolMessageBuilder`（`src/test/java/.../support/`）与压测脚本 `stress/FullLifecycleSimulation` 的 `BUILDER`，二者覆盖上述第 2、3 步（字节拼装 + low-S 签名 + PoW，以及注册→授权→交易→挂载的生命周期顺序），是最权威的 smoke 起点；第 1 步它们用测试夹具 `TestKeyPairs` 派生密钥，与 `GenerateCentralKeyPairCli` 等价（任一合法 secp256k1 密钥对均可）。
+
 ### 1.7 id 与 pubkey 不可混用
 
 消费链与回流率的查询同时支持「按 id」与「按 pubkey」两套定位参数，**同一请求只能用其中一套**，混用返回 400（`"id 与 pubkey 查询参数不能混用"`）。pubkey 会在服务端解析为对应流转节点的 id 后再查询。
