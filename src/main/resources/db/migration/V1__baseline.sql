@@ -1,3 +1,8 @@
+-- V1 基线：忠实快照线上 v1.0.0 由 Hibernate 自动建表生成的真实模式（仅表 + 主键 + 外键 + 注释）。
+-- 线上库无 flyway_schema_history，部署时以 baseline-version=1 自动基线到本版本而不执行本脚本；
+-- 全新空库则从本脚本起执行全部迁移。设计期的唯一约束/检查约束/查询索引由 V2 统一补齐，
+-- 使「线上既有库」与「全新库」最终收敛到同一模式。本脚本不含任何 owner 硬编码，可在非 postgres 角色下运行。
+
 create table central_pubkey_empower_msgs
 (
     id                  uuid               not null
@@ -9,11 +14,7 @@ create table central_pubkey_empower_msgs
     confirm_timestamp   bigint             not null,
     central_signature   bytea              not null,
     raw_bytes           bytea              not null,
-    txid                bytea              not null,
-    constraint uk_central_pubkey_empower_msgs_flow_node_pubkey
-        unique (flow_node_pubkey),
-    constraint uk_central_pubkey_empower_msgs_txid
-        unique (txid)
+    txid                bytea              not null
 );
 
 comment on table central_pubkey_empower_msgs is '中心公钥公证信息';
@@ -44,11 +45,7 @@ create table central_pubkey_locked_msgs
     confirm_timestamp     bigint             not null,
     central_signature     bytea              not null,
     raw_bytes             bytea              not null,
-    txid                  bytea              not null,
-    constraint uk_central_pubkey_locked_msgs_central_pubkey
-        unique (central_pubkey),
-    constraint uk_central_pubkey_locked_msgs_txid
-        unique (txid)
+    txid                  bytea              not null
 );
 
 comment on table central_pubkey_locked_msgs is '中心公钥冻结信息';
@@ -77,11 +74,7 @@ create table flow_node_register_msgs
     flow_node_pubkey           bytea              not null,
     flow_node_signature        bytea              not null,
     raw_bytes                  bytea              not null,
-    txid                       bytea              not null,
-    constraint uk_flow_node_register_msgs_flow_node_pubkey
-        unique (flow_node_pubkey),
-    constraint uk_flow_node_register_msgs_txid
-        unique (txid)
+    txid                       bytea              not null
 );
 
 comment on table flow_node_register_msgs is '流转节点注册信息';
@@ -111,11 +104,7 @@ create table flow_node_locked_msgs
     confirm_timestamp   bigint             not null,
     central_signature   bytea              not null,
     raw_bytes           bytea              not null,
-    txid                bytea              not null,
-    constraint uk_flow_node_locked_msgs_flow_node_pubkey
-        unique (flow_node_pubkey),
-    constraint uk_flow_node_locked_msgs_txid
-        unique (txid)
+    txid                bytea              not null
 );
 
 comment on table flow_node_locked_msgs is '流转节点冻结信息';
@@ -141,9 +130,7 @@ create table transaction_record_msgs
     id                            uuid               not null
         primary key,
     msg_type                      smallint default 4 not null,
-    amount                        bigint             not null
-        constraint ck_transaction_record_msgs_amount_positive
-            check (amount > 0),
+    amount                        bigint             not null,
     currency_type                 smallint           not null,
     transaction_difficulty_target integer            not null,
     nonce                         integer            not null,
@@ -155,9 +142,7 @@ create table transaction_record_msgs
     confirm_timestamp             bigint             not null,
     central_signature             bytea              not null,
     raw_bytes                     bytea              not null,
-    txid                          bytea              not null,
-    constraint uk_transaction_record_msgs_txid
-        unique (txid)
+    txid                          bytea              not null
 );
 
 comment on table transaction_record_msgs is '交易记录信息';
@@ -206,11 +191,7 @@ create table transaction_mount_msgs
     confirm_timestamp             bigint             not null,
     central_signature             bytea              not null,
     raw_bytes                     bytea              not null,
-    txid                          bytea              not null,
-    constraint uk_transaction_mount_msgs_mounted_transaction_record_id
-        unique (mounted_transaction_record_id),
-    constraint uk_transaction_mount_msgs_txid
-        unique (txid)
+    txid                          bytea              not null
 );
 
 comment on table transaction_mount_msgs is '交易挂载信息';
@@ -259,11 +240,7 @@ create table block_infos
     central_signature             bytea             not null,
     dat_filepath                  text              not null,
     source_code_zip_filepath      text              not null,
-    raw_bytes                     bytea             not null,
-    constraint uk_block_infos_height
-        unique (height),
-    constraint uk_block_infos_previous_block_hash
-        unique (previous_block_hash)
+    raw_bytes                     bytea             not null
 );
 
 comment on table block_infos is '区块信息';
@@ -393,74 +370,3 @@ comment on column consume_chain_edges.related_transaction_mount is '关联的交
 comment on column consume_chain_edges.related_transaction_mount_timestamp is '关联的交易挂载的确认时间，单位微秒，时区UTC+0';
 
 comment on column consume_chain_edges.is_loop is '所属的消费链是否已成环';
-
--- Message validation indexes
-create index idx_flow_node_register_pubkey
-    on flow_node_register_msgs(flow_node_pubkey);
-
-create index idx_flow_node_locked_pubkey
-    on flow_node_locked_msgs(flow_node_pubkey);
-
-create index idx_central_pubkey_locked_pubkey
-    on central_pubkey_locked_msgs(central_pubkey);
-
-create index idx_central_pubkey_empower_flow_central
-    on central_pubkey_empower_msgs(flow_node_pubkey, central_pubkey);
-
--- Transaction query indexes
-create index idx_transaction_record_consume_pubkey
-    on transaction_record_msgs(consume_node_pubkey);
-
-create index idx_transaction_record_flow_pubkey
-    on transaction_record_msgs(flow_node_pubkey);
-
-create index idx_transaction_record_consume_flow_pubkey
-    on transaction_record_msgs(consume_node_pubkey, flow_node_pubkey);
-
-create index idx_transaction_mount_consume_pubkey
-    on transaction_mount_msgs(consume_node_pubkey);
-
-create index idx_transaction_mount_flow_pubkey
-    on transaction_mount_msgs(flow_node_pubkey);
-
-create index idx_transaction_mount_consume_flow_pubkey
-    on transaction_mount_msgs(consume_node_pubkey, flow_node_pubkey);
-
--- Block generation indexes
-create index idx_msg_abstracts_unblocked_timestamp
-    on msg_abstracts(is_in_block, confirm_timestamp);
-
-create index idx_msg_abstracts_unblocked_timestamp_id
-    on msg_abstracts(is_in_block, confirm_timestamp, id);
-
-create index idx_block_infos_height_desc
-    on block_infos(height desc);
-
--- Consume chain indexes
-create index idx_consume_chains_open_end_currency_tail
-    on consume_chains("end", currency_type, tail_mount_timestamp)
-    where is_loop = false;
-
-create index idx_consume_chains_start
-    on consume_chains(start);
-
-create index idx_consume_chains_start_loop
-    on consume_chains(start, is_loop);
-
-create index idx_consume_chains_end
-    on consume_chains("end");
-
-create index idx_consume_chains_end_loop
-    on consume_chains("end", is_loop);
-
-create index idx_consume_chain_edges_chain_timestamp
-    on consume_chain_edges(chain, related_transaction_mount_timestamp);
-
-create index idx_consume_chain_edges_mount
-    on consume_chain_edges(related_transaction_mount);
-
-create index idx_consume_chain_edges_source_target_currency_time
-    on consume_chain_edges(source, target, currency_type, related_transaction_mount_timestamp, chain);
-
-create index idx_consume_chain_edges_target_currency_time
-    on consume_chain_edges(target, currency_type, related_transaction_mount_timestamp, chain);

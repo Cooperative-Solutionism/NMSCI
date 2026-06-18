@@ -262,19 +262,20 @@ file/source-code
 
 这些目录保存历史区块 `.dat` 文件和各版本源码包，不应在升级时清空。
 
-Flyway 会在应用启动时自动执行数据库迁移；已有生产数据库会按 V1 建立基线，新的空数据库会从 V1 初始化完整结构。当前迁移到 V3（V2 补引用完整性与金额正值约束，V3 放宽公证唯一约束以支持中心公钥轮换）。
+Flyway 会在应用启动时自动执行数据库迁移：已有生产库（非空、无 `flyway_schema_history`）以 `baseline-version=1` 自动基线到 **V1**（不重跑建表），随后执行 V2+；全新空库忽略基线，从 V1 起执行全部迁移；两类库收敛到同一最终模式。当前迁移到 **V4**：
 
-> **已有生产库升级到含 V2 的版本前请先体检。** V2 给既有表追加了外键与 `amount > 0` 的 CHECK 约束，PostgreSQL 默认会校验存量行——若已有数据违例（金额 ≤ 0，或挂载引用了不存在的交易记录），迁移会在启动时失败、应用无法启动。升级前先确认下列三项均为 `0`：
+- **V1 `baseline`**：忠实快照线上 v1.0.0 的真实模式（仅表 + 主键 + 外键 + 注释）。
+- **V2 `add_designed_constraints_and_indexes`**：补齐设计期本应存在、但线上自动建表未生成的唯一约束、`amount > 0` 检查约束与查询索引。
+- **V3 `harden_db_constraints`**：补挂载外键 `fk_transaction_mount_mounted_record` 与消费链/边 `amount > 0` 检查（评审 #3）。
+- **V4 `support_central_pubkey_rotation`**：放宽公证唯一约束（由「每流转节点一次」放宽为「每 (流转节点公钥, 中心公钥) 一次」）以支持中心公钥轮换。
+
+> **已有生产库升级前必须先做数据预检。** V2/V3 会向存量数据追加唯一约束、`amount > 0` 检查与外键，PostgreSQL 默认校验存量行——若已有数据违例（重复 `txid`/公钥/区块高度/父哈希、金额 ≤ 0、挂载引用了不存在的交易记录），迁移会在启动时失败、应用无法启动。升级前执行预检脚本，确认所有 `violations` 均为 `0`：
 >
-> ```sql
-> select count(*) from consume_chains       where amount <= 0;
-> select count(*) from consume_chain_edges  where amount <= 0;
-> select count(*) from transaction_mount_msgs m
->   left join transaction_record_msgs r on r.id = m.mounted_transaction_record_id
->   where m.mounted_transaction_record_id is not null and r.id is null;
+> ```bash
+> psql "$DB_URL" -f docs/prod_baseline_precheck.sql
 > ```
 >
-> 空库无此风险。V3 仅放宽公证唯一约束（由「每流转节点一次」放宽为「每 (流转节点公钥, 中心公钥) 一次」，更宽松），存量必然满足。
+> 完整的基线策略、前提确认、部署验证与回滚步骤见 [docs/DB-BASELINE.md](./docs/DB-BASELINE.md)。空库无此风险；V4 仅放宽唯一约束（更宽松），存量必然满足。
 
 应用启动后，`GenerateBlockTask` 会立即执行一次区块生成任务，之后每 10 分钟执行一次。第一次运行还会持续生成区块，直到没有未入块消息；首次出块之前会先做一次 .dat 与数据库的启动对账（见下「运维与恢复」）。
 

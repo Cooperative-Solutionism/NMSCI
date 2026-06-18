@@ -23,7 +23,7 @@ class HibernateBatchConfigurationContractTest {
     void applicationPropertiesEnableMigrationValidationAndGracefulShutdown() throws IOException {
         String applicationProperties = Files.readString(Path.of("src/main/resources/application.properties"));
 
-        assertTrue(applicationProperties.contains("spring.flyway.baseline-version=0"));
+        assertTrue(applicationProperties.contains("spring.flyway.baseline-version=1"));
         assertTrue(applicationProperties.contains("spring.jpa.hibernate.ddl-auto=validate"));
         assertTrue(applicationProperties.contains("server.shutdown=graceful"));
     }

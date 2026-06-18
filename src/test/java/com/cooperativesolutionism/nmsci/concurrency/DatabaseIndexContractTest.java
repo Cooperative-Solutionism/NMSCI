@@ -3,15 +3,18 @@ package com.cooperativesolutionism.nmsci.concurrency;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DatabaseIndexContractTest {
 
-    private static final Path SCHEMA_SQL = Path.of("src/main/resources/db/migration/V1__baseline.sql");
+    private static final Path MIGRATION_DIR = Path.of("src/main/resources/db/migration");
 
     private static final List<String> REQUIRED_INDEXES = List.of(
             "idx_flow_node_register_pubkey",
@@ -40,13 +43,31 @@ class DatabaseIndexContractTest {
 
     @Test
     void schemaCreatesAllQueryPerformanceIndexesForNewDatabases() throws IOException {
-        String schemaSql = Files.readString(SCHEMA_SQL);
+        String migrationSql = readAllMigrations();
 
         for (String indexName : REQUIRED_INDEXES) {
             assertTrue(
-                    schemaSql.contains("create index " + indexName),
-                    () -> "V1__baseline.sql must create " + indexName
+                    migrationSql.contains("create index " + indexName),
+                    () -> "db/migration must create " + indexName
             );
+        }
+    }
+
+    private static String readAllMigrations() throws IOException {
+        try (Stream<Path> files = Files.list(MIGRATION_DIR)) {
+            return files
+                    .filter(path -> path.getFileName().toString().endsWith(".sql"))
+                    .sorted()
+                    .map(DatabaseIndexContractTest::readString)
+                    .collect(Collectors.joining("\n"));
+        }
+    }
+
+    private static String readString(Path path) {
+        try {
+            return Files.readString(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 }

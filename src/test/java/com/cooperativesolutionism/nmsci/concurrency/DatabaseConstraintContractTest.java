@@ -13,9 +13,12 @@ import org.hibernate.annotations.Check;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,7 +57,7 @@ class DatabaseConstraintContractTest {
             new UniqueConstraintSpec(TransactionRecordMsg.class, "uk_transaction_record_msgs_txid", "txid"),
             new UniqueConstraintSpec(TransactionMountMsg.class, "uk_transaction_mount_msgs_txid", "txid")
     };
-    private static final Path SCHEMA_SQL = Path.of("src/main/resources/db/migration/V1__baseline.sql");
+    private static final Path MIGRATION_DIR = Path.of("src/main/resources/db/migration");
 
     @Test
     void transactionRecordEntityDeclaresPositiveAmountCheckConstraint() {
@@ -69,7 +72,7 @@ class DatabaseConstraintContractTest {
 
     @Test
     void schemaRejectsNonPositiveTransactionRecordAmountsForNewDatabases() throws IOException {
-        String schemaSql = Files.readString(SCHEMA_SQL);
+        String schemaSql = readAllMigrations();
 
         assertTrue(schemaSql.contains("constraint " + TRANSACTION_AMOUNT_CONSTRAINT));
         assertTrue(schemaSql.contains("check (" + TRANSACTION_AMOUNT_CHECK + ")"));
@@ -92,7 +95,7 @@ class DatabaseConstraintContractTest {
 
     @Test
     void schemaPreventsDuplicateBlockHeightsAndParentForksForNewDatabases() throws IOException {
-        String schemaSql = Files.readString(SCHEMA_SQL);
+        String schemaSql = readAllMigrations();
 
         assertTrue(schemaSql.contains("constraint " + BLOCK_HEIGHT_UNIQUE_CONSTRAINT));
         assertTrue(schemaSql.contains("unique (height)"));
@@ -115,7 +118,7 @@ class DatabaseConstraintContractTest {
 
     @Test
     void schemaPreventsDuplicateProtocolMessagesForNewDatabases() throws IOException {
-        String schemaSql = Files.readString(SCHEMA_SQL);
+        String schemaSql = readAllMigrations();
 
         for (UniqueConstraintSpec spec : PROTOCOL_MESSAGE_UNIQUE_CONSTRAINTS) {
             assertSqlContainsUniqueConstraint(schemaSql, spec);
@@ -131,6 +134,24 @@ class DatabaseConstraintContractTest {
     private void assertSqlContainsUniqueConstraint(String sql, UniqueConstraintSpec spec) {
         assertTrue(sql.contains("constraint " + spec.constraintName()));
         assertTrue(sql.contains("unique (" + spec.columnName() + ")"));
+    }
+
+    private static String readAllMigrations() throws IOException {
+        try (Stream<Path> files = Files.list(MIGRATION_DIR)) {
+            return files
+                    .filter(path -> path.getFileName().toString().endsWith(".sql"))
+                    .sorted()
+                    .map(DatabaseConstraintContractTest::readString)
+                    .collect(Collectors.joining("\n"));
+        }
+    }
+
+    private static String readString(Path path) {
+        try {
+            return Files.readString(path);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     private record UniqueConstraintSpec(Class<?> entityClass, String constraintName, String columnName) {
