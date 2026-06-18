@@ -118,12 +118,12 @@ class ChainVerifierRoundTripTest {
 
     @Test
     void rejectsBlockVersionAboveVerifierSupport() {
-        // v2 区块但验证器仅支持到 v1 → 「区块版本号」应判为过新。
-        AssembledBlock v2 = assembleRegisterBlock(
-                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 2);
+        // v3 区块但验证器默认仅支持到 v2 → 「区块版本号」应判为过新。
+        AssembledBlock v3 = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 3);
 
         ChainVerificationResult result = verifier.verify(
-                DatBlockReader.readConcatenated(v2.getDatBytes(), "blk00000000.dat"), optionsWithCentral());
+                DatBlockReader.readConcatenated(v3.getDatBytes(), "blk00000000.dat"), optionsWithCentral());
         assertFalse(result.ok());
         assertTrue(result.allFailures().stream().anyMatch(check -> check.name().equals("区块版本号")),
                 () -> "应检出版本过新:\n" + result.render());

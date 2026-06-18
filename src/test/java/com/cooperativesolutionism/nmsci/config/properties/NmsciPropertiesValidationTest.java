@@ -79,7 +79,7 @@ class NmsciPropertiesValidationTest {
     @Test
     void failsFastWhenBlockVersionExceedsVerifierSupport() {
         contextRunner
-                .withPropertyValues("nmsci.block-version=2")
+                .withPropertyValues("nmsci.block-version=3")
                 .run(context -> assertThat(context).hasFailed());
     }
 
