@@ -1,10 +1,7 @@
 package com.cooperativesolutionism.nmsci.service;
 
-import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
-
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
-import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
 import com.cooperativesolutionism.nmsci.protocol.CentralPubkeyValidator;
 import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
@@ -63,8 +60,14 @@ public class CentralPubkeyEmpowerMsgService {
         );
 
         flowNodeStateValidator.validateRegistered(centralPubkeyEmpowerMsg.getFlowNodePubkey());
-        if (centralPubkeyEmpowerMsgRepository.existsByFlowNodePubkey(centralPubkeyEmpowerMsg.getFlowNodePubkey())) {
-            throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey()) + ")已进行过授权");
+        // 公证唯一性按 (流转节点公钥, 中心公钥) 组合判定：同一节点对同一中心公钥不可重复授权，
+        // 但中心公钥被冻结/轮换后可对新的中心公钥重新授权（对齐 PROTOCOL.md 轮换连续性；下方
+        // validateCurrentAndNotLocked 已确保只能对当前未冻结的中心公钥授权）。
+        if (centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                centralPubkeyEmpowerMsg.getFlowNodePubkey(),
+                centralPubkeyEmpowerMsg.getCentralPubkey()) > 0) {
+            throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey())
+                    + ")已对该中心公钥授权过");
         }
         centralPubkeyValidator.validateCurrentAndNotLocked(centralPubkeyEmpowerMsg.getCentralPubkey());
         signatureValidator.validateLowS(centralPubkeyEmpowerMsg.getFlowNodeSignature(), "流转节点签名不符合低S标准");
@@ -86,18 +89,6 @@ public class CentralPubkeyEmpowerMsgService {
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
         return EntityLookup.requireById(id, "中心公钥公证信息", centralPubkeyEmpowerMsgRepository::findById);
-    }
-    public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgByFlowNodePubkey(byte[] flowNodePubkey) {
-        if (flowNodePubkey == null || flowNodePubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
-            throw new IllegalArgumentException("流转节点公钥不能为空或长度不正确");
-        }
-
-        CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg = centralPubkeyEmpowerMsgRepository.findByFlowNodePubkey(flowNodePubkey);
-        if (centralPubkeyEmpowerMsg == null) {
-            throw new NotFoundException("流转节点公钥(" + ByteArrayUtil.bytesToHex(flowNodePubkey) + ")未授权");
-        }
-
-        return centralPubkeyEmpowerMsg;
     }
     @Transactional(readOnly = true)
     public Slice<CentralPubkeyEmpowerMsg> listCentralPubkeyEmpowerMsgs(byte[] flowNodePubkey, Pageable pageable) {

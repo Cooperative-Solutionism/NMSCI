@@ -22,9 +22,11 @@ import java.util.UUID;
 @Table(
         name = "central_pubkey_empower_msgs",
         uniqueConstraints = {
+                // 公证唯一性为 (流转节点公钥, 中心公钥) 组合：每节点对每个中心公钥至多授权一次，
+                // 但中心公钥轮换后可对新的中心公钥重新授权（见 V3 迁移与 PROTOCOL.md 轮换语义）。
                 @UniqueConstraint(
-                        name = "uk_central_pubkey_empower_msgs_flow_node_pubkey",
-                        columnNames = "flow_node_pubkey"
+                        name = "uk_central_pubkey_empower_flow_central",
+                        columnNames = {"flow_node_pubkey", "central_pubkey"}
                 ),
                 @UniqueConstraint(
                         name = "uk_central_pubkey_empower_msgs_txid",

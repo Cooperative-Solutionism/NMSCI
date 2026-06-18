@@ -25,8 +25,8 @@ import java.util.UUID;
  * 其后不再有合法消息。
  *
  * <p><b>覆盖的时序敏感前提</b>（对照各 *MsgService 与 PROTOCOL）：消息发生时中心公钥未冻结；流转节点未冻结；
- * 交易/冻结的流转节点已对其中心公钥公证授权（{@code empowered[F]==C}）；公证时流转节点尚未授权过
- * （{@code existsByFlowNodePubkey} —— 每节点至多公证一次）；以及 id/注册/冻结唯一性与挂载引用完整性。
+ * 交易/冻结的流转节点已对其中心公钥公证授权（{@code empowered[F] ∋ C}）；公证时流转节点尚未对该中心公钥授权过
+ * （每 (流转节点,中心公钥) 至多公证一次；中心公钥轮换后可对新的中心公钥重新授权）；以及 id/注册/冻结唯一性与挂载引用完整性。
  *
  * <p><b>不在此处</b>：难度目标=入账时最新区块难度、消息中心公钥=区块头中心公钥、中心公钥轮换合法性——
  * 这三项需要区块上下文，在 {@link ChainVerifier} 的逐块线性遍历中判定。
@@ -46,7 +46,7 @@ public final class ChainStateReplayer {
 
         Set<String> seenIds = new HashSet<>();
         Set<String> registered = new HashSet<>();
-        Map<String, String> empoweredCentralByNode = new HashMap<>();
+        Map<String, Set<String>> empoweredCentralsByNode = new HashMap<>();
         Set<String> flowLocked = new HashSet<>();
         Set<String> frozenCentrals = new HashSet<>();
         Map<UUID, String> consumeByRecordId = new HashMap<>();
@@ -54,7 +54,7 @@ public final class ChainStateReplayer {
         Check idUnique = new Check("消息 id 全链唯一");
         Check registerOnce = new Check("流转节点注册唯一");
         Check freezeOnce = new Check("中心公钥冻结唯一");
-        Check empowerNotAlready = new Check("公证：流转节点未重复授权");
+        Check empowerNotAlready = new Check("公证：流转节点未对同一中心公钥重复授权");
         Check nodeRegistered = new Check("引用的流转节点已注册");
         Check nodeAuthorized = new Check("交易/冻结：流转节点已授权该中心公钥");
         Check nodeNotLocked = new Check("交易/冻结：流转节点未冻结");
@@ -90,11 +90,12 @@ public final class ChainStateReplayer {
                 case CentralPubkeyEmpowerMsg -> {
                     requireRegistered(nodeRegistered, registered, flow, message);
                     empowerNotAlready.applicable();
-                    if (empoweredCentralByNode.containsKey(flow)) {
-                        empowerNotAlready.fail("流转节点重复授权 id=" + message.id());
+                    Set<String> empoweredCentrals = empoweredCentralsByNode.computeIfAbsent(flow, key -> new HashSet<>());
+                    if (empoweredCentrals.contains(central)) {
+                        empowerNotAlready.fail("流转节点对同一中心公钥重复授权 id=" + message.id());
                     }
                     requireCentralNotFrozen(centralNotFrozen, frozenCentrals, central, message);
-                    empoweredCentralByNode.put(flow, central);
+                    empoweredCentrals.add(central);
                 }
                 case CentralPubkeyLockedMsg -> {
                     freezeOnce.applicable();
@@ -104,19 +105,19 @@ public final class ChainStateReplayer {
                 }
                 case FlowNodeLockedMsg -> {
                     requireNodeOperable(message, flow, central,
-                            registered, empoweredCentralByNode, flowLocked, frozenCentrals,
+                            registered, empoweredCentralsByNode, flowLocked, frozenCentrals,
                             nodeRegistered, nodeAuthorized, nodeNotLocked, centralNotFrozen);
                     flowLocked.add(flow);
                 }
                 case TransactionRecordMsg -> {
                     requireNodeOperable(message, flow, central,
-                            registered, empoweredCentralByNode, flowLocked, frozenCentrals,
+                            registered, empoweredCentralsByNode, flowLocked, frozenCentrals,
                             nodeRegistered, nodeAuthorized, nodeNotLocked, centralNotFrozen);
                     consumeByRecordId.put(message.id(), hexOrNull(message.consumeNodePubkey()));
                 }
                 case TransactionMountMsg -> {
                     requireNodeOperable(message, flow, central,
-                            registered, empoweredCentralByNode, flowLocked, frozenCentrals,
+                            registered, empoweredCentralsByNode, flowLocked, frozenCentrals,
                             nodeRegistered, nodeAuthorized, nodeNotLocked, centralNotFrozen);
                     mountRecordExists.applicable();
                     UUID recordId = message.mountedTransactionRecordId();
@@ -150,14 +151,14 @@ public final class ChainStateReplayer {
 
     private static void requireNodeOperable(
             ParsedMessage message, String flow, String central,
-            Set<String> registered, Map<String, String> empoweredCentralByNode,
+            Set<String> registered, Map<String, Set<String>> empoweredCentralsByNode,
             Set<String> flowLocked, Set<String> frozenCentrals,
             Check nodeRegistered, Check nodeAuthorized, Check nodeNotLocked, Check centralNotFrozen
     ) {
         requireRegistered(nodeRegistered, registered, flow, message);
 
         nodeAuthorized.applicable();
-        if (central == null || !central.equals(empoweredCentralByNode.get(flow))) {
+        if (central == null || !empoweredCentralsByNode.getOrDefault(flow, Set.of()).contains(central)) {
             nodeAuthorized.fail("流转节点未对该中心公钥公证授权 id=" + message.id());
         }
 

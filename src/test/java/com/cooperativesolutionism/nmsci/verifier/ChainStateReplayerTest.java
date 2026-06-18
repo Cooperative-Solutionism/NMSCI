@@ -101,23 +101,43 @@ class ChainStateReplayerTest {
                 empower(uuid(2), flow, central, 10),
                 empower(uuid(3), flow, central, 20));
 
-        assertFailed(results, "公证：流转节点未重复授权");
+        assertFailed(results, "公证：流转节点未对同一中心公钥重复授权");
     }
 
     @Test
-    void blocksReEmpowerAfterCentralRotation() {
+    void allowsReEmpowerToNewCentralAfterRotation() {
         byte[] flow = pk(1);
         byte[] central1 = pk(2);
         byte[] central2 = pk(5);
 
-        // 轮换后重新公证被阻断（existsByFlowNodePubkey —— 每节点至多公证一次）
+        // 中心公钥轮换：central1 被冻结后，流转节点可对新的 central2 重新公证授权（#1 Option A，对齐 PROTOCOL.md）。
         List<CheckResult> results = replay(
                 register(uuid(1), flow),
                 empower(uuid(2), flow, central1, 10),
                 freeze(uuid(3), central1, 20),
                 empower(uuid(4), flow, central2, 30));
 
-        assertFailed(results, "公证：流转节点未重复授权");
+        assertPassed(results, "公证：流转节点未对同一中心公钥重复授权");
+    }
+
+    @Test
+    void allowsTransactionUnderNewCentralAfterRotation() {
+        byte[] flow = pk(1);
+        byte[] central1 = pk(2);
+        byte[] central2 = pk(5);
+        byte[] consume = pk(3);
+        UUID recordId = uuid(100);
+
+        // 轮换恢复后的业务连续性：流转节点重新授权 central2 后，可在 central2 下继续记账与挂载，全链无失败。
+        List<CheckResult> results = replay(
+                register(uuid(1), flow),
+                empower(uuid(2), flow, central1, 10),
+                freeze(uuid(3), central1, 20),
+                empower(uuid(4), flow, central2, 30),
+                record(recordId, consume, flow, central2, 40),
+                mount(uuid(6), recordId, consume, flow, central2, 50));
+
+        assertNoFailures(results);
     }
 
     @Test

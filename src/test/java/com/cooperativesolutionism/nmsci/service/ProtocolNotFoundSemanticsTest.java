@@ -1,7 +1,6 @@
 package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
-import com.cooperativesolutionism.nmsci.repository.CentralPubkeyEmpowerMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.repository.FlowNodeLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
@@ -52,24 +51,6 @@ class ProtocolNotFoundSemanticsTest {
     }
 
     @Test
-    void centralPubkeyEmpowerLookupByPubkeyReturnsNotFoundWhenMissing() {
-        byte[] pubkey = TestKeyPairs.FLOW_NODE_A.pubkey();
-        CentralPubkeyEmpowerMsgRepository repository = mock(CentralPubkeyEmpowerMsgRepository.class);
-        when(repository.findByFlowNodePubkey(pubkey)).thenReturn(null);
-        CentralPubkeyEmpowerMsgService service = new CentralPubkeyEmpowerMsgService(
-                repository,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null
-        );
-
-        assertThrows(NotFoundException.class, () -> service.getCentralPubkeyEmpowerMsgByFlowNodePubkey(pubkey));
-    }
-
-    @Test
     void malformedPubkeyStillReturnsBadRequestType() {
         CentralPubkeyLockedMsgService centralPubkeyLockedMsgService = new CentralPubkeyLockedMsgService(
                 null, null, null, null, null, null, null, null, null
@@ -77,12 +58,8 @@ class ProtocolNotFoundSemanticsTest {
         FlowNodeLockedMsgService flowNodeLockedMsgService = new FlowNodeLockedMsgService(
                 null, null, null, null, null, null, null
         );
-        CentralPubkeyEmpowerMsgService centralPubkeyEmpowerMsgService = new CentralPubkeyEmpowerMsgService(
-                null, null, null, null, null, null, null
-        );
 
         assertThrows(IllegalArgumentException.class, () -> centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(new byte[32]));
         assertThrows(IllegalArgumentException.class, () -> flowNodeLockedMsgService.getFlowNodeLockedMsgByFlowNodePubkey(new byte[32]));
-        assertThrows(IllegalArgumentException.class, () -> centralPubkeyEmpowerMsgService.getCentralPubkeyEmpowerMsgByFlowNodePubkey(new byte[32]));
     }
 }

@@ -17,8 +17,6 @@ public interface CentralPubkeyEmpowerMsgRepository extends JpaRepository<Central
 
     long countByFlowNodePubkeyAndCentralPubkey(byte[] flowNodePubkey, byte[] centralPubkey);
 
-    CentralPubkeyEmpowerMsg findByFlowNodePubkey(byte[] flowNodePubkey);
-
     Slice<CentralPubkeyEmpowerMsg> findByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
 
     List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
