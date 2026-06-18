@@ -57,14 +57,16 @@ class VerifyChainCliTest {
         VerifyChainCli.Options options = VerifyChainCli.parse(new String[]{});
         assertEquals(Path.of("file", "dat"), options.datDir);
         assertTrue(options.stateful);
+        assertFalse(options.allowEmpty);
         assertFalse(options.help);
     }
 
     @Test
     void parsesPositionalDatDirAndFlags() {
-        VerifyChainCli.Options options = VerifyChainCli.parse(new String[]{"some/dir", "--no-stateful"});
+        VerifyChainCli.Options options = VerifyChainCli.parse(new String[]{"some/dir", "--no-stateful", "--allow-empty"});
         assertEquals(Path.of("some/dir"), options.datDir);
         assertFalse(options.stateful);
+        assertTrue(options.allowEmpty);
     }
 
     @Test
@@ -117,12 +119,28 @@ class VerifyChainCliTest {
     }
 
     @Test
-    void runReportsValidForEmptyDirectory(@TempDir Path datDir) {
+    void runRejectsEmptyDirectoryByDefault(@TempDir Path datDir) {
         VerifyChainCli.Options options = new VerifyChainCli.Options();
         options.datDir = datDir;
         ChainVerificationResult result = VerifyChainCli.run(options);
+        assertFalse(result.ok());
+        assertEquals(0, result.totalBlocks());
+    }
+
+    @Test
+    void runAllowsEmptyDirectoryWithAllowEmptyFlag(@TempDir Path datDir) {
+        VerifyChainCli.Options options = VerifyChainCli.parse(new String[]{datDir.toString(), "--allow-empty"});
+        ChainVerificationResult result = VerifyChainCli.run(options);
         assertTrue(result.ok());
         assertEquals(0, result.totalBlocks());
+    }
+
+    @Test
+    void runRejectsMissingDirectoryByDefault() {
+        VerifyChainCli.Options options = new VerifyChainCli.Options();
+        options.datDir = Path.of("does", "not", "exist");
+        ChainVerificationResult result = VerifyChainCli.run(options);
+        assertFalse(result.ok());
     }
 
     private static byte[] goodRegisterDat() {

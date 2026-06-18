@@ -26,6 +26,17 @@ public final class ChainVerificationResult {
                 List.of());
     }
 
+    /**
+     * 链为空且未显式允许：解析本身成功（无结构性错误），但按 fail-closed 策略判为不通过。
+     * 供离线核验 CLI 默认拒绝「指错目录/空目录被当成空链通过」的审计脚枪；HTTP 自检端点对新节点空链仍判通过。
+     */
+    public static ChainVerificationResult emptyChainRejected(String detail) {
+        return new ChainVerificationResult(
+                true,
+                List.of(CheckResult.failed("空链校验", CheckCategory.STRUCTURAL, detail)),
+                List.of());
+    }
+
     public boolean ok() {
         return parseSucceeded
                 && chainChecks.stream().noneMatch(CheckResult::isFailure)

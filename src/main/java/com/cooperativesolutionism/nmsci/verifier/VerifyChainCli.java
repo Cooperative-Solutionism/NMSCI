@@ -21,6 +21,7 @@ import java.util.List;
  *   --source-hash &lt;hex&gt;         直接给定期望源码哈希（64位hex），与 --source-zip 二选一
  *   --starting-prev-hash &lt;hex&gt;  首块应衔接的前区块 id（64位hex 锚点）
  *   --no-stateful              关闭有状态回放（默认开启）
+ *   --allow-empty              允许空链（默认空目录/无区块判为不通过）
  *   --help                     打印帮助
  * </pre>
  */
@@ -63,6 +64,11 @@ public final class VerifyChainCli {
 
         try {
             List<ParsedBlock> blocks = DatBlockReader.readDirectory(parsed.datDir);
+            if (blocks.isEmpty() && !parsed.allowEmpty) {
+                return ChainVerificationResult.emptyChainRejected(
+                        "目录未发现任何区块: " + parsed.datDir + "（不存在或无 blkNNNNNNNN.dat）。"
+                                + "若确认是空链请显式添加 --allow-empty");
+            }
             return new ChainVerifier().verify(blocks, optionsBuilder.build());
         } catch (BlockFormatException e) {
             return ChainVerificationResult.parseFailure(e.getMessage());
@@ -76,6 +82,7 @@ public final class VerifyChainCli {
             switch (arg) {
                 case "--help", "-h" -> options.help = true;
                 case "--no-stateful" -> options.stateful = false;
+                case "--allow-empty" -> options.allowEmpty = true;
                 case "--central-pubkey" -> options.expectedCentralPubkey = parsePubkey(requireValue(args, ++i, arg));
                 case "--source-hash" -> options.expectedSourceHashHex = requireHex(requireValue(args, ++i, arg), 64, arg);
                 case "--source-zip" -> options.expectedSourceHashHex = sourceZipHash(requireValue(args, ++i, arg));
@@ -148,6 +155,7 @@ public final class VerifyChainCli {
                   --source-hash <hex>        期望源码哈希（64位hex），与 --source-zip 二选一
                   --starting-prev-hash <hex> 首块应衔接的前区块 id（64位hex 锚点）
                   --no-stateful              关闭有状态回放（默认开启）
+                  --allow-empty              允许空链（默认空目录/无区块判为不通过）
                   --help                     打印帮助
                 退出码: 0=通过, 1=不通过, 2=用法错误""";
     }
@@ -160,6 +168,7 @@ public final class VerifyChainCli {
         String expectedSourceHashHex;
         byte[] startingPreviousHash;
         boolean stateful = true;
+        boolean allowEmpty;
         boolean help;
     }
 
