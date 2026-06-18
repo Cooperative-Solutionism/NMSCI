@@ -11,7 +11,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.ServletRequestBindingException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.RequestAttributes;
@@ -25,6 +28,8 @@ public class GlobalExceptionHandler {
     private static final String INTERNAL_ERROR_MESSAGE = "服务器内部错误";
     private static final String VALIDATION_ERROR_MESSAGE = "请求参数非法";
     private static final String CONFLICT_MESSAGE = "数据冲突：违反唯一约束";
+    private static final String METHOD_NOT_ALLOWED_MESSAGE = "请求方法不被支持";
+    private static final String UNSUPPORTED_MEDIA_TYPE_MESSAGE = "不支持的媒体类型";
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
@@ -46,13 +51,26 @@ public class GlobalExceptionHandler {
         return failure(HttpStatus.CONFLICT, ResponseCode.CONFLICT, e.getMessage());
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ResponseResult<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException e) {
+        logger.warn("Method not allowed [{}]: {}", requestContext(), e.getMessage());
+        return failure(HttpStatus.METHOD_NOT_ALLOWED, ResponseCode.METHOD_NOT_ALLOWED, METHOD_NOT_ALLOWED_MESSAGE);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ResponseResult<Void>> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException e) {
+        logger.warn("Unsupported media type [{}]: {}", requestContext(), e.getMessage());
+        return failure(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ResponseCode.UNSUPPORTED_MEDIA_TYPE, UNSUPPORTED_MEDIA_TYPE_MESSAGE);
+    }
+
     @ExceptionHandler({
             HandlerMethodValidationException.class,
             MethodArgumentNotValidException.class,
             BindException.class,
             ConstraintViolationException.class,
             MethodArgumentTypeMismatchException.class,
-            HttpMessageNotReadableException.class
+            HttpMessageNotReadableException.class,
+            ServletRequestBindingException.class
     })
     public ResponseEntity<ResponseResult<Void>> handleValidationExceptions(Exception e) {
         logger.warn("Validation failed [{}]: {}", requestContext(), e.getMessage());
