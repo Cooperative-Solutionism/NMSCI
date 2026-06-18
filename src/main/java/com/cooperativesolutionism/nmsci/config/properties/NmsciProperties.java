@@ -1,6 +1,8 @@
 package com.cooperativesolutionism.nmsci.config.properties;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.BLOCK_HEADER_BYTES;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_STORED_BYTES;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RAW_PRIVATE_KEY_BYTES;
 
 import com.cooperativesolutionism.nmsci.util.Secp256k1EncryptUtil;
@@ -163,12 +165,25 @@ public class NmsciProperties {
         this.sourceCodeZipHash = sourceCodeZipHash;
     }
 
-    @AssertTrue(message = "block-max-size必须大于等于block-header-size")
+    @AssertTrue(message = "block-header-size必须等于协议冻结的区块头字节数(229)")
+    public boolean isBlockHeaderSizeFrozen() {
+        // 区块头字节数是协议冻结常量，wire 格式与 ParsedBlock 解析均硬编码 229；此处把配置项钉死为协议值，
+        // 杜绝配置漂移导致写盘/解析口径不一致。非正交由 @Positive 报错，避免重复失败信息。
+        if (blockHeaderSize <= 0) {
+            return true;
+        }
+        return blockHeaderSize == BLOCK_HEADER_BYTES;
+    }
+
+    @AssertTrue(message = "block-max-size必须能容纳区块头、消息计数字段与至少一条最小消息")
     public boolean isBlockMaxSizeValid() {
         if (blockHeaderSize <= 0 || blockMaxSize <= 0) {
             return true;
         }
-        return blockMaxSize >= blockHeaderSize;
+        // 一个最小非空区块 = 区块头 + 单个分段的消息计数字段(Long) + 最小消息(流转节点注册，123字节)。
+        // 仅大于等于区块头不足以容纳任何消息，会导致出块/解析失败，故按此下限校验。
+        long minimumViableBlock = (long) blockHeaderSize + Long.BYTES + FLOW_NODE_REGISTER_STORED_BYTES;
+        return blockMaxSize >= minimumViableBlock;
     }
 
     @AssertTrue(message = "block-dat-max-size必须至少能容纳一个完整区块")
