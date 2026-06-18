@@ -8,11 +8,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import java.security.Provider;
-import java.security.Security;
-
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -56,25 +52,6 @@ class GenerateBlockTaskTest {
             dateUtil.verify(DateUtil::getCurrentMicros, times(2));
         }
         verify(blockChainService).generateBlock();
-        verify(blockChainService, never()).generateBlockUntilNoNotInBlockMsgs();
-    }
-
-    @Test
-    void logsAndSuppressesProviderSetupFailureForScheduler() {
-        BlockChainService blockChainService = mock(BlockChainService.class);
-        GenerateBlockTask task = new GenerateBlockTask(
-                blockChainService,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
-
-        try (MockedStatic<Security> security = mockStatic(Security.class)) {
-            security.when(() -> Security.addProvider(any(Provider.class)))
-                    .thenThrow(new SecurityException("provider unavailable"));
-
-            assertDoesNotThrow(task::execute);
-
-            security.verify(() -> Security.addProvider(any(Provider.class)));
-        }
-        verify(blockChainService, never()).generateBlock();
         verify(blockChainService, never()).generateBlockUntilNoNotInBlockMsgs();
     }
 

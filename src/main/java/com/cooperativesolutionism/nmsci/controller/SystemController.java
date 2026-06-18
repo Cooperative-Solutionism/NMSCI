@@ -19,9 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/system")
 public class SystemController {
 
-    /** 出块周期：10 分钟，与 GenerateBlockTask 的 fixedRate 一致。 */
-    private static final long BLOCK_INTERVAL_MS = 600_000L;
-
     private final NmsciProperties nmsciProperties;
     private final BlockChainService blockChainService;
     private final MsgAbstractService msgAbstractService;
@@ -58,7 +55,7 @@ public class SystemController {
                 latestBlock,
                 msgAbstractService.countPending(),
                 msgAbstractService.findOldestPendingConfirmTimestamp(),
-                BLOCK_INTERVAL_MS,
+                nmsciProperties.getBlockIntervalMs(),
                 currentCentralPubkeyLocked
         ));
     }

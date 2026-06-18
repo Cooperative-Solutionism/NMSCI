@@ -3,13 +3,10 @@ package com.cooperativesolutionism.nmsci.task;
 import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.security.Security;
 
 @Component
 public class GenerateBlockTask {
@@ -31,15 +28,14 @@ public class GenerateBlockTask {
     }
 
     /**
-     * 定时任务：应用启动后立即开始生成区块，之后每10分钟开始生成区块
+     * 定时任务：应用启动后立即开始生成区块，之后按配置的出块周期（{@code nmsci.block-interval-ms}，默认10分钟）生成区块
      */
-    @Scheduled(initialDelay = 0, fixedDelay = 10 * 60 * 1000)
+    @Scheduled(initialDelay = 0, fixedDelayString = "${nmsci.block-interval-ms:600000}")
     public void execute() {
         long startTime = -1L;
 
         try {
             startTime = DateUtil.getCurrentMicros();
-            Security.addProvider(new BouncyCastleProvider());
             logger.info("开始生成区块: {}", startTime);
 
             nmsciMetrics.timeBlockGeneration(blockChainService::generateBlock);

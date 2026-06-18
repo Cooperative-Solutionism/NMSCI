@@ -37,6 +37,9 @@ public class NmsciProperties {
     @Positive(message = "block-dat-max-size必须为正数")
     private long blockDatMaxSize;
 
+    @Positive(message = "block-interval-ms必须为正数")
+    private long blockIntervalMs;
+
     @Positive(message = "register-difficulty-target-nbits必须为正数")
     private int registerDifficultyTargetNbits;
 
@@ -102,6 +105,14 @@ public class NmsciProperties {
 
     public void setBlockDatMaxSize(long blockDatMaxSize) {
         this.blockDatMaxSize = blockDatMaxSize;
+    }
+
+    public long getBlockIntervalMs() {
+        return blockIntervalMs;
+    }
+
+    public void setBlockIntervalMs(long blockIntervalMs) {
+        this.blockIntervalMs = blockIntervalMs;
     }
 
     public int getRegisterDifficultyTargetNbits() {

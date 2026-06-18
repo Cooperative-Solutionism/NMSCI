@@ -84,6 +84,13 @@ class NmsciPropertiesValidationTest {
     }
 
     @Test
+    void failsFastWhenBlockIntervalIsNotPositive() {
+        contextRunner
+                .withPropertyValues("nmsci.block-interval-ms=0")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
     void failsFastWhenPathIsBlank() {
         contextRunner
                 .withPropertyValues("nmsci.file-root-dir=   ")
@@ -98,6 +105,7 @@ class NmsciPropertiesValidationTest {
                 "nmsci.block-header-size=229",
                 "nmsci.block-max-size=1048576",
                 "nmsci.block-dat-max-size=134217728",
+                "nmsci.block-interval-ms=600000",
                 "nmsci.register-difficulty-target-nbits=0x20ffffff",
                 "nmsci.transaction-difficulty-target-nbits=0x20ffffff",
                 "nmsci.file-root-dir=target/nmsci-test-files",
