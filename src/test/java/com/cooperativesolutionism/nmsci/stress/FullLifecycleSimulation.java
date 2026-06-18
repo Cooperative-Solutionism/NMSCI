@@ -88,7 +88,7 @@ public class FullLifecycleSimulation extends Simulation {
                                 (UUID) session.get("flowNodeId"),
                                 (TestKeyPair) session.get("flowKey"),
                                 NBITS)))
-                        .check(status().is(200))
+                        .check(status().is(201))
                         .check(jsonPath("$.code").is("200"))
         ).exec(
                 http("central-pubkey-empower").post("/central-pubkey-empowerments")
@@ -96,7 +96,7 @@ public class FullLifecycleSimulation extends Simulation {
                                 (UUID) session.get("empowerId"),
                                 (TestKeyPair) session.get("flowKey"),
                                 CENTRAL)))
-                        .check(status().is(200))
+                        .check(status().is(201))
                         .check(jsonPath("$.code").is("200"))
         ).exec(
                 http("transaction-record").post("/transaction-records")
@@ -107,7 +107,7 @@ public class FullLifecycleSimulation extends Simulation {
                                 (TestKeyPair) session.get("flowKey"),
                                 CENTRAL,
                                 NBITS)))
-                        .check(status().is(200))
+                        .check(status().is(201))
                         .check(jsonPath("$.code").is("200"))
         ).exec(
                 // mount 直接引用本会话生成的 recordId（实体 id = 协议消息内自带 UUID），无需解析响应。
@@ -119,7 +119,7 @@ public class FullLifecycleSimulation extends Simulation {
                                 (TestKeyPair) session.get("flowKey"),
                                 CENTRAL,
                                 NBITS)))
-                        .check(status().is(200))
+                        .check(status().is(201))
                         .check(jsonPath("$.code").is("200"))
         );
 
