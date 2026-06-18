@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.config.properties;
 
+import static com.cooperativesolutionism.nmsci.constant.BlockConstants.MAX_SUPPORTED_BLOCK_VERSION;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.BLOCK_HEADER_BYTES;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
 import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_STORED_BYTES;
@@ -173,6 +174,13 @@ public class NmsciProperties {
             return true;
         }
         return blockHeaderSize == BLOCK_HEADER_BYTES;
+    }
+
+    @AssertTrue(message = "block-version超出本构建验证器支持的最高版本，无法生产可自检的区块")
+    public boolean isBlockVersionSupported() {
+        // 节点只能被配置去「生产」本构建验证器能核验的版本，避免产出无法自检的过新区块。
+        // 仅校验不超过支持上限；下界(≥1)由 @Min 负责报错（<1 时本式亦为 true，把唯一的越界提示让给 @Min）。
+        return blockVersion <= MAX_SUPPORTED_BLOCK_VERSION;
     }
 
     @AssertTrue(message = "block-max-size必须能容纳区块头、消息计数字段与至少一条最小消息")

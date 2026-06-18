@@ -77,6 +77,13 @@ class NmsciPropertiesValidationTest {
     }
 
     @Test
+    void failsFastWhenBlockVersionExceedsVerifierSupport() {
+        contextRunner
+                .withPropertyValues("nmsci.block-version=2")
+                .run(context -> assertThat(context).hasFailed());
+    }
+
+    @Test
     void failsFastWhenDatMaxSizeCannotFitOneBlock() {
         contextRunner
                 .withPropertyValues("nmsci.block-max-size=1048576", "nmsci.block-dat-max-size=1048576")

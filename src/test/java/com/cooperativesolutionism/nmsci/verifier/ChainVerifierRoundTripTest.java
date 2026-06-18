@@ -97,6 +97,75 @@ class ChainVerifierRoundTripTest {
     }
 
     @Test
+    void acceptsAndLinksVersionUpgradeChain() {
+        // 合法升级：v1 创世块 → v2 次块（生产护栏允许 config v2 ≥ 前块 v1）；验证器在支持 v2 时应全过。
+        AssembledBlock genesis = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 1);
+        AssembledBlock upgraded = assembleRegisterBlock(
+                genesis.getBlockInfo(), TestKeyPairs.FLOW_NODE_B, UUID.fromString("22222222-2222-2222-2222-222222222222"), EASY_NBITS, 2);
+
+        ByteArrayOutputStream concatenated = new ByteArrayOutputStream();
+        concatenated.writeBytes(genesis.getDatBytes());
+        concatenated.writeBytes(upgraded.getDatBytes());
+
+        List<ParsedBlock> blocks = DatBlockReader.readConcatenated(concatenated.toByteArray(), "blk00000000.dat");
+        assertEquals(1, blocks.get(0).version());
+        assertEquals(2, blocks.get(1).version());
+
+        ChainVerificationResult result = verifier.verify(blocks, optionsWithCentral(2));
+        assertTrue(result.ok(), () -> "期望 v1→v2 升级链在支持 v2 时验证通过，但有失败:\n" + result.render());
+    }
+
+    @Test
+    void rejectsBlockVersionAboveVerifierSupport() {
+        // v2 区块但验证器仅支持到 v1 → 「区块版本号」应判为过新。
+        AssembledBlock v2 = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 2);
+
+        ChainVerificationResult result = verifier.verify(
+                DatBlockReader.readConcatenated(v2.getDatBytes(), "blk00000000.dat"), optionsWithCentral());
+        assertFalse(result.ok());
+        assertTrue(result.allFailures().stream().anyMatch(check -> check.name().equals("区块版本号")),
+                () -> "应检出版本过新:\n" + result.render());
+    }
+
+    @Test
+    void detectsVersionDowngradeAlongChain() {
+        // 生产护栏使「合法链接的降级链」无法被装配产出，故用两个独立创世块拼成 [v2, v1] 构造离线降级 .dat。
+        // 链接/高度会附带失败，但通过断言「次块的区块版本单调性」为 FAILED、且两块版本号检查均 PASSED（max=2），
+        // 把失败原因精确锚定到版本降级本身，而非附带的链接失败。
+        AssembledBlock v2 = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 2);
+        AssembledBlock v1 = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_B, UUID.fromString("22222222-2222-2222-2222-222222222222"), EASY_NBITS, 1);
+
+        ByteArrayOutputStream concatenated = new ByteArrayOutputStream();
+        concatenated.writeBytes(v2.getDatBytes());
+        concatenated.writeBytes(v1.getDatBytes());
+
+        ChainVerificationResult result = verifier.verify(
+                DatBlockReader.readConcatenated(concatenated.toByteArray(), "blk00000000.dat"), optionsWithCentral(2));
+        assertFalse(result.ok());
+        assertTrue(result.blocks().get(1).checks().stream()
+                        .anyMatch(check -> check.name().equals("区块版本单调性") && check.status() == CheckResult.Status.FAILED),
+                () -> "次块应因版本降级被「区块版本单调性」判失败:\n" + result.render());
+        assertTrue(result.blocks().stream().flatMap(block -> block.checks().stream())
+                        .filter(check -> check.name().equals("区块版本号"))
+                        .allMatch(check -> check.status() == CheckResult.Status.PASSED),
+                () -> "两块版本号均应在支持范围[1,2]内通过，确认失败仅来自单调性:\n" + result.render());
+    }
+
+    @Test
+    void productionAssemblerRefusesToMintDowngradeBlock() {
+        // 生产降级护栏：在 v2 区块之后用 v1 配置出块应被拒绝。
+        AssembledBlock v2 = assembleRegisterBlock(
+                null, TestKeyPairs.FLOW_NODE_A, UUID.fromString("11111111-1111-1111-1111-111111111111"), EASY_NBITS, 2);
+
+        assertThrows(IllegalStateException.class, () -> assembleRegisterBlock(
+                v2.getBlockInfo(), TestKeyPairs.FLOW_NODE_B, UUID.fromString("22222222-2222-2222-2222-222222222222"), EASY_NBITS, 1));
+    }
+
+    @Test
     void detectsMessageDifficultyNotMatchingPredecessorBlock() {
         // 创世块难度 EASY；次块的注册消息携带不同难度 → 应被「消息难度=入账难度」检出（与前区块难度比对）
         AssembledBlock genesis = assembleRegisterBlock(
@@ -183,11 +252,24 @@ class ChainVerifierRoundTripTest {
                 .build();
     }
 
+    private VerifierOptions optionsWithCentral(int maxSupportedBlockVersion) {
+        return VerifierOptions.builder()
+                .expectedCentralPubkey(TestKeyPairs.CENTRAL.pubkey())
+                .includeStatefulReplay(true)
+                .maxSupportedBlockVersion(maxSupportedBlockVersion)
+                .build();
+    }
+
     private AssembledBlock assembleRegisterBlock(BlockInfo previousBlock, TestKeyPair flowNode, UUID msgId) {
-        return assembleRegisterBlock(previousBlock, flowNode, msgId, EASY_NBITS);
+        return assembleRegisterBlock(previousBlock, flowNode, msgId, EASY_NBITS, 1);
     }
 
     private AssembledBlock assembleRegisterBlock(BlockInfo previousBlock, TestKeyPair flowNode, UUID msgId, int registerMsgNbits) {
+        return assembleRegisterBlock(previousBlock, flowNode, msgId, registerMsgNbits, 1);
+    }
+
+    private AssembledBlock assembleRegisterBlock(
+            BlockInfo previousBlock, TestKeyPair flowNode, UUID msgId, int registerMsgNbits, int blockVersion) {
         byte[] rawBytes = builder.flowNodeRegister(msgId, flowNode, registerMsgNbits);
         byte[] txid = MerkleTreeUtil.calcTxid(rawBytes);
 
@@ -195,7 +277,7 @@ class ChainVerifierRoundTripTest {
         when(registerRepository.findPayloadByIdIn(List.of(msgId)))
                 .thenReturn(List.of(new StubProjection(msgId, rawBytes, txid)));
 
-        BlockAssembler assembler = new BlockAssembler(properties(), new BlockMessagePayloadFetcher(
+        BlockAssembler assembler = new BlockAssembler(properties(blockVersion), new BlockMessagePayloadFetcher(
                 registerRepository,
                 mock(CentralPubkeyEmpowerMsgRepository.class),
                 mock(CentralPubkeyLockedMsgRepository.class),
@@ -208,8 +290,12 @@ class ChainVerifierRoundTripTest {
     }
 
     private static NmsciProperties properties() {
+        return properties(1);
+    }
+
+    private static NmsciProperties properties(int blockVersion) {
         NmsciProperties properties = new NmsciProperties();
-        properties.setBlockVersion(1);
+        properties.setBlockVersion(blockVersion);
         properties.setBlockHeaderSize(229);
         properties.setSourceCodeZipHash("0000000000000000000000000000000000000000000000000000000000000000");
         properties.setRegisterDifficultyTargetNbits(EASY_NBITS);

@@ -31,8 +31,14 @@ public class BlockAssembler {
     }
 
     public AssembledBlock assemble(BlockInfo previousBlock, SelectedBlockMessages selectedMessages) {
+        int blockVersion = nmsciProperties.getBlockVersion();
+        // 生产降级护栏：链上版本单调非降，拒绝用低于链上最新版本的配置出块（防回滚/误配产出降级区块）。
+        if (previousBlock != null && blockVersion < previousBlock.getVersion()) {
+            throw new IllegalStateException("拒绝生成降级区块：配置 block-version(" + blockVersion
+                    + ") 低于链上最新区块版本(" + previousBlock.getVersion() + ")");
+        }
         ByteArrayOutputStream blockHeader = new ByteArrayOutputStream(nmsciProperties.getBlockHeaderSize());
-        write(blockHeader, ByteArrayUtil.intToBytes(nmsciProperties.getBlockVersion()));
+        write(blockHeader, ByteArrayUtil.intToBytes(blockVersion));
         write(blockHeader, ByteArrayUtil.longToBytes(nextHeight(previousBlock)));
         write(blockHeader, ByteArrayUtil.hexToBytes(nmsciProperties.getSourceCodeZipHash()));
         write(blockHeader, previousBlockHash(previousBlock));

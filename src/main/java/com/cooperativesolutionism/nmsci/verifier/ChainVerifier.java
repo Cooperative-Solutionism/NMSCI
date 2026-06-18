@@ -26,8 +26,8 @@ import java.util.function.Function;
  */
 public final class ChainVerifier {
 
-    /** 协议冻结的区块版本号（对应 {@code nmsci.block-version}）。 */
-    public static final int EXPECTED_BLOCK_VERSION = 1;
+    /** 协议的起始（最小合法）区块版本号；最高受支持版本由 {@link VerifierOptions#maxSupportedBlockVersion()} 决定。 */
+    public static final int MIN_BLOCK_VERSION = 1;
 
     private static final byte[] ZERO_HASH = new byte[32];
 
@@ -87,10 +87,10 @@ public final class ChainVerifier {
         List<CheckResult> checks = new ArrayList<>();
 
         // ---- 结构性 ----
-        checks.add(block.version() == EXPECTED_BLOCK_VERSION
-                ? CheckResult.passed("区块版本号", CheckCategory.STRUCTURAL, "版本 " + block.version())
-                : CheckResult.failed("区块版本号", CheckCategory.STRUCTURAL,
-                        "期望 " + EXPECTED_BLOCK_VERSION + "，实得 " + block.version()));
+        // 受支持版本范围内即按当前 wire 格式与校验规则核验。扩展点：若将来引入改变 wire 布局/校验规则的
+        // 破坏性版本，在此按 block.version() 分派到对应版本的规则实现，历史低版本块仍走其原规则；
+        // 非破坏性版本（仅递增版本号重绑源码包）无需分派。
+        checks.add(blockVersionSupported(block, options));
 
         checks.add(difficultyWellFormed("注册难度目标良构", block.registerDifficultyTarget()));
         checks.add(difficultyWellFormed("交易难度目标良构", block.transactionDifficultyTarget()));
@@ -112,6 +112,7 @@ public final class ChainVerifier {
         checks.add(sourceHash(block, options));
 
         // ---- 入账时点规则（需前驱区块上下文）----
+        checks.add(versionMonotonic(block, previousBlock));
         checks.add(difficultyMatchesIngestion(block, previousBlock));
         checks.add(centralRotationLegitimacy(block, previousBlock, frozenCentralsSeen));
 
@@ -212,6 +213,36 @@ public final class ChainVerifier {
                 ? CheckResult.passed("源码哈希绑定", CheckCategory.SOURCE_HASH, "区块头源码哈希与期望一致")
                 : CheckResult.failed("源码哈希绑定", CheckCategory.SOURCE_HASH,
                         "区块头 " + actual + " ≠ 期望 " + options.expectedSourceHashHex().toLowerCase());
+    }
+
+    private CheckResult blockVersionSupported(ParsedBlock block, VerifierOptions options) {
+        int version = block.version();
+        int max = options.maxSupportedBlockVersion();
+        if (version < MIN_BLOCK_VERSION) {
+            return CheckResult.failed("区块版本号", CheckCategory.STRUCTURAL,
+                    "版本 " + version + " 小于最小合法版本 " + MIN_BLOCK_VERSION);
+        }
+        if (version > max) {
+            return CheckResult.failed("区块版本号", CheckCategory.STRUCTURAL,
+                    "版本 " + version + " 超过本验证器支持的上限 " + max + "（请升级验证器以核验更高版本的链）");
+        }
+        return CheckResult.passed("区块版本号", CheckCategory.STRUCTURAL,
+                "版本 " + version + "（受支持范围 [" + MIN_BLOCK_VERSION + ", " + max + "]）");
+    }
+
+    /**
+     * 区块版本单调非降：协议为单调递增升级模型，链上版本只能持平或抬升、不得回退。
+     * 起始区块无前驱时跳过。
+     */
+    private CheckResult versionMonotonic(ParsedBlock block, ParsedBlock previousBlock) {
+        if (previousBlock == null) {
+            return CheckResult.skipped("区块版本单调性", CheckCategory.STRUCTURAL, "起始区块无前驱");
+        }
+        return block.version() >= previousBlock.version()
+                ? CheckResult.passed("区块版本单调性", CheckCategory.STRUCTURAL,
+                        "版本非降（前 " + previousBlock.version() + " → 本 " + block.version() + "）")
+                : CheckResult.failed("区块版本单调性", CheckCategory.STRUCTURAL,
+                        "版本降级：前区块 " + previousBlock.version() + " → 本区块 " + block.version());
     }
 
     private CheckResult difficultyWellFormed(String name, int nbits) {
