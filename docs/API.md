@@ -4,7 +4,7 @@
 
 - **链上字节协议**（各消息的字节布局、验证项、区块结构）见 [PROTOCOL.md](../PROTOCOL.md)。
 - **运行、构建、部署**见 [README.md](../README.md)。
-- 当前共 **12 控制器 / 36 端点**（30 个 GET + 6 个二进制 POST）。
+- 当前共 **13 控制器 / 37 个业务端点**（31 个 GET + 6 个二进制 POST）。Actuator 与静态文件入口不计入该数量。
 
 > **Base URL**：默认 `http://localhost:8080`（见 README「本地运行」）。
 > **鉴权**：当前所有端点均无鉴权与限流。
@@ -87,7 +87,7 @@
 }
 ```
 
-**默认排序**：消息列表按中心确认时间戳 `confirmTimestamp` 倒序、`id` 倒序兜底；流转节点注册信息无确认时间戳，按 `id` 升序。
+**默认排序**：消息列表按中心确认时间戳 `confirmTimestamp` 倒序、`id` 倒序兜底；流转节点注册信息无确认时间戳，按 `id` 升序；消费链列表按 `tailMountTimestamp` 倒序、`id` 倒序；消费链边查询按每条链去重后，再按 `relatedTransactionMountTimestamp` 倒序、`id` 倒序。
 
 ### 1.4 字段序列化约定
 
@@ -272,7 +272,7 @@ curl -X POST http://localhost:8080/transaction-records \
 ## 5. 流转节点 `/flow-nodes`
 
 ### GET `/flow-nodes/{flowNodePubkey}`
-按公钥查询单个流转节点的状态聚合。响应 `FlowNodeStateResponseDTO`：`{ registered, authorized, locked, currentCentralPubkeyAuthorized }`。
+按公钥查询单个流转节点的状态聚合。响应 `FlowNodeStateResponseDTO`：`{ registered, authorized, locked, currentCentralPubkeyAuthorized }`。其中 `authorized` 表示该节点**曾对任一中心公钥**授权过，`currentCentralPubkeyAuthorized` 表示已对**当前**中心公钥授权；中心公钥轮换后两者可不一致（曾授权旧中心公钥、但尚未对新的当前中心公钥授权时，前者为 `true`、后者为 `false`）。
 
 | 路径参数 | 类型 | 说明 |
 |---|---|---|
@@ -286,7 +286,7 @@ curl -X POST http://localhost:8080/transaction-records \
 | 查询参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
 | `registered` | Boolean | `true` | 是否已注册 |
-| `authorized` | Boolean | （不过滤） | 是否已授权当前中心公钥 |
+| `authorized` | Boolean | （不过滤） | 是否曾授权过（任一）中心公钥，不限当前中心公钥 |
 | `locked` | Boolean | （不过滤） | 是否已冻结 |
 | `page` / `size` | int | 0 / 50 | 见 [§1.3](#13-分页) |
 
@@ -304,7 +304,7 @@ curl -X POST http://localhost:8080/transaction-records \
 | `id` | UUID | 消费链 id |
 
 ### GET `/consume-chains`
-消费链列表（分页）。可按起点/终点/途经节点过滤（id 或 pubkey 二选一），或按挂载交易过滤。响应 `SliceResponseDTO<ConsumeChainResponseDTO>`。
+消费链列表（分页）。必须选择一种查询模式：按起点/终点/途经节点过滤（id 或 pubkey 二选一，且三者必须且只能提供一个），或按挂载交易过滤。响应 `SliceResponseDTO<ConsumeChainResponseDTO>`。
 
 | 查询参数 | 类型 | 说明 |
 |---|---|---|
@@ -314,10 +314,10 @@ curl -X POST http://localhost:8080/transaction-records \
 | `mountedTransactionId` | String(UUID) | 按挂载交易过滤 |
 | `page` / `size` | int | 分页 |
 
-**400**：id 模式与 pubkey 模式混用；`mountedTransactionId` 与节点过滤参数混用。
+**400**：未提供任何查询条件；`start`/`end`/`node` 在同一模式下不止一个；id 模式与 pubkey 模式混用；`mountedTransactionId` 与节点过滤参数混用。
 
 ### GET `/consume-chains/edges`
-查询「流入某目标节点」的消费链边集合（用于回流分析）。`target` 必填，`source` 可选（缺省=所有流入 target 的边）。响应 `SliceResponseDTO<ConsumeChainEdge>`，不返回总条数。
+查询「流入某目标节点」的消费链边集合（用于回流分析）。`target` 必填，`source` 可选（缺省=所有流入 target 的边）。结果按 `chain` 去重：同一条消费链存在多条匹配边时，只返回该链内挂载时间最早的一条，再按挂载时间倒序分页。响应 `SliceResponseDTO<ConsumeChainEdge>`，不返回总条数。
 
 | 查询参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -342,7 +342,7 @@ curl -X POST http://localhost:8080/transaction-records \
 - **提供 source + target**：A(source)→B(target) 的回流率，返回 `returningFlowRate`、`loopedAmount`、`unloopedAmount`。
 - **仅 target**：B 的总成环/总滞留，返回 `targetTotalLoopedAmount`、`targetTotalUnloopedAmount`。
 
-未涉及的字段取默认值 `0.0`。
+未涉及的字段取默认值 `0.0`。聚合口径与 `/consume-chains/edges` 一致，按 `chain` 去重后统计金额。
 
 | 查询参数 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -385,6 +385,8 @@ curl -X POST http://localhost:8080/transaction-records \
 | `/transaction-mounts` | 269 | `consumeNodePubkey`、`flowNodePubkey`、`mountedTransactionRecordId`、`startTime`、`endTime` | — |
 
 所有过滤参数均为可选；全空即返回全量（分页）。pubkey 为 33 字节压缩公钥 hex，时间为微秒。过滤参数中的 pubkey 格式或长度非法返回 400；`{id}` 或 `mountedTransactionRecordId` 不是合法 UUID 时返回 400。
+
+> **中心公钥公证的轮换语义（`POST /central-pubkey-empowerments`）**：公证唯一性按 `(流转节点公钥, 中心公钥)` 组合判定。同一流转节点对**同一**中心公钥重复授权返回 **409**（`该流转节点公钥(...)已对该中心公钥授权过`）；授权目标必须是**当前配置且未冻结**的中心公钥，否则拒绝。当原中心公钥被冻结、中心公钥轮换为新值后，流转节点可对**新的当前中心公钥**再次授权——因此发生过轮换的节点会持有**多条**公证记录，`GET /central-pubkey-empowerments?flowNodePubkey=` 会返回多条（每个被授权过的中心公钥一条）。流转节点的「是否已授权当前中心公钥」可经 [§5](#5-流转节点-flow-nodes) 的 `currentCentralPubkeyAuthorized` 字段判断。
 
 **示例：查询某流转节点的交易记录**
 
@@ -501,7 +503,7 @@ GET /transaction-records?flowNodePubkey=02a1b2...&currencyType=1&page=0&size=20
 | `currencyType` | short | 货币类型 |
 
 ### 10.6 FlowNodeStateResponseDTO
-`registered`、`authorized`、`locked`、`currentCentralPubkeyAuthorized`（均 boolean）。
+`registered`、`authorized`、`locked`、`currentCentralPubkeyAuthorized`（均 boolean）。`authorized`=曾授权任一中心公钥；`currentCentralPubkeyAuthorized`=已授权当前中心公钥；中心公钥轮换后二者可不同。
 
 ### 10.7 FlowNodeListItemDTO
 `id`(UUID)、`flowNodePubkey`(hex)、`registered`、`authorized`、`locked`、`currentCentralPubkeyAuthorized`(boolean)。
