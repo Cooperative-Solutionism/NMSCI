@@ -20,4 +20,8 @@ jobs:
           java-version: '21'
           cache: maven
       - run: chmod +x mvnw
+      # 集成测试依赖 Docker（Testcontainers）。CI 显式校验 Docker 可用，缺失即失败，
+      # 避免 Docker 不可用时集成测试被静默禁用而误判为「已充分验证」。
+      - name: Ensure Docker is available (integration tests require it)
+        run: docker version
       - run: ./mvnw -B clean verify
