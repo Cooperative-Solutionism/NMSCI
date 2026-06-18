@@ -200,7 +200,8 @@ public class BlockFileStore {
         return datFilepath.getParent().resolve(datFilename(index + 1));
     }
 
-    private Path datDirectory() {
+    /** .dat 写入目录的绝对路径（{@code <user.dir>/<file-root-dir>/<file-dat-dir>}）；启动对账等需枚举该目录的协作者复用。 */
+    public Path datDirectory() {
         return applicationRoot.resolve(nmsciProperties.getFileRootDir()).resolve(nmsciProperties.getFileDatDir());
     }
 

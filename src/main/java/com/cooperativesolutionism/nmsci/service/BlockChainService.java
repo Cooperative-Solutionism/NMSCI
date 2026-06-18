@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.service;
 
 import com.cooperativesolutionism.nmsci.block.AssembledBlock;
 import com.cooperativesolutionism.nmsci.block.BlockAssembler;
+import com.cooperativesolutionism.nmsci.block.BlockFileReconciler;
 import com.cooperativesolutionism.nmsci.block.BlockFileStore;
 import com.cooperativesolutionism.nmsci.block.BlockGenerationLock;
 import com.cooperativesolutionism.nmsci.block.BlockMessageSelector;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 @Service
 public class BlockChainService {
     private final BlockInfoRepository blockInfoRepository;
@@ -29,6 +32,8 @@ public class BlockChainService {
     private final SourceCodeArchiveStore sourceCodeArchiveStore;
     private final BlockGenerationLock blockGenerationLock;
     private final NmsciMetrics nmsciMetrics;
+    private final BlockFileReconciler blockFileReconciler;
+    private final AtomicBoolean startupReconciled = new AtomicBoolean(false);
 
     public BlockChainService(
             BlockInfoRepository blockInfoRepository,
@@ -38,7 +43,8 @@ public class BlockChainService {
             BlockFileStore blockFileStore,
             SourceCodeArchiveStore sourceCodeArchiveStore,
             BlockGenerationLock blockGenerationLock,
-            NmsciMetrics nmsciMetrics
+            NmsciMetrics nmsciMetrics,
+            BlockFileReconciler blockFileReconciler
     ) {
         this.blockInfoRepository = blockInfoRepository;
         this.msgAbstractRepository = msgAbstractRepository;
@@ -48,11 +54,13 @@ public class BlockChainService {
         this.sourceCodeArchiveStore = sourceCodeArchiveStore;
         this.blockGenerationLock = blockGenerationLock;
         this.nmsciMetrics = nmsciMetrics;
+        this.blockFileReconciler = blockFileReconciler;
     }
 
     @Transactional
     public void generateBlock() {
         blockGenerationLock.lock();
+        ensureStartupReconciled();
         generateSelectedBlock(blockMessageSelector.select());
     }
 
@@ -100,6 +108,7 @@ public class BlockChainService {
     @Transactional
     public void generateBlockUntilNoNotInBlockMsgs() {
         blockGenerationLock.lock();
+        ensureStartupReconciled();
         while (generateBlockIfMessagesSelectedForLoop()) {
             // Continue until the selector returns no messages.
         }
@@ -119,6 +128,18 @@ public class BlockChainService {
         return blockInfoRepository.findById(ByteArrayUtil.hexToBytes(hash)).orElseThrow(
                 () -> new NotFoundException("该区块不存在: " + hash)
         );
+    }
+
+    /**
+     * 首次出块前（任一出块路径：定时任务 generateBlock 或中心公钥冻结的同步出块 generateBlockUntilNoNotInBlockMsgs）
+     * 执行一次 .dat 与数据库的崩溃对账。在 {@link BlockGenerationLock} 持锁之后调用，故严格早于本进程任何 appendBlock，
+     * 且与所有出块路径跨实例串行（对账期间无并发写），满足 {@link BlockFileReconciler} 的「孤儿必在尾部」前提。
+     * CAS 保证整个进程生命周期仅跑一次。
+     */
+    private void ensureStartupReconciled() {
+        if (startupReconciled.compareAndSet(false, true)) {
+            blockFileReconciler.reconcileOnStartup();
+        }
     }
 
     private String previousDatFilepath(BlockInfo previousBlock) {

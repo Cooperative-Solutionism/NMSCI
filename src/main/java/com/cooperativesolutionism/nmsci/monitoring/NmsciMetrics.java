@@ -25,6 +25,8 @@ public class NmsciMetrics {
     private final DistributionSummary blockSizeBytes;
     private final DistributionSummary blockMessageCount;
     private final Timer consumeChainAllocationTimer;
+    private final Counter blockReconcileHealedCounter;
+    private final Counter blockReconcileAnomalyCounter;
     private final AtomicLong latestBlockHeight = new AtomicLong(-1L);
 
     public NmsciMetrics(MeterRegistry meterRegistry, MsgAbstractService msgAbstractService) {
@@ -46,6 +48,12 @@ public class NmsciMetrics {
         this.consumeChainAllocationTimer = Timer.builder("nmsci.consumechain.allocation")
                 .description("消费链分配（交易挂载）耗时")
                 .publishPercentileHistogram()
+                .register(meterRegistry);
+        this.blockReconcileHealedCounter = Counter.builder("nmsci.block.reconcile.healed")
+                .description("启动对账自动截除/删除的 .dat 文件次数（崩溃残留孤儿/撕裂块自愈）")
+                .register(meterRegistry);
+        this.blockReconcileAnomalyCounter = Counter.builder("nmsci.block.reconcile.anomalies")
+                .description("启动对账检测到但无法安全自愈的 .dat 与 DB 偏离次数（需人工核查）")
                 .register(meterRegistry);
 
         Gauge.builder("nmsci.block.height", latestBlockHeight, AtomicLong::doubleValue)
@@ -76,5 +84,15 @@ public class NmsciMetrics {
     /** 计时一次消费链分配。 */
     public void timeConsumeChainAllocation(Runnable allocation) {
         consumeChainAllocationTimer.record(allocation);
+    }
+
+    /** 记录一次启动对账的自愈动作（截除尾部孤儿/删除整份孤儿文件）。 */
+    public void recordBlockReconcileHealed() {
+        blockReconcileHealedCounter.increment();
+    }
+
+    /** 记录一次启动对账检测到的、无法安全自愈的偏离（需人工核查）。 */
+    public void recordBlockReconcileAnomaly() {
+        blockReconcileAnomalyCounter.increment();
     }
 }

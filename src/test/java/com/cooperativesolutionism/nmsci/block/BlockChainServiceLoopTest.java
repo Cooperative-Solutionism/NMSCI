@@ -22,6 +22,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,7 +41,8 @@ class BlockChainServiceLoopTest {
                 mock(BlockFileStore.class),
                 mock(SourceCodeArchiveStore.class),
                 mock(BlockGenerationLock.class),
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                mock(BlockFileReconciler.class));
         when(selector.select()).thenReturn(new SelectedBlockMessages(new LinkedHashMap<>(), 0L));
 
         service.generateBlockUntilNoNotInBlockMsgs();
@@ -71,7 +73,8 @@ class BlockChainServiceLoopTest {
                 blockFileStore,
                 sourceCodeArchiveStore,
                 blockGenerationLock,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                mock(BlockFileReconciler.class));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
@@ -109,7 +112,8 @@ class BlockChainServiceLoopTest {
                 blockFileStore,
                 sourceCodeArchiveStore,
                 blockGenerationLock,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                mock(BlockFileReconciler.class));
         when(selector.select()).thenReturn(selectedMessages);
         when(assembler.assemble(null, selectedMessages)).thenReturn(assembledBlock);
         when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
@@ -137,7 +141,8 @@ class BlockChainServiceLoopTest {
                 mock(BlockFileStore.class),
                 mock(SourceCodeArchiveStore.class),
                 blockGenerationLock,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                mock(BlockFileReconciler.class));
         when(selector.select()).thenReturn(new SelectedBlockMessages(new LinkedHashMap<>(), 0L));
 
         service.generateBlockUntilNoNotInBlockMsgs();
@@ -145,6 +150,47 @@ class BlockChainServiceLoopTest {
         InOrder inOrder = inOrder(blockGenerationLock, selector);
         inOrder.verify(blockGenerationLock).lock();
         inOrder.verify(selector).select();
+    }
+
+    @Test
+    void reconcilesOnceBeforeAppendAcrossBothGenerationPaths() {
+        BlockInfoRepository blockInfoRepository = mock(BlockInfoRepository.class);
+        BlockMessageSelector selector = mock(BlockMessageSelector.class);
+        BlockAssembler assembler = mock(BlockAssembler.class);
+        BlockFileStore blockFileStore = mock(BlockFileStore.class);
+        SourceCodeArchiveStore sourceCodeArchiveStore = mock(SourceCodeArchiveStore.class);
+        BlockGenerationLock blockGenerationLock = mock(BlockGenerationLock.class);
+        BlockFileReconciler reconciler = mock(BlockFileReconciler.class);
+        SelectedBlockMessages emptySelection = new SelectedBlockMessages(new LinkedHashMap<>(), 0L);
+        BlockInfo blockInfo = new BlockInfo();
+        blockInfo.setHeight(0L);
+        blockInfo.setRawBytes(new byte[]{1, 2, 3});
+        AssembledBlock assembledBlock = new AssembledBlock(blockInfo, new byte[]{1, 2, 3}, List.of());
+        BlockChainService service = new BlockChainService(
+                blockInfoRepository,
+                mock(MsgAbstractRepository.class),
+                selector,
+                assembler,
+                blockFileStore,
+                sourceCodeArchiveStore,
+                blockGenerationLock,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                reconciler);
+        when(selector.select()).thenReturn(emptySelection);
+        when(assembler.assemble(null, emptySelection)).thenReturn(assembledBlock);
+        when(blockFileStore.appendBlock(null, assembledBlock.getDatBytes())).thenReturn("blk00000000.dat");
+        when(sourceCodeArchiveStore.copyArchiveForVersion(blockInfo.getVersion())).thenReturn("source_code_v0.zip");
+
+        // 中心公钥冻结的同步出块路径先触发（评审指出它绕过了原对账门控），再触发定时任务路径：
+        // 对账全程只跑一次，且在持锁之后、任何 appendBlock 之前。
+        service.generateBlockUntilNoNotInBlockMsgs();
+        service.generateBlock();
+
+        verify(reconciler, times(1)).reconcileOnStartup();
+        InOrder inOrder = inOrder(blockGenerationLock, reconciler, blockFileStore);
+        inOrder.verify(blockGenerationLock).lock();
+        inOrder.verify(reconciler).reconcileOnStartup();
+        inOrder.verify(blockFileStore).appendBlock(null, assembledBlock.getDatBytes());
     }
 
     private static SelectedBlockMessages selectedMessages(MsgAbstract msgAbstract) {
