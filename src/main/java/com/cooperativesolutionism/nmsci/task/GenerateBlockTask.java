@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.task;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.util.DateUtil;
@@ -19,12 +20,20 @@ public class GenerateBlockTask {
      */
     private boolean isFirstTimeRun = true;
 
+    /**
+     * 出块被禁用时只在首次跳过打一条日志，避免按出块周期反复刷屏。
+     */
+    private boolean loggedGenerationDisabled = false;
+
     private final BlockChainService blockChainService;
     private final NmsciMetrics nmsciMetrics;
+    private final NmsciProperties nmsciProperties;
 
-    public GenerateBlockTask(BlockChainService blockChainService, NmsciMetrics nmsciMetrics) {
+    public GenerateBlockTask(BlockChainService blockChainService, NmsciMetrics nmsciMetrics,
+                             NmsciProperties nmsciProperties) {
         this.blockChainService = blockChainService;
         this.nmsciMetrics = nmsciMetrics;
+        this.nmsciProperties = nmsciProperties;
     }
 
     /**
@@ -32,6 +41,16 @@ public class GenerateBlockTask {
      */
     @Scheduled(initialDelay = 0, fixedDelayString = "${nmsci.block-interval-ms:600000}")
     public void execute() {
+        if (!nmsciProperties.isBlockGenerationEnabled()) {
+            // 出块开关关闭：进入「静默校验窗」。节点正常对外提供查询/校验，但不铸新块——
+            // 用于升级部署时先完成 Flyway 迁移与存量链校验，确认无误后再开启出块，避免一启动就产出不可逆的新版本区块。
+            if (!loggedGenerationDisabled) {
+                logger.warn("出块已禁用(nmsci.block-generation-enabled=false)，定时出块任务将持续跳过；完成升级校验后置为 true 并重启即可开始出块");
+                loggedGenerationDisabled = true;
+            }
+            return;
+        }
+
         long startTime = -1L;
 
         try {

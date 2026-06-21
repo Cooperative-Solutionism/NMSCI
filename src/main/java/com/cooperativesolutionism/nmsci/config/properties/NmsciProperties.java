@@ -43,6 +43,13 @@ public class NmsciProperties {
     @Positive(message = "block-interval-ms必须为正数")
     private long blockIntervalMs;
 
+    /**
+     * 是否启用定时出块。默认 {@code true}，保证稳态运行与崩溃重启后节点持续出块；
+     * 升级部署时由运维显式置 {@code false} 启动，进入「静默校验窗」（完成 Flyway 迁移与存量链校验而不产出新块），
+     * 校验通过后再置 {@code true} 重启开始出块——从而把「铸出首个不可逆的新版本区块」变成校验通过后的人工动作。
+     */
+    private boolean blockGenerationEnabled = true;
+
     @Positive(message = "register-difficulty-target-nbits必须为正数")
     private int registerDifficultyTargetNbits;
 
@@ -116,6 +123,14 @@ public class NmsciProperties {
 
     public void setBlockIntervalMs(long blockIntervalMs) {
         this.blockIntervalMs = blockIntervalMs;
+    }
+
+    public boolean isBlockGenerationEnabled() {
+        return blockGenerationEnabled;
+    }
+
+    public void setBlockGenerationEnabled(boolean blockGenerationEnabled) {
+        this.blockGenerationEnabled = blockGenerationEnabled;
     }
 
     public int getRegisterDifficultyTargetNbits() {

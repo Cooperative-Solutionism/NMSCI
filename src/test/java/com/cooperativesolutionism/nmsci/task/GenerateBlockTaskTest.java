@@ -1,5 +1,6 @@
 package com.cooperativesolutionism.nmsci.task;
 
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.service.MsgAbstractService;
@@ -25,7 +26,8 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask(
                 blockChainService,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                new NmsciProperties());
 
         assertDoesNotThrow(task::execute);
 
@@ -40,7 +42,8 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask(
                 blockChainService,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                new NmsciProperties());
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -60,7 +63,8 @@ class GenerateBlockTaskTest {
         BlockChainService blockChainService = mock(BlockChainService.class);
         GenerateBlockTask task = new GenerateBlockTask(
                 blockChainService,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                new NmsciProperties());
 
         try (MockedStatic<DateUtil> dateUtil = mockStatic(DateUtil.class)) {
             dateUtil.when(DateUtil::getCurrentMicros)
@@ -84,12 +88,31 @@ class GenerateBlockTaskTest {
 
         GenerateBlockTask task = new GenerateBlockTask(
                 blockChainService,
-                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)));
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                new NmsciProperties());
 
         assertDoesNotThrow(task::execute);
         assertDoesNotThrow(task::execute);
 
         verify(blockChainService, times(2)).generateBlock();
         verify(blockChainService, times(2)).generateBlockUntilNoNotInBlockMsgs();
+    }
+
+    @Test
+    void skipsBlockGenerationWhenDisabled() {
+        BlockChainService blockChainService = mock(BlockChainService.class);
+        NmsciProperties properties = new NmsciProperties();
+        properties.setBlockGenerationEnabled(false);
+
+        GenerateBlockTask task = new GenerateBlockTask(
+                blockChainService,
+                new NmsciMetrics(new SimpleMeterRegistry(), mock(MsgAbstractService.class)),
+                properties);
+
+        assertDoesNotThrow(task::execute);
+        assertDoesNotThrow(task::execute);
+
+        verify(blockChainService, never()).generateBlock();
+        verify(blockChainService, never()).generateBlockUntilNoNotInBlockMsgs();
     }
 }
