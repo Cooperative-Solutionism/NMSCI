@@ -60,7 +60,8 @@ class PersistenceConcurrencyContractTest {
                 "lockOpenChainsForAllocation",
                 UUID.class,
                 Short.class,
-                long.class
+                long.class,
+                UUID.class
         );
         Query query = method.getAnnotation(Query.class);
 

@@ -65,7 +65,7 @@ class ConsumeChainQueryOptimizationTest {
 
         when(flowNodeRepository.findFirstByFlowNodePubkey(sourcePubkey)).thenReturn(source);
         when(flowNodeRepository.findFirstByFlowNodePubkey(targetPubkey)).thenReturn(target);
-        when(chainRepository.lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount()))
+        when(chainRepository.lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount(), target.getId()))
                 .thenReturn(selectedChains);
         when(edgeRepository.findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains))
                 .thenReturn(List.of(firstEdge, lastEdge));
@@ -79,7 +79,7 @@ class ConsumeChainQueryOptimizationTest {
 
         service.saveConsumeChain(mount, record);
 
-        verify(chainRepository).lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount());
+        verify(chainRepository).lockOpenChainsForAllocation(source.getId(), record.getCurrencyType(), record.getAmount(), target.getId());
         verify(edgeRepository).findByChainInOrderByRelatedTransactionMountTimestampAsc(selectedChains);
         verify(edgeRepository, never()).findByChain(any());
         verify(allocator).allocate(

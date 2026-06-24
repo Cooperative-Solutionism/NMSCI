@@ -17,10 +17,12 @@ import java.util.UUID;
 public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID> {
 
     /**
-     * 为交易挂载分配锁定开放消费链：在加锁层过滤 is_loop=false，按 tail_mount_timestamp 升序，
-     * 用窗口累计和只取「刚好够覆盖 amount」的最小前缀，并对选中行加 FOR UPDATE 悲观写锁。
-     * 不足部分由 {@code ConsumeChainAllocator} 新建链承接。
-     * 相比原分页循环，将 round-trip 从 O(候选链数/批大小) 降为 1，悲观锁与排序语义不变。
+     * 为交易挂载分配锁定开放消费链：在加锁层过滤 is_loop=false，优先 start==target（延伸后即成环，
+     * 提升成环概率）、其次按 tail_mount_timestamp 升序，用窗口累计和只取「刚好够覆盖 amount」的最小前缀，
+     * 并对选中行加 FOR UPDATE 悲观写锁。不足部分由 {@code ConsumeChainAllocator} 新建链承接。
+     * 相比原分页循环，将 round-trip 从 O(候选链数/批大小) 降为 1，悲观锁语义不变。
+     * 注意：窗口子查询与外层 ORDER BY 必须保持完全一致，否则「最小前缀选中的集合」与「分配器消费顺序」
+     * 不匹配，会破坏「刚好够覆盖」不变式。
      */
     @Query(value = """
             select c.*
@@ -33,7 +35,7 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
                     from (
                         select cc.id,
                                coalesce(sum(cc.amount) over (
-                                   order by cc.tail_mount_timestamp, cc.id
+                                   order by (cc.start = :targetId) desc, cc.tail_mount_timestamp, cc.id
                                    rows between unbounded preceding and 1 preceding
                                ), 0) as prior_sum
                         from consume_chains cc
@@ -43,13 +45,14 @@ public interface ConsumeChainRepository extends JpaRepository<ConsumeChain, UUID
                     ) s
                     where s.prior_sum < :amount
                 )
-            order by c.tail_mount_timestamp, c.id
+            order by (c.start = :targetId) desc, c.tail_mount_timestamp, c.id
             for update
             """, nativeQuery = true)
     List<ConsumeChain> lockOpenChainsForAllocation(
             @Param("endId") UUID endId,
             @Param("currencyType") Short currencyType,
-            @Param("amount") long amount
+            @Param("amount") long amount,
+            @Param("targetId") UUID targetId
     );
 
     @Query("select c from ConsumeChain c where c.id in (select e.chain.id from ConsumeChainEdge e where e.relatedTransactionMount = :relatedTransactionMount)")
