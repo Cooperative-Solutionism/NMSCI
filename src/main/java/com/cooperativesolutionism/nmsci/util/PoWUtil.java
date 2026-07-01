@@ -17,6 +17,13 @@ public class PoWUtil {
 
         int exponent = nBits[0] & 0xFF;
         int mantissa = ((nBits[1] & 0xFF) << 16) | ((nBits[2] & 0xFF) << 8) | (nBits[3] & 0xFF);
+        if (exponent < 3 || exponent > 32) {
+            throw new IllegalArgumentException("nBits指数必须在3到32之间");
+        }
+        if (mantissa <= 0) {
+            throw new IllegalArgumentException("nBits尾数必须为正数");
+        }
+
         return BigInteger.valueOf(mantissa).multiply(BigInteger.valueOf(256).pow(exponent - 3));
     }
 

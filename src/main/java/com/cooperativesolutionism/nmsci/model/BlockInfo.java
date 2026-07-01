@@ -2,18 +2,26 @@ package com.cooperativesolutionism.nmsci.model;
 
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
 import com.cooperativesolutionism.nmsci.serializer.IntToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
 @Comment("区块信息")
 @Entity
-@Table(name = "block_infos")
-public class BlockInfo {
+@Table(
+        name = "block_infos",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_block_infos_height", columnNames = "height"),
+                @UniqueConstraint(name = "uk_block_infos_previous_block_hash", columnNames = "previous_block_hash")
+        }
+)
+public class BlockInfo implements BlockInfoSummary {
     @Id
     @Comment("本区块头的dblsha256hash")
     @Column(name = "id", nullable = false)
@@ -80,8 +88,11 @@ public class BlockInfo {
     private String sourceCodeZipFilepath;
 
     @Comment("原始字节格式")
+    // rawBytes 为整块原始字节（最大可达 block-max-size，约 MB 级），与 .dat 文件内容重复，
+    // 不属于 /blocks/* 的对外契约字段；以 @JsonIgnore 排除序列化，避免每次元数据查询返回 MB 级响应体。
+    // 字段保留在 DB 与实体上，供装块写入与内部读取使用。
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     public byte[] getRawBytes() {

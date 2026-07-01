@@ -1,15 +1,19 @@
 package com.cooperativesolutionism.nmsci.enumeration;
 
 public enum CurrencyTypeEnum {
-    GOLD((short) 0, "黄金(微克)"),
-    CNY((short) 1, "人民币(分)");
+    GOLD((short) 0, "黄金(微克)", "微克", "1 = 1微克黄金"),
+    CNY((short) 1, "人民币(分)", "分", "1 = 1分人民币");
 
     private final short value;
     private final String description;
+    private final String unit;
+    private final String unitDescription;
 
-    CurrencyTypeEnum(short value, String description) {
+    CurrencyTypeEnum(short value, String description, String unit, String unitDescription) {
         this.value = value;
         this.description = description;
+        this.unit = unit;
+        this.unitDescription = unitDescription;
     }
 
     public short getValue() {
@@ -18,6 +22,14 @@ public enum CurrencyTypeEnum {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public String getUnitDescription() {
+        return unitDescription;
     }
 
     /**

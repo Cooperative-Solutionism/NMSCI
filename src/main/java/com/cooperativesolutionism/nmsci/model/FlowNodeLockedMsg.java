@@ -1,12 +1,17 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -15,8 +20,20 @@ import java.util.UUID;
 
 @Comment("流转节点冻结信息")
 @Entity
-@Table(name = "flow_node_locked_msgs")
-public class FlowNodeLockedMsg implements Message {
+@Table(
+        name = "flow_node_locked_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_flow_node_locked_msgs_flow_node_pubkey",
+                        columnNames = "flow_node_pubkey"
+                ),
+                @UniqueConstraint(
+                        name = "uk_flow_node_locked_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
+public class FlowNodeLockedMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -28,19 +45,19 @@ public class FlowNodeLockedMsg implements Message {
 
     @Comment("流转节点公钥")
     @Column(name = "flow_node_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodePubkey;
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] centralPubkey;
 
     @Comment("流转节点签名")
     @Column(name = "flow_node_signature", nullable = false)
-    @ByteArraySize(64)
+    @ByteArraySize(RS_SIGNATURE_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodeSignature;
 
@@ -55,7 +72,7 @@ public class FlowNodeLockedMsg implements Message {
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     @Comment("信息的dblsha256hash_reverse")
@@ -133,6 +150,23 @@ public class FlowNodeLockedMsg implements Message {
 
     public void setTxid(byte[] txid) {
         this.txid = txid;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof FlowNodeLockedMsg)) {
+            return false;
+        }
+        FlowNodeLockedMsg that = (FlowNodeLockedMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return FlowNodeLockedMsg.class.hashCode();
     }
 
 }

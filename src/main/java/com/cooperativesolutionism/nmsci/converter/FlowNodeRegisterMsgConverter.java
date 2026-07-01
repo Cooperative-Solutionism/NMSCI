@@ -1,16 +1,29 @@
 package com.cooperativesolutionism.nmsci.converter;
 
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 
-public class FlowNodeRegisterMsgConverter {
-    public static FlowNodeRegisterMsg fromByteArray(byte[] byteData) {
-        if (byteData == null || byteData.length != 123) {
-            throw new IllegalArgumentException("Invalid byte array size, expected 123 bytes.");
-        }
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_INBOUND_BYTES;
 
+@Component
+public class FlowNodeRegisterMsgConverter extends AbstractMessageConverter<FlowNodeRegisterMsg> {
+
+    @Override
+    public MsgTypeEnum msgType() {
+        return MsgTypeEnum.FlowNodeRegisterMsg;
+    }
+
+    @Override
+    public int expectedSize() {
+        return FLOW_NODE_REGISTER_INBOUND_BYTES;
+    }
+
+    @Override
+    protected FlowNodeRegisterMsg decode(byte[] byteData) {
         // 【信息类型2字节(0)】+【uuid16字节】+【注册难度目标4字节】+【随机数4字节】+【流转节点公钥33字节】+【流转节点对信息(前5项数据)签名64字节】
         FlowNodeRegisterMsg msg = new FlowNodeRegisterMsg();
         msg.setMsgType(ByteArrayUtil.bytesToShort(Arrays.copyOfRange(byteData, 0, 2)));

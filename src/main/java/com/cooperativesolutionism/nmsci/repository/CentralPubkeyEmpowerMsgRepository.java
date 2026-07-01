@@ -1,9 +1,13 @@
 package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyEmpowerMsg;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -13,6 +17,8 @@ public interface CentralPubkeyEmpowerMsgRepository extends JpaRepository<Central
 
     long countByFlowNodePubkeyAndCentralPubkey(byte[] flowNodePubkey, byte[] centralPubkey);
 
-    CentralPubkeyEmpowerMsg findByFlowNodePubkey(byte[] flowNodePubkey);
+    Slice<CentralPubkeyEmpowerMsg> findByFlowNodePubkey(byte[] flowNodePubkey, Pageable pageable);
+
+    List<MessagePayloadProjection> findPayloadByIdIn(Collection<UUID> ids);
 
 }

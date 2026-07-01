@@ -2,56 +2,69 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.TransactionRecordMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.TransactionRecordMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionRecordMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
+import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_RECORD_INBOUND_BYTES;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
-@RequestMapping("/transaction-record-msg")
+@RequestMapping("/transaction-records")
 public class TransactionRecordMsgController {
 
-    @Resource
-    private TransactionRecordMsgService transactionRecordMsgService;
+    private final TransactionRecordMsgService transactionRecordMsgService;
+    private final TransactionRecordMsgConverter transactionRecordMsgConverter;
 
-    @PostMapping("/send")
-    public ResponseResult<TransactionRecordMsg> saveTransactionRecordMsg(@RequestBody @ByteArraySize(263) byte[] byteData) {
-        TransactionRecordMsg transactionRecordMsg = TransactionRecordMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(transactionRecordMsgService.saveTransactionRecordMsg(transactionRecordMsg));
+    public TransactionRecordMsgController(
+            TransactionRecordMsgService transactionRecordMsgService,
+            TransactionRecordMsgConverter transactionRecordMsgConverter
+    ) {
+        this.transactionRecordMsgService = transactionRecordMsgService;
+        this.transactionRecordMsgConverter = transactionRecordMsgConverter;
     }
 
-    @GetMapping("/id/{id}")
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseResult<TransactionRecordMsg> saveTransactionRecordMsg(@RequestBody @ByteArraySize(TRANSACTION_RECORD_INBOUND_BYTES) byte[] byteData) {
+        return badRequestOnIllegalArgument(() -> {
+            TransactionRecordMsg transactionRecordMsg = transactionRecordMsgConverter.fromByteArray(byteData);
+            return ResponseResult.success(transactionRecordMsgService.saveTransactionRecordMsg(transactionRecordMsg));
+        });
+    }
+
+    @GetMapping("/{id}")
     public ResponseResult<TransactionRecordMsg> getTransactionRecordMsgById(@PathVariable("id") String id) {
-        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgService.getTransactionRecordMsgById(UUID.fromString(id));
+        TransactionRecordMsg transactionRecordMsg = transactionRecordMsgService.getTransactionRecordMsgById(uuid(id));
         return ResponseResult.success(transactionRecordMsg);
     }
 
-    @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkey(@PathVariable("consumeNodePubkey") String consumeNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkey(ByteArrayUtil.hexToBytes(consumeNodePubkey));
-        return ResponseResult.success(transactionRecordMsgs);
-    }
-
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(transactionRecordMsgs);
-    }
-
-    @GetMapping("/{consumeNodePubkey}/{flowNodePubkey}")
-    public ResponseResult<List<TransactionRecordMsg>> getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-            @PathVariable("consumeNodePubkey") String consumeNodePubkey,
-            @PathVariable("flowNodePubkey") String flowNodePubkey
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<TransactionRecordMsg>> searchTransactionRecordMsgs(
+            @RequestParam(required = false) String consumeNodePubkey,
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(required = false) Short currencyType,
+            @RequestParam(required = false) Long startTime,
+            @RequestParam(required = false) Long endTime,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
     ) {
-        List<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.getTransactionRecordMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.base64ToBytes(consumeNodePubkey),
-                ByteArrayUtil.base64ToBytes(flowNodePubkey)
+        Slice<TransactionRecordMsg> transactionRecordMsgs = transactionRecordMsgService.searchTransactionRecordMsgs(
+                compressedPubkeyHexOrNull(consumeNodePubkey),
+                compressedPubkeyHexOrNull(flowNodePubkey),
+                currencyType,
+                startTime,
+                endTime,
+                PageRequestUtil.ofMessageQuery(page, size)
         );
-        return ResponseResult.success(transactionRecordMsgs);
+        return ResponseResult.success(SliceResponseDTO.from(transactionRecordMsgs));
     }
 }

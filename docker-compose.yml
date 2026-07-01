@@ -1,0 +1,46 @@
+# NMSCI 一键本地/部署编排：应用 + PostgreSQL。
+# 用法：cp .env.example .env，填入口令与中心密钥后 `docker compose up -d --build`。
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nmsci
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d nmsci"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+    image: nmsci:2.0.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # 容器内通过服务名 postgres 访问数据库（覆盖 .env 中面向裸机的 DB_URL）
+      DB_URL: jdbc:postgresql://postgres:5432/nmsci
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 中设置 DB_PASSWORD}
+      CENTRAL_KEY_PAIR_PUBKEY: ${CENTRAL_KEY_PAIR_PUBKEY:?请在 .env 中设置 CENTRAL_KEY_PAIR_PUBKEY}
+      CENTRAL_KEY_PAIR_PRIKEY: ${CENTRAL_KEY_PAIR_PRIKEY:?请在 .env 中设置 CENTRAL_KEY_PAIR_PRIKEY}
+      # 可选 JVM 参数，例如 -Xmx512m
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:-}
+    ports:
+      - "8080:8080"
+    volumes:
+      - nmsci-data:/app/file
+      - nmsci-logs:/app/logs
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  nmsci-data:
+  nmsci-logs:

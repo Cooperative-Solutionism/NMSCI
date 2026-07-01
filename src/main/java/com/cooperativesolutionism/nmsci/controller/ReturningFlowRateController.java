@@ -2,70 +2,78 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
 import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
+import com.cooperativesolutionism.nmsci.exception.BadRequestException;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
-import com.cooperativesolutionism.nmsci.service.ConsumeChainService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
+import com.cooperativesolutionism.nmsci.service.ConsumeChainQueryService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.notBlank;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
-@RequestMapping("/returning-flow-rate")
+@RequestMapping("/returning-flow-rates")
 public class ReturningFlowRateController {
 
-    @Resource
-    private ConsumeChainService consumeChainService;
+    private final ConsumeChainQueryService consumeChainQueryService;
 
-    @GetMapping("/by-id")
-    public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRateByTarget(
-            @RequestParam(required = false, defaultValue = "") String sourceId,
-            @RequestParam String targetId,
-            @RequestParam(required = false, defaultValue = "0") long startTime,
-            @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
-            @RequestParam(required = false, defaultValue = "1") short currencyType
-    ) {
-        ReturningFlowRateRequestDTO returningFlowRateRequestDTO = new ReturningFlowRateRequestDTO();
-        returningFlowRateRequestDTO.setTargetId(UUID.fromString(targetId));
-        returningFlowRateRequestDTO.setStartTime(startTime);
-        returningFlowRateRequestDTO.setEndTime(endTime);
-        returningFlowRateRequestDTO.setCurrencyType(currencyType);
-
-        ReturningFlowRateResponseDTO responseDTO;
-        if (sourceId.isEmpty()) {
-            responseDTO = consumeChainService.getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
-        } else {
-            returningFlowRateRequestDTO.setSourceId(UUID.fromString(sourceId));
-            responseDTO = consumeChainService.getReturningFlowRateById(returningFlowRateRequestDTO);
-        }
-
-        return ResponseResult.success(responseDTO);
+    public ReturningFlowRateController(ConsumeChainQueryService consumeChainQueryService) {
+        this.consumeChainQueryService = consumeChainQueryService;
     }
 
-    @GetMapping("/by-pubkey")
+    /**
+     * 回流率查询（统一集合根）：target 必填（targetId 或 targetPubkey），source 可选；
+     * 缺省 source 时返回流入 target 的总回流率。id 与 pubkey 参数不可混用。
+     */
+    @GetMapping
     public ResponseResult<ReturningFlowRateResponseDTO> getReturningFlowRate(
-            @RequestParam(required = false, defaultValue = "") String source,
-            @RequestParam String target,
+            @RequestParam(required = false) String sourceId,
+            @RequestParam(required = false) String targetId,
+            @RequestParam(required = false) String sourcePubkey,
+            @RequestParam(required = false) String targetPubkey,
             @RequestParam(required = false, defaultValue = "0") long startTime,
             @RequestParam(required = false, defaultValue = "9223372036854775807") long endTime,
             @RequestParam(required = false, defaultValue = "1") short currencyType
     ) {
-        ReturningFlowRateRequestDTO returningFlowRateRequestDTO = new ReturningFlowRateRequestDTO();
-        returningFlowRateRequestDTO.setTarget(ByteArrayUtil.hexToBytes(target));
-        returningFlowRateRequestDTO.setStartTime(startTime);
-        returningFlowRateRequestDTO.setEndTime(endTime);
-        returningFlowRateRequestDTO.setCurrencyType(currencyType);
+        return badRequestOnIllegalArgument(() -> {
+            boolean hasId = notBlank(sourceId) || notBlank(targetId);
+            boolean hasPubkey = notBlank(sourcePubkey) || notBlank(targetPubkey);
+            if (hasId && hasPubkey) {
+                throw new BadRequestException("id 与 pubkey 查询参数不能混用");
+            }
 
-        ReturningFlowRateResponseDTO responseDTO;
-        if (source.isEmpty()) {
-            responseDTO = consumeChainService.getReturningFlowRateByTargetPubkey(returningFlowRateRequestDTO);
+            ReturningFlowRateRequestDTO request = new ReturningFlowRateRequestDTO();
+            request.setStartTime(startTime);
+            request.setEndTime(endTime);
+            request.setCurrencyType(currencyType);
+
+            ReturningFlowRateResponseDTO responseDTO;
+            if (hasPubkey) {
+                if (!notBlank(targetPubkey)) {
+                    throw new BadRequestException("targetPubkey 不能为空");
+                }
+                request.setTarget(hexBytesOrNull(targetPubkey));
+                if (notBlank(sourcePubkey)) {
+                    request.setSource(hexBytesOrNull(sourcePubkey));
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByPubkey(request);
+                } else {
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByTargetPubkey(request);
+                }
+            } else {
+                if (!notBlank(targetId)) {
+                    throw new BadRequestException("targetId 不能为空");
+                }
+                request.setTargetId(uuidOrNull(targetId));
+                if (notBlank(sourceId)) {
+                    request.setSourceId(uuidOrNull(sourceId));
+                    responseDTO = consumeChainQueryService.getReturningFlowRateById(request);
+                } else {
+                    responseDTO = consumeChainQueryService.getReturningFlowRateByTargetId(request);
+                }
+            }
+
             return ResponseResult.success(responseDTO);
-        } else {
-            returningFlowRateRequestDTO.setSource(ByteArrayUtil.hexToBytes(source));
-            responseDTO = consumeChainService.getReturningFlowRateByPubkey(returningFlowRateRequestDTO);
-        }
-
-        return ResponseResult.success(responseDTO);
+        });
     }
-
 }

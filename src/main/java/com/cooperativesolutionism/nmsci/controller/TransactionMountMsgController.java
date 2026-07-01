@@ -2,61 +2,70 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.TransactionMountMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.TransactionMountMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
+import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.TRANSACTION_MOUNT_INBOUND_BYTES;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuidOrNull;
 
 @RestController
-@RequestMapping("/transaction-mount-msg")
+@RequestMapping("/transaction-mounts")
 public class TransactionMountMsgController {
-    @Resource
-    private TransactionMountMsgService transactionMountMsgService;
 
-    @PostMapping("/send")
-    public ResponseResult<TransactionMountMsg> saveTransactionMountMsg(@RequestBody @ByteArraySize(269) byte[] byteData) {
-        TransactionMountMsg transactionMountMsg = TransactionMountMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(transactionMountMsgService.saveTransactionMountMsg(transactionMountMsg));
-    }
+    private final TransactionMountMsgService transactionMountMsgService;
+    private final TransactionMountMsgConverter transactionMountMsgConverter;
 
-    @GetMapping("/id/{id}")
-    public ResponseResult<TransactionMountMsg> getTransactionMountMsgById(@PathVariable String id) {
-        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgById(UUID.fromString(id));
-        return ResponseResult.success(transactionMountMsg);
-    }
-
-    @GetMapping("/mounted-transaction-record-id/{id}")
-    public ResponseResult<TransactionMountMsg> getTransactionMountMsgByMountedTransactionRecordId(@PathVariable String id) {
-        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgByMountedTransactionRecordId(UUID.fromString(id));
-        return ResponseResult.success(transactionMountMsg);
-    }
-
-    @GetMapping("/consume-node-pubkey/{consumeNodePubkey}")
-    public ResponseResult<List<TransactionMountMsg>> getTransactionMountMsgByConsumeNodePubkey(@PathVariable String consumeNodePubkey) {
-        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkey(ByteArrayUtil.hexToBytes(consumeNodePubkey));
-        return ResponseResult.success(transactionMountMsgs);
-    }
-
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<List<TransactionMountMsg>> getTransactionMountMsgByFlowNodePubkey(@PathVariable String flowNodePubkey) {
-        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(transactionMountMsgs);
-    }
-
-    @GetMapping("/{consumeNodePubkey}/{flowNodePubkey}")
-    public ResponseResult<List<TransactionMountMsg>> getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
-            @PathVariable String consumeNodePubkey,
-            @PathVariable String flowNodePubkey
+    public TransactionMountMsgController(
+            TransactionMountMsgService transactionMountMsgService,
+            TransactionMountMsgConverter transactionMountMsgConverter
     ) {
-        List<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.getTransactionMountMsgByConsumeNodePubkeyAndFlowNodePubkey(
-                ByteArrayUtil.hexToBytes(consumeNodePubkey),
-                ByteArrayUtil.hexToBytes(flowNodePubkey)
+        this.transactionMountMsgService = transactionMountMsgService;
+        this.transactionMountMsgConverter = transactionMountMsgConverter;
+    }
+
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseResult<TransactionMountMsg> saveTransactionMountMsg(@RequestBody @ByteArraySize(TRANSACTION_MOUNT_INBOUND_BYTES) byte[] byteData) {
+        return badRequestOnIllegalArgument(() -> {
+            TransactionMountMsg transactionMountMsg = transactionMountMsgConverter.fromByteArray(byteData);
+            return ResponseResult.success(transactionMountMsgService.saveTransactionMountMsg(transactionMountMsg));
+        });
+    }
+
+    @GetMapping("/{id}")
+    public ResponseResult<TransactionMountMsg> getTransactionMountMsgById(@PathVariable String id) {
+        TransactionMountMsg transactionMountMsg = transactionMountMsgService.getTransactionMountMsgById(uuid(id));
+        return ResponseResult.success(transactionMountMsg);
+    }
+
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<TransactionMountMsg>> searchTransactionMountMsgs(
+            @RequestParam(required = false) String consumeNodePubkey,
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(required = false) String mountedTransactionRecordId,
+            @RequestParam(required = false) Long startTime,
+            @RequestParam(required = false) Long endTime,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<TransactionMountMsg> transactionMountMsgs = transactionMountMsgService.searchTransactionMountMsgs(
+                compressedPubkeyHexOrNull(consumeNodePubkey),
+                compressedPubkeyHexOrNull(flowNodePubkey),
+                uuidOrNull(mountedTransactionRecordId),
+                startTime,
+                endTime,
+                PageRequestUtil.ofMessageQuery(page, size)
         );
-        return ResponseResult.success(transactionMountMsgs);
+        return ResponseResult.success(SliceResponseDTO.from(transactionMountMsgs));
     }
 }

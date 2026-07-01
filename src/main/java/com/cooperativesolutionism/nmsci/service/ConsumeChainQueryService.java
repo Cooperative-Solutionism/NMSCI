@@ -1,0 +1,360 @@
+package com.cooperativesolutionism.nmsci.service;
+
+import com.cooperativesolutionism.nmsci.consume.ConsumeChainSupport;
+import com.cooperativesolutionism.nmsci.dto.ConsumeChainResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateRequestDTO;
+import com.cooperativesolutionism.nmsci.dto.ReturningFlowRateResponseDTO;
+import com.cooperativesolutionism.nmsci.enumeration.ConsumeChainNodeFilter;
+import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
+import com.cooperativesolutionism.nmsci.model.ConsumeChain;
+import com.cooperativesolutionism.nmsci.model.ConsumeChainEdge;
+import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
+import com.cooperativesolutionism.nmsci.model.TransactionMountMsg;
+import com.cooperativesolutionism.nmsci.repository.ConsumeChainEdgeRepository;
+import com.cooperativesolutionism.nmsci.repository.ConsumeChainRepository;
+import com.cooperativesolutionism.nmsci.repository.FlowNodeRegisterMsgRepository;
+import com.cooperativesolutionism.nmsci.repository.TransactionMountMsgRepository;
+import jakarta.annotation.Nonnull;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.SliceImpl;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+@Service
+@Transactional(readOnly = true)
+public class ConsumeChainQueryService {
+
+    private final ConsumeChainSupport consumeChainSupport;
+    private final FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository;
+    private final ConsumeChainRepository consumeChainRepository;
+    private final ConsumeChainEdgeRepository consumeChainEdgeRepository;
+    private final TransactionMountMsgRepository transactionMountMsgRepository;
+
+    public ConsumeChainQueryService(
+            ConsumeChainSupport consumeChainSupport,
+            FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository,
+            ConsumeChainRepository consumeChainRepository,
+            ConsumeChainEdgeRepository consumeChainEdgeRepository,
+            TransactionMountMsgRepository transactionMountMsgRepository
+    ) {
+        this.consumeChainSupport = consumeChainSupport;
+        this.flowNodeRegisterMsgRepository = flowNodeRegisterMsgRepository;
+        this.consumeChainRepository = consumeChainRepository;
+        this.consumeChainEdgeRepository = consumeChainEdgeRepository;
+        this.transactionMountMsgRepository = transactionMountMsgRepository;
+    }
+
+    public ReturningFlowRateResponseDTO getReturningFlowRateById(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+        }
+
+        ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRate(
+                returningFlowRateRequestDTO.getSourceId(),
+                returningFlowRateRequestDTO.getTargetId(),
+                returningFlowRateRequestDTO.getCurrencyType(),
+                returningFlowRateRequestDTO.getStartTime(),
+                returningFlowRateRequestDTO.getEndTime()
+        );
+
+        double loopedAmount = amount(aggregate.getLoopedAmount());
+        double unloopedAmount = amount(aggregate.getUnloopedAmount());
+        double returningFlowRate = (loopedAmount + unloopedAmount) == 0 ? 0 : loopedAmount / (loopedAmount + unloopedAmount);
+
+        return new ReturningFlowRateResponseDTO(
+                returningFlowRate,
+                loopedAmount,
+                unloopedAmount,
+                returningFlowRateRequestDTO.getCurrencyType()
+        );
+    }
+
+    public ReturningFlowRateResponseDTO getReturningFlowRateByTargetId(ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        if (!CurrencyTypeEnum.containsValue(returningFlowRateRequestDTO.getCurrencyType())) {
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+        }
+
+        ConsumeChainEdgeRepository.ReturningFlowRateAggregate aggregate = consumeChainEdgeRepository.aggregateReturningFlowRateByTarget(
+                returningFlowRateRequestDTO.getTargetId(),
+                returningFlowRateRequestDTO.getCurrencyType(),
+                returningFlowRateRequestDTO.getStartTime(),
+                returningFlowRateRequestDTO.getEndTime()
+        );
+
+        return new ReturningFlowRateResponseDTO(
+                amount(aggregate.getLoopedAmount()),
+                amount(aggregate.getUnloopedAmount()),
+                returningFlowRateRequestDTO.getCurrencyType()
+        );
+    }
+
+    public ReturningFlowRateResponseDTO getReturningFlowRateByPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getSource(), "源");
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
+
+        returningFlowRateRequestDTO.setTargetId(target.getId());
+        returningFlowRateRequestDTO.setSourceId(source.getId());
+
+        return getReturningFlowRateById(returningFlowRateRequestDTO);
+    }
+
+    public ReturningFlowRateResponseDTO getReturningFlowRateByTargetPubkey(@Nonnull ReturningFlowRateRequestDTO returningFlowRateRequestDTO) {
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(returningFlowRateRequestDTO.getTarget(), "目标");
+
+        returningFlowRateRequestDTO.setTargetId(target.getId());
+
+        return getReturningFlowRateByTargetId(returningFlowRateRequestDTO);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByMountedTransaction(UUID id, Pageable pageable) {
+        if (id == null) {
+            throw new IllegalArgumentException("挂载交易ID不能为空");
+        }
+
+        TransactionMountMsg transactionMountMsg = transactionMountMsgRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("挂载交易ID不存在"));
+
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findDistinctByRelatedTransactionMount(transactionMountMsg, pageable);
+        return getConsumeChainResponseDTOSlice(consumeChains);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByStart(UUID id, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.START, id, null, "起点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByStartAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.START, id, isLoop, "起点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByEnd(UUID id, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.END, id, null, "终点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByEndAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.END, id, isLoop, "终点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByNode(UUID id, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, id, null, "节点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByNodeAndIsLoop(UUID id, Boolean isLoop, Pageable pageable) {
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, id, isLoop, "节点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByRelatedId(
+            UUID start,
+            UUID end,
+            UUID node,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        if (countProvided(start, end, node) != 1) {
+            throw new IllegalArgumentException("必须且只能提供start、end、node中的一个");
+        }
+
+        if (start != null) {
+            return queryByNodeId(ConsumeChainNodeFilter.START, start, isLoop, "起点", pageable);
+        }
+
+        if (end != null) {
+            return queryByNodeId(ConsumeChainNodeFilter.END, end, isLoop, "终点", pageable);
+        }
+
+        return queryByNodeId(ConsumeChainNodeFilter.NODE, node, isLoop, "节点", pageable);
+    }
+
+    public Slice<ConsumeChainResponseDTO> getConsumeChainByPubkey(
+            byte[] startPubkey,
+            byte[] endPubkey,
+            byte[] nodePubkey,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        if (countProvided(startPubkey, endPubkey, nodePubkey) != 1) {
+            throw new IllegalArgumentException("必须且只能提供startPubkey、endPubkey、nodePubkey中的一个");
+        }
+
+        if (startPubkey != null) {
+            return queryByNodePubkey(ConsumeChainNodeFilter.START, startPubkey, isLoop, "起点", pageable);
+        }
+
+        if (endPubkey != null) {
+            return queryByNodePubkey(ConsumeChainNodeFilter.END, endPubkey, isLoop, "终点", pageable);
+        }
+
+        return queryByNodePubkey(ConsumeChainNodeFilter.NODE, nodePubkey, isLoop, "节点", pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNodeId(
+            ConsumeChainNodeFilter filter,
+            UUID id,
+            Boolean isLoop,
+            String label,
+            Pageable pageable
+    ) {
+        if (id == null) {
+            throw new IllegalArgumentException(label + "ID不能为空");
+        }
+
+        FlowNodeRegisterMsg node = flowNodeRegisterMsgRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException(label + "ID不存在"));
+
+        return queryByNode(filter, node, isLoop, pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNodePubkey(
+            ConsumeChainNodeFilter filter,
+            byte[] pubkey,
+            Boolean isLoop,
+            String label,
+            Pageable pageable
+    ) {
+        FlowNodeRegisterMsg node = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(pubkey, label);
+
+        return queryByNode(filter, node, isLoop, pageable);
+    }
+
+    private Slice<ConsumeChainResponseDTO> queryByNode(
+            ConsumeChainNodeFilter filter,
+            FlowNodeRegisterMsg node,
+            Boolean isLoop,
+            Pageable pageable
+    ) {
+        Slice<ConsumeChain> consumeChains = consumeChainRepository.findByNodeFilter(filter, node, isLoop, pageable);
+
+        return getConsumeChainResponseDTOSlice(consumeChains);
+    }
+
+    public ConsumeChainResponseDTO getConsumeChainById(UUID uuid) {
+        if (uuid == null) {
+            throw new IllegalArgumentException("消费链ID不能为空");
+        }
+
+        ConsumeChain consumeChain = consumeChainRepository.findById(uuid)
+                .orElseThrow(() -> new NotFoundException("消费链ID不存在"));
+
+        List<ConsumeChain> consumeChains = List.of(consumeChain);
+
+        List<ConsumeChainResponseDTO> consumeChainResponseDTOs = getConsumeChainResponseDTOs(consumeChains);
+        if (consumeChainResponseDTOs.isEmpty()) {
+            throw new NotFoundException("消费链ID不存在");
+        }
+
+        return consumeChainResponseDTOs.get(0);
+    }
+
+    /**
+     * 按 id 查询消费链边：source 缺省时返回流入 target 的全部边（按 chain 去重）；
+     * source、target 均提供时返回 source→target 之间的边。
+     */
+    public Slice<ConsumeChainEdge> getConsumeChainEdgesById(
+            UUID sourceId,
+            UUID targetId,
+            short currencyType,
+            long startTime,
+            long endTime,
+            Pageable pageable
+    ) {
+        if (!CurrencyTypeEnum.containsValue(currencyType)) {
+            throw new IllegalArgumentException("货币类型错误，必须为以下数值：\n" + CurrencyTypeEnum.getAllEnumDescriptions());
+        }
+        if (targetId == null) {
+            throw new IllegalArgumentException("targetId 不能为空");
+        }
+
+        int limit = edgeQueryLimit(pageable);
+        long offset = pageable.getOffset();
+        List<ConsumeChainEdge> edges;
+        if (sourceId == null) {
+            edges = consumeChainEdgeRepository.findConsumeChainEdgesByTarget(
+                    targetId, currencyType, startTime, endTime, limit, offset);
+        } else {
+            edges = consumeChainEdgeRepository.findConsumeChainEdges(
+                    sourceId, targetId, currencyType, startTime, endTime, limit, offset);
+        }
+        return toConsumeChainEdgeSlice(edges, pageable);
+    }
+
+    /**
+     * 按 pubkey 查询消费链边：先把 pubkey 解析为流转节点 id，再委托 {@link #getConsumeChainEdgesById}。
+     */
+    public Slice<ConsumeChainEdge> getConsumeChainEdgesByPubkey(
+            byte[] sourcePubkey,
+            byte[] targetPubkey,
+            short currencyType,
+            long startTime,
+            long endTime,
+            Pageable pageable
+    ) {
+        FlowNodeRegisterMsg target = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(targetPubkey, "目标");
+
+        if (sourcePubkey == null) {
+            return getConsumeChainEdgesById(null, target.getId(), currencyType, startTime, endTime, pageable);
+        }
+
+        FlowNodeRegisterMsg source = consumeChainSupport.getFlowNodeRegisterMsgByPubkey(sourcePubkey, "源");
+        return getConsumeChainEdgesById(source.getId(), target.getId(), currencyType, startTime, endTime, pageable);
+    }
+
+    private Slice<ConsumeChainEdge> toConsumeChainEdgeSlice(List<ConsumeChainEdge> edges, Pageable pageable) {
+        int pageSize = pageable.getPageSize();
+        boolean hasNext = edges.size() > pageSize;
+        List<ConsumeChainEdge> content = hasNext ? edges.subList(0, pageSize) : edges;
+        return new SliceImpl<>(List.copyOf(content), pageable, hasNext);
+    }
+
+    private int edgeQueryLimit(Pageable pageable) {
+        return Math.addExact(pageable.getPageSize(), 1);
+    }
+
+    private int countProvided(Object... values) {
+        int count = 0;
+        for (Object value : values) {
+            if (value != null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    /**
+     * 获取消费链响应DTO列表
+     *
+     * @param consumeChains 消费链列表
+     * @return 返回消费链响应DTO列表
+     */
+    private List<ConsumeChainResponseDTO> getConsumeChainResponseDTOs(List<ConsumeChain> consumeChains) {
+        Map<UUID, List<ConsumeChainEdge>> edgesByChainId = consumeChainSupport.getEdgesByChainId(consumeChains);
+        List<ConsumeChainResponseDTO> consumeChainResponseDTOs = new ArrayList<>();
+
+        for (ConsumeChain consumeChain : consumeChains) {
+            ConsumeChainResponseDTO consumeChainResponseDTO = new ConsumeChainResponseDTO();
+
+            consumeChainResponseDTO.setConsumeChain(consumeChain);
+            consumeChainResponseDTO.setConsumeChainEdges(edgesByChainId.getOrDefault(consumeChain.getId(), List.of()));
+
+            consumeChainResponseDTOs.add(consumeChainResponseDTO);
+        }
+
+        return consumeChainResponseDTOs;
+    }
+
+    private Slice<ConsumeChainResponseDTO> getConsumeChainResponseDTOSlice(Slice<ConsumeChain> consumeChains) {
+        List<ConsumeChainResponseDTO> responseDTOs = getConsumeChainResponseDTOs(consumeChains.getContent());
+        return new SliceImpl<>(responseDTOs, consumeChains.getPageable(), consumeChains.hasNext());
+    }
+
+    private double amount(BigDecimal amount) {
+        return amount == null ? 0.0 : amount.doubleValue();
+    }
+
+}

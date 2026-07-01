@@ -2,35 +2,70 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.CentralPubkeyLockedMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.LockedMessageResponseDTO;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
+import org.springframework.data.domain.Slice;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.util.Optional;
+
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.hexBytesOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
-@RequestMapping("/central-pubkey-locked-msg")
+@RequestMapping("/central-pubkey-locks")
 public class CentralPubkeyLockedMsgController {
 
-    @Resource
-    private CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+    private final CentralPubkeyLockedMsgService centralPubkeyLockedMsgService;
+    private final CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter;
 
-    @PostMapping("/send")
-    public void saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(115) byte[] byteData) {
-        CentralPubkeyLockedMsg centralPubkeyLockedMsg = CentralPubkeyLockedMsgConverter.fromByteArray(byteData);
-        centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+    public CentralPubkeyLockedMsgController(
+            CentralPubkeyLockedMsgService centralPubkeyLockedMsgService,
+            CentralPubkeyLockedMsgConverter centralPubkeyLockedMsgConverter
+    ) {
+        this.centralPubkeyLockedMsgService = centralPubkeyLockedMsgService;
+        this.centralPubkeyLockedMsgConverter = centralPubkeyLockedMsgConverter;
     }
 
-    @GetMapping("/id/{id}")
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseResult<CentralPubkeyLockedMsg> saveCentralPubkeyLockedMsg(@RequestBody @ByteArraySize(CENTRAL_PUBKEY_LOCKED_INBOUND_BYTES) byte[] byteData) {
+        return badRequestOnIllegalArgument(() -> {
+            CentralPubkeyLockedMsg centralPubkeyLockedMsg = centralPubkeyLockedMsgConverter.fromByteArray(byteData);
+            centralPubkeyLockedMsgService.saveCentralPubkeyLockedMsg(centralPubkeyLockedMsg);
+            return ResponseResult.success(centralPubkeyLockedMsg);
+        });
+    }
+
+    @GetMapping("/{id}")
     public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgById(@PathVariable String id) {
-        return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(UUID.fromString(id)));
+        return ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgById(uuid(id)));
     }
 
-    @GetMapping("/central-pubkey/{centralPubkey}")
-    public ResponseResult<CentralPubkeyLockedMsg> getCentralPubkeyLockedMsgByCentralPubkey(@PathVariable String centralPubkey) {
-        return  ResponseResult.success(centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(ByteArrayUtil.hexToBytes(centralPubkey)));
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<CentralPubkeyLockedMsg>> listCentralPubkeyLockedMsgs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<CentralPubkeyLockedMsg> centralPubkeyLockedMsgs = centralPubkeyLockedMsgService.listCentralPubkeyLockedMsgs(
+                PageRequestUtil.ofMessageQuery(page, size)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(centralPubkeyLockedMsgs));
+    }
+
+    @GetMapping("/status")
+    public ResponseResult<LockedMessageResponseDTO<CentralPubkeyLockedMsg>> getCentralPubkeyLockStatus(@RequestParam String centralPubkey) {
+        return badRequestOnIllegalArgument(() -> {
+            Optional<CentralPubkeyLockedMsg> centralPubkeyLockedMsg = centralPubkeyLockedMsgService.findCentralPubkeyLockedMsgByCentralPubkey(hexBytesOrNull(centralPubkey));
+            return ResponseResult.success(new LockedMessageResponseDTO<>(centralPubkeyLockedMsg.isPresent(), centralPubkeyLockedMsg.orElse(null)));
+        });
     }
 }

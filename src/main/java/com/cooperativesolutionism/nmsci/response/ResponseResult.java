@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.response;
 
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 public class ResponseResult<T> {
 
@@ -31,12 +32,12 @@ public class ResponseResult<T> {
         );
     }
 
-    public static <T> ResponseResult<T> failure(ResponseCode responseCode, T message) {
+    public static ResponseResult<Void> failure(ResponseCode responseCode, String detailMessage) {
         Assert.isTrue(responseCode.getCode() != ResponseCode.SUCCESS.getCode(), "对于失败响应，响应码不能为SUCCESS");
         return new ResponseResult<>(
                 responseCode.getCode(),
-                responseCode.getMessage(),
-                message
+                StringUtils.hasText(detailMessage) ? detailMessage : responseCode.getMessage(),
+                null
         );
     }
 

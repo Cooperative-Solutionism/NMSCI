@@ -1,12 +1,17 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
 
@@ -14,8 +19,22 @@ import java.util.UUID;
 
 @Comment("中心公钥公证信息")
 @Entity
-@Table(name = "central_pubkey_empower_msgs")
-public class CentralPubkeyEmpowerMsg implements Message {
+@Table(
+        name = "central_pubkey_empower_msgs",
+        uniqueConstraints = {
+                // 公证唯一性为 (流转节点公钥, 中心公钥) 组合：每节点对每个中心公钥至多授权一次，
+                // 但中心公钥轮换后可对新的中心公钥重新授权（见 V3 迁移与 PROTOCOL.md 轮换语义）。
+                @UniqueConstraint(
+                        name = "uk_central_pubkey_empower_flow_central",
+                        columnNames = {"flow_node_pubkey", "central_pubkey"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_central_pubkey_empower_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
+public class CentralPubkeyEmpowerMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -27,19 +46,19 @@ public class CentralPubkeyEmpowerMsg implements Message {
 
     @Comment("流转节点公钥")
     @Column(name = "flow_node_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodePubkey;
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] centralPubkey;
 
     @Comment("流转节点签名")
     @Column(name = "flow_node_signature", nullable = false)
-    @ByteArraySize(64)
+    @ByteArraySize(RS_SIGNATURE_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodeSignature;
 
@@ -54,7 +73,7 @@ public class CentralPubkeyEmpowerMsg implements Message {
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     @Comment("信息的dblsha256hash_reverse")
@@ -132,6 +151,23 @@ public class CentralPubkeyEmpowerMsg implements Message {
 
     public void setTxid(byte[] txid) {
         this.txid = txid;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof CentralPubkeyEmpowerMsg)) {
+            return false;
+        }
+        CentralPubkeyEmpowerMsg that = (CentralPubkeyEmpowerMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return CentralPubkeyEmpowerMsg.class.hashCode();
     }
 
 }

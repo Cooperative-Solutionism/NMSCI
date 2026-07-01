@@ -1,0 +1,4 @@
+# Copy this file to application-local.properties (gitignored) and fill in real values.
+spring.datasource.password=CHANGE_ME
+nmsci.central-key-pair.pubkey=CHANGE_ME
+nmsci.central-key-pair.prikey=CHANGE_ME

@@ -1,33 +1,29 @@
 package com.cooperativesolutionism.nmsci.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @Configuration
-public class WebMvcConfig extends WebMvcConfigurationSupport {
+public class WebMvcConfig implements WebMvcConfigurer {
 
-    @Value("${file-root-dir}")
-    private String fileRootDir;
+    private final NmsciProperties nmsciProperties;
 
-    @Value("${file-dat-dir}")
-    private String fileDatDir;
+    public WebMvcConfig(NmsciProperties nmsciProperties) {
+        this.nmsciProperties = nmsciProperties;
+    }
 
-    @Value("${file-source-code-dir}")
-    private String fileSourceCodeDir;
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String rootDir = System.getProperty("user.dir");
+        Path datFilepath = Paths.get(rootDir, nmsciProperties.getFileRootDir(), nmsciProperties.getFileDatDir());
+        Path sourceCodeFilepath = Paths.get(rootDir, nmsciProperties.getFileRootDir(), nmsciProperties.getFileSourceCodeDir());
 
-     @Override
-     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-         String rootDir = System.getProperty("user.dir");
-         Path datFilepath = Paths.get(rootDir, fileRootDir, fileDatDir);
-         Path sourceCodeFilepath = Paths.get(rootDir, fileRootDir, fileSourceCodeDir);
-
-         registry.addResourceHandler("/dat/**").addResourceLocations("file:" + datFilepath + "/");
-         registry.addResourceHandler("/source-code/**").addResourceLocations("file:" + sourceCodeFilepath + "/");
-         super.addResourceHandlers(registry);
-     }
+        registry.addResourceHandler("/dat/**").addResourceLocations("file:" + datFilepath + "/");
+        registry.addResourceHandler("/source-code/**").addResourceLocations("file:" + sourceCodeFilepath + "/");
+    }
 }

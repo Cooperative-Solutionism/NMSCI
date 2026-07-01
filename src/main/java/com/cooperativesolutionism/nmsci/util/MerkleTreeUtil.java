@@ -23,6 +23,11 @@ public class MerkleTreeUtil {
      * 计算Merkle树的根哈希值
      * 实现Bitcoin标准的Merkle树算法
      *
+     * <p>注：沿用 Bitcoin 算法对奇数层最后一个节点做自身复制，因此继承 Bitcoin
+     * CVE-2012-2459「重复尾」延展性——不同叶子列表理论上可得到相同根。本系统中区块头
+     * 整体由中心签名保护，且区块体显式存储每类信息数量供独立验证方重建并校验叶子集合，
+     * 故该延展性不构成实际攻击面；为兼容性保持算法不变。
+     *
      * @param leafArr 包含叶子节点哈希值的字节数组
      *                如果数组为空或为null，则返回一个全0的32字节数组
      * @return Merkle树的根哈希值，作为32字节的字节数组
@@ -56,6 +61,7 @@ public class MerkleTreeUtil {
                 if (i + 1 < currentLevel.size()) {
                     right = currentLevel.get(i + 1);
                 } else {
+                    // 奇数层复制最后一个节点（Bitcoin 行为，含 CVE-2012-2459 延展性，见方法注释）
                     right = left;
                 }
 

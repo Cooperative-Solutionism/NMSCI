@@ -1,13 +1,18 @@
 package com.cooperativesolutionism.nmsci.model;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.serializer.BytesToHexSerializer;
 import com.cooperativesolutionism.nmsci.serializer.IntToHexSerializer;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Comment;
@@ -16,8 +21,20 @@ import java.util.UUID;
 
 @Comment("交易挂载信息")
 @Entity
-@Table(name = "transaction_mount_msgs")
-public class TransactionMountMsg implements Message {
+@Table(
+        name = "transaction_mount_msgs",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_transaction_mount_msgs_mounted_transaction_record_id",
+                        columnNames = "mounted_transaction_record_id"
+                ),
+                @UniqueConstraint(
+                        name = "uk_transaction_mount_msgs_txid",
+                        columnNames = "txid"
+                )
+        }
+)
+public class TransactionMountMsg implements CentrallySignedMessage {
     @Id
     @Column(name = "id", nullable = false)
     private UUID id;
@@ -42,31 +59,31 @@ public class TransactionMountMsg implements Message {
 
     @Comment("消费节点公钥")
     @Column(name = "consume_node_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] consumeNodePubkey;
 
     @Comment("流转节点公钥")
     @Column(name = "flow_node_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodePubkey;
 
     @Comment("中心公钥")
     @Column(name = "central_pubkey", nullable = false)
-    @ByteArraySize(33)
+    @ByteArraySize(COMPRESSED_PUBLIC_KEY_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] centralPubkey;
 
     @Comment("消费节点签名")
     @Column(name = "consume_node_signature", nullable = false)
-    @ByteArraySize(64)
+    @ByteArraySize(RS_SIGNATURE_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] consumeNodeSignature;
 
     @Comment("流转节点签名")
     @Column(name = "flow_node_signature", nullable = false)
-    @ByteArraySize(64)
+    @ByteArraySize(RS_SIGNATURE_BYTES)
     @JsonSerialize(using = BytesToHexSerializer.class)
     private byte[] flowNodeSignature;
 
@@ -81,7 +98,7 @@ public class TransactionMountMsg implements Message {
 
     @Comment("原始字节格式")
     @Column(name = "raw_bytes", nullable = false)
-    @JsonSerialize(using = BytesToHexSerializer.class)
+    @JsonIgnore
     private byte[] rawBytes;
 
     @Comment("信息的dblsha256hash_reverse")
@@ -199,6 +216,23 @@ public class TransactionMountMsg implements Message {
 
     public void setTxid(byte[] txid) {
         this.txid = txid;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof TransactionMountMsg)) {
+            return false;
+        }
+        TransactionMountMsg that = (TransactionMountMsg) o;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return TransactionMountMsg.class.hashCode();
     }
 
 }

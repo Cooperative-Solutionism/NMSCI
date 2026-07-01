@@ -1,0 +1,23 @@
+# Source hash generation uses `git ls-files`, so Docker build context must keep
+# `.git` metadata. The source zip itself will not include `.git` because Git does
+# not track its own metadata.
+#
+# Rules here should only remove local/build/runtime files that are not required
+# to run `git ls-files` and read tracked working-tree content inside docker build.
+
+# IDE
+.idea
+*.iml
+
+# Build/runtime/local-only outputs
+target
+logs
+temp
+.worktrees/
+
+# Generated source archives
+src/main/resources/static/source_code_v*.zip
+
+# Local secrets/environment files
+application-local.properties
+.env

@@ -1,34 +1,146 @@
 package com.cooperativesolutionism.nmsci.service;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+
+import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
+import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
+import com.cooperativesolutionism.nmsci.exception.ConflictException;
+import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.model.CentralPubkeyLockedMsg;
+import com.cooperativesolutionism.nmsci.protocol.CentralSignatureService;
+import com.cooperativesolutionism.nmsci.protocol.ProtocolRawBytesBuilder;
+import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
+import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
+import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import jakarta.annotation.Nonnull;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.validation.annotation.Validated;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public interface CentralPubkeyLockedMsgService {
+@Service
+@Validated
+public class CentralPubkeyLockedMsgService {
 
-    /**
-     * 保存中心公钥冻结信息
-     *
-     * @param centralPubkeyLockedMsg 中央公钥冻结信息
-     */
-    void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg);
+    private static final Logger logger = LoggerFactory.getLogger(CentralPubkeyLockedMsgService.class);
 
-    /**
-     * 根据ID获取中心公钥冻结信息
-     *
-     * @param id 中央公钥冻结信息ID
-     * @return 中央公钥冻结信息
-     */
-    CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(UUID id);
+    private final NmsciProperties nmsciProperties;
+    private final CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository;
+    private final MessageWritePipeline messageWritePipeline;
+    private final SignatureValidator signatureValidator;
+    private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final CentralSignatureService centralSignatureService;
+    private final TransactionTemplate transactionTemplate;
+    private final CentralPubkeyLockShutdownService shutdownService;
+    private final BlockChainService blockChainService;
 
-    /**
-     * 根据中心公钥获取中心公钥冻结信息
-     *
-     * @param centralPubkey 中央公钥字节数组
-     * @return 中央公钥冻结信息
-     */
-    CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey);
+    public CentralPubkeyLockedMsgService(
+            NmsciProperties nmsciProperties,
+            CentralPubkeyLockedMsgRepository centralPubkeyLockedMsgRepository,
+            MessageWritePipeline messageWritePipeline,
+            SignatureValidator signatureValidator,
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            CentralSignatureService centralSignatureService,
+            TransactionTemplate transactionTemplate,
+            CentralPubkeyLockShutdownService shutdownService,
+            BlockChainService blockChainService
+    ) {
+        this.nmsciProperties = nmsciProperties;
+        this.centralPubkeyLockedMsgRepository = centralPubkeyLockedMsgRepository;
+        this.messageWritePipeline = messageWritePipeline;
+        this.signatureValidator = signatureValidator;
+        this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.centralSignatureService = centralSignatureService;
+        this.transactionTemplate = transactionTemplate;
+        this.shutdownService = shutdownService;
+        this.blockChainService = blockChainService;
+    }
 
+    public void saveCentralPubkeyLockedMsg(@Valid @Nonnull CentralPubkeyLockedMsg centralPubkeyLockedMsg) {
+        String centralPubkeyBase64 = nmsciProperties.getCentralPubkeyBase64();
+
+        messageWritePipeline.requireMsgType(centralPubkeyLockedMsg, MsgTypeEnum.CentralPubkeyLockedMsg);
+        messageWritePipeline.rejectExistingId(
+                centralPubkeyLockedMsg,
+                centralPubkeyLockedMsgRepository::existsById,
+                () -> "该中心公钥冻结信息id(" + centralPubkeyLockedMsg.getId() + ")已存在"
+        );
+
+        if (centralPubkeyLockedMsgRepository.existsByCentralPubkey(centralPubkeyLockedMsg.getCentralPubkey())) {
+            throw new ConflictException("该中心公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyLockedMsg.getCentralPubkey()) + ")已被冻结");
+        }
+
+        byte[] centralPubkey = ByteArrayUtil.base64ToBytes(centralPubkeyBase64);
+        if (!java.util.Arrays.equals(centralPubkeyLockedMsg.getCentralPubkey(), centralPubkey)) {
+            throw new IllegalArgumentException("中心公钥设置错误，当前中心公钥为:(" + centralPubkeyBase64 + ")");
+        }
+
+        signatureValidator.validateLowS(centralPubkeyLockedMsg.getCentralSignaturePre(), "中心预签名不符合低S标准");
+
+        byte[] verifyData = protocolRawBytesBuilder.centralPubkeyLockedVerifyData(centralPubkeyLockedMsg);
+        signatureValidator.validateSignature(
+                verifyData,
+                centralPubkeyLockedMsg.getCentralSignaturePre(),
+                centralPubkeyLockedMsg.getCentralPubkey(),
+                "中心预签名验证失败"
+        );
+        centralSignatureService.signAndPopulate(
+                centralPubkeyLockedMsg,
+                verifyData,
+                centralPubkeyLockedMsg.getCentralSignaturePre()
+        );
+
+        transactionTemplate.executeWithoutResult(status ->
+                messageWritePipeline.saveEntityThenAbstract(centralPubkeyLockedMsg)
+        );
+
+        finalizeCentralPubkeyLock();
+    }
+
+    public void finalizeCentralPubkeyLock() {
+        RuntimeException drainFailure = null;
+        try {
+            blockChainService.generateBlockUntilNoNotInBlockMsgs();
+            logger.warn("中心公钥冻结成功，所有未装块的信息装块成功，程序即将优雅终止");
+        } catch (RuntimeException e) {
+            drainFailure = e;
+            logger.error("中心公钥冻结信息已提交，但未装块消息排空失败，程序仍将请求优雅终止", e);
+            throw e;
+        } finally {
+            if (drainFailure == null) {
+                shutdownService.requestShutdown();
+            } else {
+                try {
+                    shutdownService.requestShutdown();
+                } catch (RuntimeException shutdownFailure) {
+                    drainFailure.addSuppressed(shutdownFailure);
+                }
+            }
+        }
+    }
+
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgById(UUID id) {
+        return EntityLookup.requireById(id, "中心公钥冻结信息", centralPubkeyLockedMsgRepository::findById);
+    }
+    public CentralPubkeyLockedMsg getCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
+        return findCentralPubkeyLockedMsgByCentralPubkey(centralPubkey)
+                .orElseThrow(() -> new NotFoundException("中心公钥(" + ByteArrayUtil.bytesToHex(centralPubkey) + ")未冻结"));
+    }
+    public Optional<CentralPubkeyLockedMsg> findCentralPubkeyLockedMsgByCentralPubkey(byte[] centralPubkey) {
+        if (centralPubkey == null || centralPubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
+            throw new IllegalArgumentException("中心公钥不能为空或长度不为33字节");
+        }
+
+        return Optional.ofNullable(centralPubkeyLockedMsgRepository.findByCentralPubkey(centralPubkey));
+    }
+    public Slice<CentralPubkeyLockedMsg> listCentralPubkeyLockedMsgs(Pageable pageable) {
+        return centralPubkeyLockedMsgRepository.findAll(pageable);
+    }
 }

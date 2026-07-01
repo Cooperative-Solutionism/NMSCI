@@ -11,6 +11,10 @@ public class BytesToHexSerializer extends JsonSerializer<byte[]> {
 
     @Override
     public void serialize(byte[] value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        if (value == null) {
+            gen.writeNull();
+            return;
+        }
         gen.writeString(ByteArrayUtil.bytesToHex(value));
     }
 

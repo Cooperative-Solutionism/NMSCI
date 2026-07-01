@@ -7,6 +7,7 @@ target/
 /src/main/resources/static/source_code_*.zip
 temp/
 logs/
+.worktrees/
 
 ### STS ###
 .apt_generated
@@ -35,3 +36,7 @@ build/
 
 ### VS Code ###
 .vscode/
+application-local.properties
+/application-local.properties
+.env
+/.env

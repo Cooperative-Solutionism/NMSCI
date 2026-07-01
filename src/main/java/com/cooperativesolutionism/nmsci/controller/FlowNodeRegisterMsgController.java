@@ -2,37 +2,65 @@ package com.cooperativesolutionism.nmsci.controller;
 
 import com.cooperativesolutionism.nmsci.annotation.ByteArraySize;
 import com.cooperativesolutionism.nmsci.converter.FlowNodeRegisterMsgConverter;
+import com.cooperativesolutionism.nmsci.dto.SliceResponseDTO;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.FlowNodeRegisterMsgService;
-import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
-import jakarta.annotation.Resource;
+import com.cooperativesolutionism.nmsci.util.PageRequestUtil;
+import org.springframework.data.domain.Slice;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import static com.cooperativesolutionism.nmsci.controller.ApiRequestBoundary.badRequestOnIllegalArgument;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.FLOW_NODE_REGISTER_INBOUND_BYTES;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.compressedPubkeyHexOrNull;
+import static com.cooperativesolutionism.nmsci.util.RequestParamParser.uuid;
 
 @RestController
-@RequestMapping("/flow-node-register-msg")
+@RequestMapping("/flow-node-registrations")
 public class FlowNodeRegisterMsgController {
 
-    @Resource
-    private FlowNodeRegisterMsgService flowNodeRegisterMsgMsgService;
+    // FlowNodeRegisterMsg 不是 ConfirmableMessage（无 confirmTimestamp），按 id 排序（与 /flow-nodes 列表一致）。
+    private static final Sort REGISTER_QUERY_SORT = Sort.by(Sort.Order.asc("id"));
 
-    @PostMapping("/send")
-    public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(123) byte[] byteData) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = FlowNodeRegisterMsgConverter.fromByteArray(byteData);
-        return ResponseResult.success(flowNodeRegisterMsgMsgService.saveFlowNodeRegisterMsg(flowNodeRegisterMsgMsg));
+    private final FlowNodeRegisterMsgService flowNodeRegisterMsgMsgService;
+    private final FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter;
+
+    public FlowNodeRegisterMsgController(
+            FlowNodeRegisterMsgService flowNodeRegisterMsgMsgService,
+            FlowNodeRegisterMsgConverter flowNodeRegisterMsgConverter
+    ) {
+        this.flowNodeRegisterMsgMsgService = flowNodeRegisterMsgMsgService;
+        this.flowNodeRegisterMsgConverter = flowNodeRegisterMsgConverter;
     }
 
-    @GetMapping("/id/{id}")
+    @PostMapping(consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public ResponseResult<FlowNodeRegisterMsg> saveFlowNodeRegisterMsg(@RequestBody @ByteArraySize(FLOW_NODE_REGISTER_INBOUND_BYTES) byte[] byteData) {
+        return badRequestOnIllegalArgument(() -> {
+            FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgConverter.fromByteArray(byteData);
+            return ResponseResult.success(flowNodeRegisterMsgMsgService.saveFlowNodeRegisterMsg(flowNodeRegisterMsgMsg));
+        });
+    }
+
+    @GetMapping("/{id}")
     public ResponseResult<FlowNodeRegisterMsg> getFlowNodeRegisterMsgById(@PathVariable("id") String id) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgById(UUID.fromString(id));
+        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgById(uuid(id));
         return ResponseResult.success(flowNodeRegisterMsgMsg);
     }
 
-    @GetMapping("/flow-node-pubkey/{flowNodePubkey}")
-    public ResponseResult<FlowNodeRegisterMsg> getFlowNodeRegisterMsgByFlowNodePubkey(@PathVariable("flowNodePubkey") String flowNodePubkey) {
-        FlowNodeRegisterMsg flowNodeRegisterMsgMsg = flowNodeRegisterMsgMsgService.getFlowNodeRegisterMsgByFlowNodePubkey(ByteArrayUtil.hexToBytes(flowNodePubkey));
-        return ResponseResult.success(flowNodeRegisterMsgMsg);
+    @GetMapping
+    public ResponseResult<SliceResponseDTO<FlowNodeRegisterMsg>> listFlowNodeRegisterMsgs(
+            @RequestParam(required = false) String flowNodePubkey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        Slice<FlowNodeRegisterMsg> flowNodeRegisterMsgs = flowNodeRegisterMsgMsgService.listFlowNodeRegisterMsgs(
+                compressedPubkeyHexOrNull(flowNodePubkey),
+                PageRequestUtil.of(page, size, REGISTER_QUERY_SORT)
+        );
+        return ResponseResult.success(SliceResponseDTO.from(flowNodeRegisterMsgs));
     }
 }

@@ -1,5 +1,9 @@
 package com.cooperativesolutionism.nmsci.util;
 
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.COMPRESSED_PUBLIC_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RAW_PRIVATE_KEY_BYTES;
+import static com.cooperativesolutionism.nmsci.constant.ProtocolByteLengths.RS_SIGNATURE_BYTES;
+
 import org.bitcoinj.crypto.ECKey;
 import org.bitcoinj.base.Sha256Hash;
 import org.bouncycastle.asn1.ASN1Integer;
@@ -10,6 +14,7 @@ import org.bouncycastle.asn1.sec.SECNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.jce.interfaces.ECPrivateKey;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPrivateKeySpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
@@ -33,6 +38,27 @@ public class Secp256k1EncryptUtil {
     private static final BigInteger CURVE_ORDER = EC_SPEC.getN();
 
     private static final BigInteger HALF_CURVE_ORDER = CURVE_ORDER.shiftRight(1);
+    private static final int RS_COMPONENT_BYTES = RS_SIGNATURE_BYTES / 2;
+
+    // 确保 BC provider 已注册后再构造可复用的 KeyFactory（静态初始化按文本顺序执行，本块先于下方字段）。
+    // 与 NmsciApplication / ChainVerifier 的注册保持幂等一致，令本工具类在任意上下文（含单测）自足可用。
+    static {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
+
+    // 复用 KeyFactory 实例，避免每次 compressedToPublicKey/rawToPrivateKey 都做一次 JCA provider 查找（性能审计 H3）。
+    // KeyFactory 取得后其 generatePublic/generatePrivate 可安全跨线程复用（只读不可变 KeySpec，无 per-call 可变状态）。
+    private static final KeyFactory EC_KEY_FACTORY = createEcKeyFactory();
+
+    private static KeyFactory createEcKeyFactory() {
+        try {
+            return KeyFactory.getInstance("ECDSA", "BC");
+        } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+    }
 
     /**
      * 将DER签名转换为rs格式签名
@@ -42,29 +68,57 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果解析DER签名失败
      */
     public static byte[] derToRs(byte[] derSignature) throws IOException {
-        ASN1Sequence seq = (ASN1Sequence) ASN1Primitive.fromByteArray(derSignature);
-        if (seq.size() != 2) {
+        if (derSignature == null) {
             throw new IOException("Invalid DER signature format");
         }
-        BigInteger r = ((ASN1Integer) seq.getObjectAt(0)).getValue();
-        BigInteger s = ((ASN1Integer) seq.getObjectAt(1)).getValue();
 
-        byte[] rBytes = r.toByteArray();
-        byte[] sBytes = s.toByteArray();
+        ASN1Primitive primitive;
+        try {
+            primitive = ASN1Primitive.fromByteArray(derSignature);
+        } catch (IOException e) {
+            throw new IOException("Invalid DER signature format", e);
+        }
 
-        byte[] rs = new byte[64];
+        if (!(primitive instanceof ASN1Sequence seq) || seq.size() != 2) {
+            throw new IOException("Invalid DER signature format");
+        }
+        if (!(seq.getObjectAt(0) instanceof ASN1Integer rInteger)
+                || !(seq.getObjectAt(1) instanceof ASN1Integer sInteger)) {
+            throw new IOException("Invalid DER signature format");
+        }
 
-        // r填充到32字节
-        int rOffset = Math.max(0, rBytes.length - 32);
-        int rLen = Math.min(rBytes.length, 32);
-        System.arraycopy(rBytes, rOffset, rs, 32 - rLen, rLen);
+        BigInteger r = rInteger.getValue();
+        BigInteger s = sInteger.getValue();
+        validateSignatureScalar(r, "r");
+        validateSignatureScalar(s, "s");
 
-        // s填充到32字节
-        int sOffset = Math.max(0, sBytes.length - 32);
-        int sLen = Math.min(sBytes.length, 32);
-        System.arraycopy(sBytes, sOffset, rs, 32 + (32 - sLen), sLen);
+        byte[] rs = new byte[RS_SIGNATURE_BYTES];
+        byte[] rBytes = toFixed32Bytes(r);
+        byte[] sBytes = toFixed32Bytes(s);
+        System.arraycopy(rBytes, 0, rs, 0, RS_COMPONENT_BYTES);
+        System.arraycopy(sBytes, 0, rs, RS_COMPONENT_BYTES, RS_COMPONENT_BYTES);
 
         return rs;
+    }
+
+    private static void validateSignatureScalar(BigInteger value, String name) throws IOException {
+        if (value.compareTo(BigInteger.ZERO) <= 0 || value.compareTo(CURVE_ORDER) >= 0) {
+            throw new IOException("Invalid DER signature " + name + " value");
+        }
+    }
+
+    private static byte[] toFixed32Bytes(BigInteger value) throws IOException {
+        byte[] valueBytes = value.toByteArray();
+        if (valueBytes.length == RS_COMPONENT_BYTES + 1 && valueBytes[0] == 0) {
+            valueBytes = Arrays.copyOfRange(valueBytes, 1, RS_COMPONENT_BYTES + 1);
+        }
+        if (valueBytes.length > RS_COMPONENT_BYTES) {
+            throw new IOException("Invalid DER signature scalar length");
+        }
+
+        byte[] fixed = new byte[RS_COMPONENT_BYTES];
+        System.arraycopy(valueBytes, 0, fixed, RS_COMPONENT_BYTES - valueBytes.length, valueBytes.length);
+        return fixed;
     }
 
     /**
@@ -75,13 +129,11 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果转换失败
      */
     public static byte[] rsToDer(byte[] rsSignature) throws IOException {
-        if (rsSignature.length != 64) {
-            throw new IllegalArgumentException("rsSignature must be 64 bytes long");
-        }
+        validateRsSignature(rsSignature);
 
         // 分离r和s
-        byte[] rBytes = Arrays.copyOfRange(rsSignature, 0, 32);
-        byte[] sBytes = Arrays.copyOfRange(rsSignature, 32, 64);
+        byte[] rBytes = Arrays.copyOfRange(rsSignature, 0, RS_COMPONENT_BYTES);
+        byte[] sBytes = Arrays.copyOfRange(rsSignature, RS_COMPONENT_BYTES, RS_SIGNATURE_BYTES);
 
         ASN1Integer r = new ASN1Integer(new BigInteger(1, rBytes));
         ASN1Integer s = new ASN1Integer(new BigInteger(1, sBytes));
@@ -112,13 +164,11 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果转换失败
      */
     public static PublicKey compressedToPublicKey(byte[] compressedPubKey) throws Exception {
-        if (compressedPubKey.length != 33) {
+        if (compressedPubKey == null || compressedPubKey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
             throw new IllegalArgumentException("Compressed public key must be 33 bytes long");
         }
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-
-        return keyFactory.generatePublic(new ECPublicKeySpec(
+        return EC_KEY_FACTORY.generatePublic(new ECPublicKeySpec(
                 SECP256k1_PARAMS.getCurve().decodePoint(compressedPubKey),
                 EC_SPEC
         ));
@@ -139,12 +189,12 @@ public class Secp256k1EncryptUtil {
         byte[] rawPrivateKey = d.toByteArray();
 
         // 确保私钥长度为32字节，不足时前面补0
-        if (rawPrivateKey.length < 32) {
-            byte[] paddedPrivateKey = new byte[32];
-            System.arraycopy(rawPrivateKey, 0, paddedPrivateKey, 32 - rawPrivateKey.length, rawPrivateKey.length);
+        if (rawPrivateKey.length < RAW_PRIVATE_KEY_BYTES) {
+            byte[] paddedPrivateKey = new byte[RAW_PRIVATE_KEY_BYTES];
+            System.arraycopy(rawPrivateKey, 0, paddedPrivateKey, RAW_PRIVATE_KEY_BYTES - rawPrivateKey.length, rawPrivateKey.length);
             return paddedPrivateKey;
-        } else if (rawPrivateKey.length > 32) {
-            return Arrays.copyOfRange(rawPrivateKey, rawPrivateKey.length - 32, rawPrivateKey.length);
+        } else if (rawPrivateKey.length > RAW_PRIVATE_KEY_BYTES) {
+            return Arrays.copyOfRange(rawPrivateKey, rawPrivateKey.length - RAW_PRIVATE_KEY_BYTES, rawPrivateKey.length);
         } else {
             return rawPrivateKey;
         }
@@ -158,19 +208,11 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果转换失败
      */
     public static PrivateKey rawToPrivateKey(byte[] rawPrivateKey) throws Exception {
-        if (rawPrivateKey.length != 32) {
-            throw new IllegalArgumentException("Raw private key must be 32 bytes long");
-        }
+        BigInteger privateKeyValue = validateRawPrivateKey(rawPrivateKey);
 
-        BigInteger privateKeyValue = new BigInteger(1, rawPrivateKey);
-        if (privateKeyValue.compareTo(BigInteger.ZERO) <= 0 || privateKeyValue.compareTo(CURVE_ORDER) >= 0) {
-            throw new IllegalArgumentException("Invalid private key value");
-        }
+        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(privateKeyValue, EC_SPEC);
 
-        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", "BC");
-        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(new BigInteger(1, rawPrivateKey), EC_SPEC);
-
-        return keyFactory.generatePrivate(privateKeySpec);
+        return EC_KEY_FACTORY.generatePrivate(privateKeySpec);
     }
 
     /**
@@ -198,13 +240,47 @@ public class Secp256k1EncryptUtil {
      */
     public static byte[] signData(byte[] data, PrivateKey privateKey) throws Exception {
         byte[] rawPrivateKey = privateKeyToRaw(privateKey);
-        ECKey ecKey = ECKey.fromPrivate(new BigInteger(1, rawPrivateKey));
-        
+        return signData(data, ECKey.fromPrivate(new BigInteger(1, rawPrivateKey)));
+    }
+
+    /**
+     * 使用已构造的 ECKey 对数据进行签名(Low-S签名)。
+     * 供固定中心密钥等场景缓存 ECKey 复用，避免每次签名都由私钥重新派生公钥点。
+     *
+     * @param data  待签名的数据
+     * @param ecKey 已构造的签名密钥
+     * @return 签名(DER格式)
+     */
+    public static byte[] signData(byte[] data, ECKey ecKey) {
         byte[] dataDblDigest = Sha256Util.doubleDigest(data);
         Sha256Hash hash = Sha256Hash.wrap(dataDblDigest);
         ECKey.ECDSASignature ecdsaSignature = ecKey.sign(hash);
-        
         return ecdsaSignature.encodeToDER();
+    }
+
+    /**
+     * 将32字节原始私钥转换为可复用的 ECKey（范围校验与 {@link #rawToPrivateKey} 一致）。
+     */
+    public static ECKey rawToECKey(byte[] rawPrivateKey) {
+        return ECKey.fromPrivate(validateRawPrivateKey(rawPrivateKey));
+    }
+
+    private static void validateRsSignature(byte[] rsSignature) {
+        if (rsSignature == null || rsSignature.length != RS_SIGNATURE_BYTES) {
+            throw new IllegalArgumentException("rsSignature must be 64 bytes long");
+        }
+    }
+
+    private static BigInteger validateRawPrivateKey(byte[] rawPrivateKey) {
+        if (rawPrivateKey == null || rawPrivateKey.length != RAW_PRIVATE_KEY_BYTES) {
+            throw new IllegalArgumentException("Raw private key must be 32 bytes long");
+        }
+
+        BigInteger privateKeyValue = new BigInteger(1, rawPrivateKey);
+        if (privateKeyValue.compareTo(BigInteger.ZERO) <= 0 || privateKeyValue.compareTo(CURVE_ORDER) >= 0) {
+            throw new IllegalArgumentException("Invalid private key value");
+        }
+        return privateKeyValue;
     }
 
     /**
@@ -217,15 +293,35 @@ public class Secp256k1EncryptUtil {
      * @throws Exception 如果验证失败
      */
     public static boolean verifySignature(byte[] data, byte[] rsSignature, PublicKey publicKey) throws Exception {
-        byte[] compressedPubKey = publicKeyToCompressed(publicKey);
-        ECKey ecKey = ECKey.fromPublicOnly(compressedPubKey);
-        
+        return verifySignature(data, rsSignature, publicKeyToCompressed(publicKey));
+    }
+
+    /**
+     * 直接以33字节压缩公钥验证 SECP256K1 签名，避免 KeyFactory/PublicKey 往返（性能审计 H3）。
+     * 校验链上验证（{@code ChainVerifier}）与写入摄入（{@code SignatureValidator}）的每消息热路径均走此重载：
+     * 输入本就是压缩公钥字节，bitcoinj 的 {@code ECKey.fromPublicOnly} 可直接消费，无需再经 JCE KeyFactory
+     * 生成 {@code PublicKey} 又立即转回压缩字节。
+     *
+     * @param data             原始数据
+     * @param rsSignature      rs 格式签名
+     * @param compressedPubkey 33 字节压缩公钥
+     * @return 签名有效返回 true
+     * @throws Exception 如果公钥/签名字节解析失败（长度、离曲线点、DER 解码等）
+     */
+    public static boolean verifySignature(byte[] data, byte[] rsSignature, byte[] compressedPubkey) throws Exception {
+        if (compressedPubkey == null || compressedPubkey.length != COMPRESSED_PUBLIC_KEY_BYTES) {
+            throw new IllegalArgumentException("Compressed public key must be 33 bytes long");
+        }
+        // 显式校验曲线点合法性（等价于原 compressedToPublicKey 的 decodePoint 守卫），拒绝离曲线/畸形公钥
+        SECP256k1_PARAMS.getCurve().decodePoint(compressedPubkey);
+        ECKey ecKey = ECKey.fromPublicOnly(compressedPubkey);
+
         byte[] dataDblDigest = Sha256Util.doubleDigest(data);
         Sha256Hash hash = Sha256Hash.wrap(dataDblDigest);
-        
+
         byte[] derSignature = rsToDer(rsSignature);
         ECKey.ECDSASignature ecdsaSignature = ECKey.ECDSASignature.decodeFromDER(derSignature);
-        
+
         return ecKey.verify(hash, ecdsaSignature);
     }
 
@@ -237,7 +333,8 @@ public class Secp256k1EncryptUtil {
      * @throws IOException 如果解析签名失败
      */
     public static boolean isNotLowS(byte[] rsSignature) throws IOException {
-        BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, 32, 64));
+        validateRsSignature(rsSignature);
+        BigInteger s = new BigInteger(1, Arrays.copyOfRange(rsSignature, RS_COMPONENT_BYTES, RS_SIGNATURE_BYTES));
         return s.compareTo(HALF_CURVE_ORDER) > 0;
     }
 }

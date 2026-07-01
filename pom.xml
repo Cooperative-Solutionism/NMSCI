@@ -10,12 +10,23 @@
     </parent>
     <groupId>com.cooperativesolutionism</groupId>
     <artifactId>nmsci</artifactId>
-    <version>1.0.0</version>
+    <version>2.0.0</version>
     <name>nmsci</name>
     <description>消费意愿数值化衡量系统（Numerical Measurement System for Consumption Intention）</description>
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.outputTimestamp>2025-07-01T00:00:00Z</project.build.outputTimestamp>
+        <bouncycastle.version>1.84</bouncycastle.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <bitcoinj.version>0.17</bitcoinj.version>
+        <docker.api.version>1.40</docker.api.version>
+        <gatling.version>3.13.5</gatling.version>
+        <gatling-maven-plugin.version>4.16.3</gatling-maven-plugin.version>
+        <!-- 压测参数默认值；用 mvn -Dgatling.xxx=... 覆盖（经插件 jvmArgs 透传到 fork 的 gatling JVM） -->
+        <gatling.baseUrl>http://localhost:8080</gatling.baseUrl>
+        <gatling.users>50</gatling.users>
+        <gatling.duration>30</gatling.duration>
+        <gatling.amount>1200</gatling.amount>
     </properties>
     <dependencies>
         <dependency>
@@ -33,18 +44,24 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78</version>
+            <version>${bouncycastle.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.18.0</version>
+            <version>${commons-lang3.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.bitcoinj/bitcoinj-core -->
         <dependency>
             <groupId>org.bitcoinj</groupId>
             <artifactId>bitcoinj-core</artifactId>
-            <version>0.17</version>
+            <version>${bitcoinj.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15to18</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -53,24 +70,107 @@
             <scope>runtime</scope>
         </dependency>
         <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- 已由 spring-boot-starter-test 传递引入；此处显式声明，使 maven-dependency-plugin 必定为其设置 jar 路径属性，供 argLine 作为 javaagent 引用 -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Prometheus 抓取端点 /actuator/prometheus；版本由 spring-boot BOM 管理 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.gatling.highcharts</groupId>
+            <artifactId>gatling-charts-highcharts</artifactId>
+            <version>${gatling.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <!-- 将每个依赖的 jar 路径暴露为 ${groupId:artifactId:type} 属性，供下方 argLine 以 -javaagent 引用 Mockito -->
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- 以 -javaagent 静态加载 Mockito（inline mock-maker），避免 JDK 21 动态挂载 agent 的弃用告警；-Xshare:off 消除随之而来的 CDS 提示 -->
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                    <excludedGroups>integration</excludedGroups>
+                    <systemPropertyVariables>
+                        <api.version>${docker.api.version}</api.version>
+                        <docker.api.version>${docker.api.version}</docker.api.version>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <argLine>-javaagent:${org.mockito:mockito-core:jar} -Xshare:off</argLine>
+                    <includes>
+                        <include>**/*Test.java</include>
+                    </includes>
+                    <groups>integration</groups>
+                    <systemPropertyVariables>
+                        <api.version>${docker.api.version}</api.version>
+                        <docker.api.version>${docker.api.version}</docker.api.version>
+                    </systemPropertyVariables>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
                     <attach>true</attach>
-                    <requiresUnpack/>
                 </configuration>
             </plugin>
             <plugin>
@@ -86,8 +186,9 @@
                         </goals>
                         <configuration>
                             <target>
-                                <java classname="com.cooperativesolutionism.nmsci.maven.CalcSourceCodeZipHash"
-                                      fork="true">
+                                <java classname="com.cooperativesolutionism.nmsci.buildtool.CalcSourceCodeZipHash"
+                                      fork="true"
+                                      failonerror="true">
                                     <classpath>
                                         <pathelement path="${project.build.directory}/classes"/>
                                         <pathelement path="${project.build.directory}/dependency"/>
@@ -98,6 +199,23 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>io.gatling</groupId>
+                <artifactId>gatling-maven-plugin</artifactId>
+                <version>${gatling-maven-plugin.version}</version>
+                <configuration>
+                    <includes>
+                        <include>com.cooperativesolutionism.nmsci.stress.FullLifecycleSimulation</include>
+                    </includes>
+                    <!-- Maven -D 默认不传入 fork 的 gatling JVM，这里显式透传压测参数；CLI -D 覆盖上面 properties 默认 -->
+                    <jvmArgs>
+                        <jvmArg>-Dgatling.baseUrl=${gatling.baseUrl}</jvmArg>
+                        <jvmArg>-Dgatling.users=${gatling.users}</jvmArg>
+                        <jvmArg>-Dgatling.duration=${gatling.duration}</jvmArg>
+                        <jvmArg>-Dgatling.amount=${gatling.amount}</jvmArg>
+                    </jvmArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>

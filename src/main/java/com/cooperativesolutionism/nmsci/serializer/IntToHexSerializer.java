@@ -11,6 +11,10 @@ public class IntToHexSerializer extends JsonSerializer<Integer> {
 
     @Override
     public void serialize(Integer value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
+        if (value == null) {
+            gen.writeNull();
+            return;
+        }
         gen.writeString(ByteArrayUtil.bytesToHex(ByteArrayUtil.intToBytes(value)));
     }
 

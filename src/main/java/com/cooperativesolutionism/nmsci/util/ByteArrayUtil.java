@@ -2,6 +2,7 @@ package com.cooperativesolutionism.nmsci.util;
 
 import java.nio.ByteBuffer;
 import java.util.Base64;
+import java.util.HexFormat;
 import java.util.UUID;
 
 public class ByteArrayUtil {
@@ -163,8 +164,12 @@ public class ByteArrayUtil {
 
         byte[] bytes = new byte[hexString.length() / 2];
         for (int i = 0; i < hexString.length(); i += 2) {
-            bytes[i / 2] = (byte) ((Character.digit(hexString.charAt(i), 16) << 4)
-                    + Character.digit(hexString.charAt(i + 1), 16));
+            int high = Character.digit(hexString.charAt(i), 16);
+            int low = Character.digit(hexString.charAt(i + 1), 16);
+            if (high < 0 || low < 0) {
+                throw new IllegalArgumentException("十六进制字符串包含非法字符");
+            }
+            bytes[i / 2] = (byte) ((high << 4) + low);
         }
         return bytes;
     }
@@ -186,11 +191,10 @@ public class ByteArrayUtil {
      * @return 十六进制字符串表示
      */
     public static String bytesToHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            hexString.append(String.format("%02x", b));
+        if (bytes == null) {
+            throw new IllegalArgumentException("字节数组不能为空");
         }
-        return hexString.toString();
+        return HexFormat.of().formatHex(bytes);
     }
 
     /**
