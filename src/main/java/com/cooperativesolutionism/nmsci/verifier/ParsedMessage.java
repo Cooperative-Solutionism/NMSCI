@@ -32,6 +32,11 @@ public final class ParsedMessage {
     private final MsgTypeEnum type;
     private final byte[] stored;
 
+    // 性能审计 QW5/finding #14：memberSignatures 的记忆化缓存。校验期 checkLowS 与 checkMemberSignatures 各遍历一次，
+    // 记忆化后两次复用同一只读列表，省去第二次重建（各签名/公钥的 Arrays.copyOfRange 拷贝）。ParsedMessage 由只读
+    // stored 构造、校验单飞（single-flight）串行执行，缓存幂等且不跨线程共享。
+    private List<MemberSignature> memberSignaturesCache;
+
     ParsedMessage(MsgTypeEnum type, byte[] stored) {
         this.type = type;
         this.stored = stored;
@@ -110,6 +115,15 @@ public final class ParsedMessage {
     }
 
     public List<MemberSignature> memberSignatures() {
+        List<MemberSignature> cached = memberSignaturesCache;
+        if (cached == null) {
+            cached = List.copyOf(buildMemberSignatures());
+            memberSignaturesCache = cached;
+        }
+        return cached;
+    }
+
+    private List<MemberSignature> buildMemberSignatures() {
         List<MemberSignature> signatures = new ArrayList<>();
         switch (type) {
             case FlowNodeRegisterMsg -> signatures.add(member("flowNode", 59, 26));
