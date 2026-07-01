@@ -80,7 +80,8 @@ class SignatureValidatorTest {
     @Test
     void mapsSignatureDecodeFailureToBadRequest() {
         try (MockedStatic<Secp256k1EncryptUtil> mocked = mockStatic(Secp256k1EncryptUtil.class)) {
-            mocked.when(() -> Secp256k1EncryptUtil.verifySignature(any(), any(), any()))
+            // H3 后 SignatureValidator 走 verifySignature(byte[],byte[],byte[]) 重载，显式匹配该重载以消除与 PublicKey 重载的歧义
+            mocked.when(() -> Secp256k1EncryptUtil.verifySignature(any(), any(), any(byte[].class)))
                     .thenThrow(new IllegalStateException("point decode failed"));
 
             BadRequestException exception = assertThrows(

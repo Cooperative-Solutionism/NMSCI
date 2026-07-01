@@ -27,10 +27,11 @@ public class SignatureValidator {
 
     public void validateSignature(byte[] verifyData, byte[] signature, byte[] compressedPubkey, String errorMessage) {
         try {
+            // 性能审计 H3：直接以压缩公钥字节验签，避免每条签名都做一次 KeyFactory/PublicKey 往返。
             boolean isValidSignature = Secp256k1EncryptUtil.verifySignature(
                     verifyData,
                     signature,
-                    Secp256k1EncryptUtil.compressedToPublicKey(compressedPubkey)
+                    compressedPubkey
             );
             if (!isValidSignature) {
                 throw new IllegalArgumentException(errorMessage);
