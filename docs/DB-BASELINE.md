@@ -24,12 +24,13 @@
 - **V2 `add_designed_constraints_and_indexes`**：补齐设计期本应存在、但自动建表未生成的 `uk_*` / `ck_` / `idx_*`。
 - **V3 `harden_db_constraints`**：评审 #3 硬化（`fk_transaction_mount_mounted_record` + 消费链/边 `amount > 0`）。
 - **V4 `support_central_pubkey_rotation`**：公钥轮换（放宽公证唯一性为 `(流转节点公钥, 中心公钥)` 组合）。
+- **V5 `add_transaction_confirm_timestamp_indexes`**：交易查询时间戳复合索引（`transaction_record_msgs` / `transaction_mount_msgs` 的 `(pubkey, confirm_timestamp desc, id desc)` 等）。仅新增 `idx_*`，不改数据、不加约束，**无需数据预检**。
 
 配置：`spring.flyway.baseline-on-migrate=true`、`spring.flyway.baseline-version=1`。
 
 两类库的行为：
 
-- **线上既有库**（非空、无 `flyway_schema_history`）：Flyway 自动基线到 **V1**（**不重跑** V1 建表），随后执行 **V2 / V3 / V4**。
+- **线上既有库**（非空、无 `flyway_schema_history`）：Flyway 自动基线到 **V1**（**不重跑** V1 建表），随后执行 **V2 / V3 / V4 / V5**。
 - **全新空库**：Flyway 忽略 baseline，从 **V1** 起执行 **全部** 迁移。
 
 > 关键前提：本策略要求 Flyway 此前从未在任何持久库成功运行过（即除这台线上库外没有已写入 `flyway_schema_history` 的预发/测试库）。本项目 dev/test 用临时库，集成测试用 Testcontainers 一次性容器，均不违反该前提。
@@ -52,7 +53,7 @@
 
 ## 部署与验证
 
-1. 用新版本启动应用。Flyway 将自动：建 `flyway_schema_history` → 写入 V1 基线行 → 执行 V2 / V3 / V4。
+1. 用新版本启动应用。Flyway 将自动：建 `flyway_schema_history` → 写入 V1 基线行 → 执行 V2 / V3 / V4 / V5。
 2. 验证迁移结果：
 
    ```sql
@@ -60,7 +61,7 @@
    from flyway_schema_history order by installed_rank;
    ```
 
-   期望：`version=1` 为 `BASELINE`（success=t），`2/3/4` 为 `SQL` 且 `success=t`。
+   期望：`version=1` 为 `BASELINE`（success=t），`2/3/4/5` 为 `SQL` 且 `success=t`。
 3. 抽查若干对象已就位：
 
    ```sql
