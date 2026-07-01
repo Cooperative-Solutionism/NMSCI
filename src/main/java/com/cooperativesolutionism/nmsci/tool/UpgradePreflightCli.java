@@ -24,7 +24,7 @@ import java.sql.Statement;
  * </pre>
  *
  * <p>注意：本工具只判定「旧消息是否已全部落块」。入口冻结需运维在网络层完成（关闭/隔离对外端口或反代层拒写），
- * 否则应配合 {@code --settle-seconds} 用稳定窗排除竞态。难度/基线等其它前置见 docs/DB-BASELINE.md 与 docs/UPGRADE-DRAIN.md。
+ * 否则应配合 {@code --settle-seconds} 用稳定窗排除竞态。难度/基线等其它升级前置见 README「区块版本升级与重部署流程」。
  */
 public final class UpgradePreflightCli {
 
