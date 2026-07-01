@@ -1,7 +1,7 @@
 package com.cooperativesolutionism.nmsci.dto;
 
 import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 
 public class SystemParamsDTO {
@@ -24,7 +24,7 @@ public class SystemParamsDTO {
 
     private String latestBlockHash;
 
-    public static SystemParamsDTO from(NmsciProperties properties, BlockInfo latestBlock) {
+    public static SystemParamsDTO from(NmsciProperties properties, BlockInfoSummary latestBlock) {
         SystemParamsDTO dto = new SystemParamsDTO();
         dto.setBlockVersion(properties.getBlockVersion());
         dto.setCentralPubkey(ByteArrayUtil.bytesToHex(ByteArrayUtil.base64ToBytes(properties.getCentralPubkeyBase64())));

@@ -1,6 +1,7 @@
 package com.cooperativesolutionism.nmsci.repository;
 
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -8,6 +9,12 @@ import org.springframework.data.repository.query.Param;
 public interface BlockInfoRepository extends JpaRepository<BlockInfo, byte[]> {
 
     BlockInfo findTopByOrderByHeightDesc();
+
+    /**
+     * 最新区块的摘要投影（性能审计 QW3）：闭合投影只 SELECT 摘要字段，排除 raw_bytes。
+     * 与 {@link #findTopByOrderByHeightDesc()} 同为「按高度倒序取首条」，供只读标量的运营/元数据端点使用。
+     */
+    BlockInfoSummary findFirstByOrderByHeightDesc();
 
     BlockInfo findByHeight(Long height);
 

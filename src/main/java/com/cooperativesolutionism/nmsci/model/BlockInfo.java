@@ -21,7 +21,7 @@ import org.hibernate.annotations.Comment;
                 @UniqueConstraint(name = "uk_block_infos_previous_block_hash", columnNames = "previous_block_hash")
         }
 )
-public class BlockInfo {
+public class BlockInfo implements BlockInfoSummary {
     @Id
     @Comment("本区块头的dblsha256hash")
     @Column(name = "id", nullable = false)

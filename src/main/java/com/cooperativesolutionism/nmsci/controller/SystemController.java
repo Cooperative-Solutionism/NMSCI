@@ -5,7 +5,7 @@ import com.cooperativesolutionism.nmsci.config.properties.NmsciProperties;
 import com.cooperativesolutionism.nmsci.dto.StorageStatusDTO;
 import com.cooperativesolutionism.nmsci.dto.SystemParamsDTO;
 import com.cooperativesolutionism.nmsci.dto.SystemStatusDTO;
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import com.cooperativesolutionism.nmsci.service.CentralPubkeyLockedMsgService;
@@ -41,12 +41,12 @@ public class SystemController {
 
     @GetMapping("/params")
     public ResponseResult<SystemParamsDTO> getParams() {
-        return ResponseResult.success(SystemParamsDTO.from(nmsciProperties, blockChainService.getLastBlock()));
+        return ResponseResult.success(SystemParamsDTO.from(nmsciProperties, blockChainService.getLastBlockSummary()));
     }
 
     @GetMapping("/status")
     public ResponseResult<SystemStatusDTO> getStatus() {
-        BlockInfo latestBlock = blockChainService.getLastBlock();
+        BlockInfoSummary latestBlock = blockChainService.getLastBlockSummary();
         byte[] currentCentralPubkey = ByteArrayUtil.base64ToBytes(nmsciProperties.getCentralPubkeyBase64());
         boolean currentCentralPubkeyLocked = centralPubkeyLockedMsgService
                 .findCentralPubkeyLockedMsgByCentralPubkey(currentCentralPubkey)
