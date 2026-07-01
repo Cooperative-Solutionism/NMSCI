@@ -44,6 +44,7 @@ class ProtocolNotFoundSemanticsTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
 
@@ -56,7 +57,7 @@ class ProtocolNotFoundSemanticsTest {
                 null, null, null, null, null, null, null, null, null
         );
         FlowNodeLockedMsgService flowNodeLockedMsgService = new FlowNodeLockedMsgService(
-                null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null
         );
 
         assertThrows(IllegalArgumentException.class, () -> centralPubkeyLockedMsgService.getCentralPubkeyLockedMsgByCentralPubkey(new byte[32]));

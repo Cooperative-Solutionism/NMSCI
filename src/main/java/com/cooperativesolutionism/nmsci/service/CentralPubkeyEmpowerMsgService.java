@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.UUID;
@@ -31,6 +32,7 @@ public class CentralPubkeyEmpowerMsgService {
     private final SignatureValidator signatureValidator;
     private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
     private final CentralSignatureService centralSignatureService;
+    private final TransactionTemplate transactionTemplate;
 
     public CentralPubkeyEmpowerMsgService(
             CentralPubkeyEmpowerMsgRepository centralPubkeyEmpowerMsgRepository,
@@ -39,7 +41,8 @@ public class CentralPubkeyEmpowerMsgService {
             CentralPubkeyValidator centralPubkeyValidator,
             SignatureValidator signatureValidator,
             ProtocolRawBytesBuilder protocolRawBytesBuilder,
-            CentralSignatureService centralSignatureService
+            CentralSignatureService centralSignatureService,
+            TransactionTemplate transactionTemplate
     ) {
         this.centralPubkeyEmpowerMsgRepository = centralPubkeyEmpowerMsgRepository;
         this.messageWritePipeline = messageWritePipeline;
@@ -48,9 +51,9 @@ public class CentralPubkeyEmpowerMsgService {
         this.signatureValidator = signatureValidator;
         this.protocolRawBytesBuilder = protocolRawBytesBuilder;
         this.centralSignatureService = centralSignatureService;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
     public CentralPubkeyEmpowerMsg saveCentralPubkeyEmpowerMsg(@Valid @Nonnull CentralPubkeyEmpowerMsg centralPubkeyEmpowerMsg) {
         messageWritePipeline.requireMsgType(centralPubkeyEmpowerMsg, MsgTypeEnum.CentralPubkeyEmpowerMsg);
         messageWritePipeline.rejectExistingId(
@@ -85,7 +88,25 @@ public class CentralPubkeyEmpowerMsgService {
                 centralPubkeyEmpowerMsg.getFlowNodeSignature()
         );
 
-        return messageWritePipeline.saveAbstractThenEntity(centralPubkeyEmpowerMsg, centralPubkeyEmpowerMsgRepository::save);
+        // 事务收窄（性能审计 H1）：验签/央签在事务外完成；仅将 id 存在性、(流转节点,中心公钥) 组合判重、
+        // 中心公钥未冻结的冲突复检 + 原子落库收进窄事务（组合唯一约束兜底），
+        // 同时保证 msg_abstract 与实体两次写入的原子性。
+        return transactionTemplate.execute(status -> {
+            messageWritePipeline.rejectExistingId(
+                    centralPubkeyEmpowerMsg,
+                    centralPubkeyEmpowerMsgRepository::existsById,
+                    () -> "该中心公钥公证信息id(" + centralPubkeyEmpowerMsg.getId() + ")已存在"
+            );
+            flowNodeStateValidator.validateRegistered(centralPubkeyEmpowerMsg.getFlowNodePubkey());
+            if (centralPubkeyEmpowerMsgRepository.countByFlowNodePubkeyAndCentralPubkey(
+                    centralPubkeyEmpowerMsg.getFlowNodePubkey(),
+                    centralPubkeyEmpowerMsg.getCentralPubkey()) > 0) {
+                throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(centralPubkeyEmpowerMsg.getFlowNodePubkey())
+                        + ")已对该中心公钥授权过");
+            }
+            centralPubkeyValidator.validateNotLocked(centralPubkeyEmpowerMsg.getCentralPubkey());
+            return messageWritePipeline.saveAbstractThenEntity(centralPubkeyEmpowerMsg);
+        });
     }
     public CentralPubkeyEmpowerMsg getCentralPubkeyEmpowerMsgById(UUID id) {
         return EntityLookup.requireById(id, "中心公钥公证信息", centralPubkeyEmpowerMsgRepository::findById);

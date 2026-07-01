@@ -40,7 +40,7 @@ class TransactionMountMsgServiceTest {
         TransactionMountMsgService service = new TransactionMountMsgService(
                 blockDifficultyService,
                 transactionMountMsgRepository,
-                new MessageWritePipeline(mock(MsgAbstractService.class)),
+                new MessageWritePipeline(mock(MsgAbstractService.class), null),
                 writeService,
                 flowNodeStateValidator,
                 centralPubkeyValidator,
