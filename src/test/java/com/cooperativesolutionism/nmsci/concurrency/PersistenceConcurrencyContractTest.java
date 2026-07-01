@@ -60,7 +60,8 @@ class PersistenceConcurrencyContractTest {
                 "lockOpenChainsForAllocation",
                 UUID.class,
                 Short.class,
-                long.class
+                long.class,
+                UUID.class
         );
         Query query = method.getAnnotation(Query.class);
 
@@ -79,34 +80,19 @@ class PersistenceConcurrencyContractTest {
 
     @Test
     void messageSavesThatPersistMsgAbstractRunInOneTransaction() throws ReflectiveOperationException {
-        assertTransactional(
-                FlowNodeRegisterMsgService.class,
-                "saveFlowNodeRegisterMsg",
-                FlowNodeRegisterMsg.class
-        );
-        assertTransactional(
-                CentralPubkeyEmpowerMsgService.class,
-                "saveCentralPubkeyEmpowerMsg",
-                CentralPubkeyEmpowerMsg.class
-        );
-        assertTransactional(
-                FlowNodeLockedMsgService.class,
-                "saveFlowNodeLockedMsg",
-                FlowNodeLockedMsg.class
-        );
-        assertTransactional(
-                TransactionRecordMsgService.class,
-                "saveTransactionRecordMsg",
-                TransactionRecordMsg.class
-        );
+        // 性能审计 H1（写事务收窄）：四个消息写服务把 CPU 密集的 PoW/验签/央签移出事务、只把「冲突不变式复检 +
+        // msg_abstract 与实体的原子落库」收进窄事务（经 TransactionTemplate），避免 ECDSA 期间持有连接池连接。
+        // 原子性契约不变，仅落地机制由整方法 @Transactional 改为 TransactionTemplate（与 CentralPubkeyLockedMsgService 一致）。
+        assertPersistsThroughTransactionTemplate(FlowNodeRegisterMsgService.class);
+        assertPersistsThroughTransactionTemplate(CentralPubkeyEmpowerMsgService.class);
+        assertPersistsThroughTransactionTemplate(FlowNodeLockedMsgService.class);
+        assertPersistsThroughTransactionTemplate(TransactionRecordMsgService.class);
+        assertPersistsThroughTransactionTemplate(CentralPubkeyLockedMsgService.class);
+        // 交易挂载写入仍走专用 @Transactional 写服务（内含 findByIdForUpdate 行锁 + 分配），保持整方法事务。
         assertTransactional(
                 TransactionMountWriteService.class,
                 "saveAndAllocate",
                 TransactionMountMsg.class
-        );
-        assertNotNull(
-                CentralPubkeyLockedMsgService.class.getDeclaredField("transactionTemplate"),
-                "CentralPubkeyLockedMsgService must persist the lock message and msg_abstracts through TransactionTemplate"
         );
     }
 
@@ -116,6 +102,13 @@ class PersistenceConcurrencyContractTest {
         assertNotNull(
                 method.getAnnotation(Transactional.class),
                 serviceClass.getSimpleName() + "." + methodName + " must persist the business message and msg_abstracts in one transaction"
+        );
+    }
+
+    private void assertPersistsThroughTransactionTemplate(Class<?> serviceClass) throws NoSuchFieldException {
+        assertNotNull(
+                serviceClass.getDeclaredField("transactionTemplate"),
+                serviceClass.getSimpleName() + " must persist the business message and msg_abstracts in one transaction via TransactionTemplate"
         );
     }
 }

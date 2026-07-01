@@ -382,10 +382,8 @@ public final class ChainVerifier {
 
     private static boolean verifyEcdsa(byte[] data, byte[] rsSignature, byte[] compressedPubkey) {
         try {
-            return Secp256k1EncryptUtil.verifySignature(
-                    data,
-                    rsSignature,
-                    Secp256k1EncryptUtil.compressedToPublicKey(compressedPubkey));
+            // 性能审计 H3：直接以压缩公钥字节验签，避免每条签名都做一次 KeyFactory/PublicKey 往返。
+            return Secp256k1EncryptUtil.verifySignature(data, rsSignature, compressedPubkey);
         } catch (Exception e) {
             return false;
         }

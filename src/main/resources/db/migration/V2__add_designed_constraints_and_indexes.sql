@@ -4,7 +4,7 @@
 -- 使两类库收敛到同一模式。与冻结的字节协议/区块格式/版本号无关。
 --
 -- 上线前提（线上既有库）：现有数据须已满足下列唯一/检查约束，否则 ADD CONSTRAINT 会失败。
--- 部署前必须执行 docs/DB-BASELINE.md 中的数据预检（重复 txid/pubkey/height、非正 amount 等）。
+-- 部署前必须确认存量数据无违例（重复 txid/pubkey/height、非正 amount 等），否则 ADD CONSTRAINT 会在启动时失败。
 
 -- 协议消息唯一性：txid 全局唯一，关键公钥/高度/父哈希按协议语义唯一。
 alter table flow_node_register_msgs

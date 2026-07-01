@@ -68,7 +68,7 @@ class FlowNodeStateEndpointTest {
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
 
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null, null);
 
         Object response = FlowNodeRegisterMsgService.class
                 .getMethod("getFlowNodeState", byte[].class)

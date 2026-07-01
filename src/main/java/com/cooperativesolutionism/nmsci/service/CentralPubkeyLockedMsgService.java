@@ -98,7 +98,7 @@ public class CentralPubkeyLockedMsgService {
         );
 
         transactionTemplate.executeWithoutResult(status ->
-                messageWritePipeline.saveEntityThenAbstract(centralPubkeyLockedMsg, centralPubkeyLockedMsgRepository::save)
+                messageWritePipeline.saveEntityThenAbstract(centralPubkeyLockedMsg)
         );
 
         finalizeCentralPubkeyLock();

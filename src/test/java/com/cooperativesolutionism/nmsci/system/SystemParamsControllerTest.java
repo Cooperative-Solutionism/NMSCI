@@ -47,7 +47,7 @@ class SystemParamsControllerTest {
         latestBlock.setId(latestBlockHash);
         latestBlock.setHeight(42L);
         BlockChainService blockChainService = mock(BlockChainService.class);
-        when(blockChainService.getLastBlock()).thenReturn(latestBlock);
+        when(blockChainService.getLastBlockSummary()).thenReturn(latestBlock);
         Object controller = controllerType.getConstructors()[0]
                 .newInstance(properties, blockChainService, null, null, null);
 
@@ -70,7 +70,7 @@ class SystemParamsControllerTest {
     void returnsNullLatestBlockFieldsWhenNoBlockExists() throws Exception {
         Class<?> controllerType = Class.forName(CONTROLLER_TYPE);
         BlockChainService blockChainService = mock(BlockChainService.class);
-        when(blockChainService.getLastBlock()).thenReturn(null);
+        when(blockChainService.getLastBlockSummary()).thenReturn(null);
         Object controller = controllerType.getConstructors()[0]
                 .newInstance(properties(), blockChainService, null, null, null);
 

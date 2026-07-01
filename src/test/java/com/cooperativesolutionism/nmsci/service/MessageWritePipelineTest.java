@@ -4,6 +4,7 @@ import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
 import com.cooperativesolutionism.nmsci.exception.ConflictException;
 import com.cooperativesolutionism.nmsci.model.FlowNodeRegisterMsg;
 import com.cooperativesolutionism.nmsci.util.MerkleTreeUtil;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -20,7 +21,8 @@ import static org.mockito.Mockito.mock;
 class MessageWritePipelineTest {
 
     private final MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
-    private final MessageWritePipeline pipeline = new MessageWritePipeline(msgAbstractService);
+    private final EntityManager entityManager = mock(EntityManager.class);
+    private final MessageWritePipeline pipeline = new MessageWritePipeline(msgAbstractService, entityManager);
 
     @Test
     void rejectsUnexpectedMessageType() {
@@ -57,11 +59,12 @@ class MessageWritePipelineTest {
             phases.add("abstract");
             return null;
         }).when(msgAbstractService).saveMsgAbstract(message);
-
-        FlowNodeRegisterMsg saved = pipeline.saveAbstractThenEntity(message, msg -> {
+        doAnswer(invocation -> {
             phases.add("entity");
-            return msg;
-        });
+            return null;
+        }).when(entityManager).persist(message);
+
+        FlowNodeRegisterMsg saved = pipeline.saveAbstractThenEntity(message);
 
         assertSame(message, saved);
         assertEquals(List.of("abstract", "entity"), phases);
@@ -75,11 +78,12 @@ class MessageWritePipelineTest {
             phases.add("abstract");
             return null;
         }).when(msgAbstractService).saveMsgAbstract(message);
-
-        FlowNodeRegisterMsg saved = pipeline.saveEntityThenAbstract(message, msg -> {
+        doAnswer(invocation -> {
             phases.add("entity");
-            return msg;
-        });
+            return null;
+        }).when(entityManager).persist(message);
+
+        FlowNodeRegisterMsg saved = pipeline.saveEntityThenAbstract(message);
 
         assertSame(message, saved);
         assertEquals(List.of("entity", "abstract"), phases);

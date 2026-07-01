@@ -38,7 +38,7 @@ class TransactionMountWriteServiceTest {
         when(fixture.transactionMountMsgRepository.existsTransactionMountMsgByMountedTransactionRecordId(fixture.recordId))
                 .thenReturn(false);
         when(fixture.centralPubkeyValidator.currentCentralPubkey()).thenReturn(fixture.centralPubkey.clone());
-        when(fixture.messageWritePipeline.saveEntityThenAbstract(eq(fixture.transactionMountMsg), any()))
+        when(fixture.messageWritePipeline.saveEntityThenAbstract(eq(fixture.transactionMountMsg)))
                 .thenReturn(fixture.transactionMountMsg);
 
         TransactionMountMsg result = fixture.writeService.saveAndAllocate(fixture.transactionMountMsg);
@@ -71,7 +71,7 @@ class TransactionMountWriteServiceTest {
         // 流转节点校验在最前短路：中心公钥校验、取记录行锁、落库、分配均不应执行
         verify(fixture.centralPubkeyValidator, never()).validateNotLocked(any());
         verify(fixture.transactionRecordMsgRepository, never()).findByIdForUpdate(any());
-        verify(fixture.messageWritePipeline, never()).saveEntityThenAbstract(any(), any());
+        verify(fixture.messageWritePipeline, never()).saveEntityThenAbstract(any());
         verify(fixture.consumeChainAllocationService, never()).saveConsumeChain(any(), any());
     }
 
@@ -91,7 +91,7 @@ class TransactionMountWriteServiceTest {
 
         assertEquals("该中心公钥已被冻结", exception.getMessage());
         verify(fixture.transactionRecordMsgRepository, never()).findByIdForUpdate(any());
-        verify(fixture.messageWritePipeline, never()).saveEntityThenAbstract(any(), any());
+        verify(fixture.messageWritePipeline, never()).saveEntityThenAbstract(any());
         verify(fixture.consumeChainAllocationService, never()).saveConsumeChain(any(), any());
     }
 

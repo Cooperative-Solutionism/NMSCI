@@ -57,6 +57,7 @@ public class ConsumeChainAllocationService {
 
             List<ConsumeChain> mountChains = getMountChainsForAllocation(
                     source,
+                    target,
                     transactionRecordMsg.getCurrencyType(),
                     transactionRecordMsg.getAmount()
             );
@@ -74,12 +75,13 @@ public class ConsumeChainAllocationService {
 
     private List<ConsumeChain> getMountChainsForAllocation(
             FlowNodeRegisterMsg source,
+            FlowNodeRegisterMsg target,
             Short currencyType,
             long transactionAmount
     ) {
         // 单条窗口累计和查询取「刚好够」的开放链最小前缀并加 FOR UPDATE 悲观写锁；
-        // 不足部分由分配器新建链承接。
-        return consumeChainRepository.lockOpenChainsForAllocation(source.getId(), currencyType, transactionAmount);
+        // 优先 start==target 的链（延伸/拆分后即成环），其次按时间；不足部分由分配器新建链承接。
+        return consumeChainRepository.lockOpenChainsForAllocation(source.getId(), currencyType, transactionAmount, target.getId());
     }
 
     private List<ConsumeChainAllocationCandidate> getConsumeChainAllocationCandidates(List<ConsumeChain> mountChains) {

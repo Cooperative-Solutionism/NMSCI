@@ -51,7 +51,7 @@ class BaselineUpgradeFromLegacySchemaIntegrationTest {
                 statement.execute("drop table flyway_schema_history");
             }
 
-            // 2) 以应用真实配置迁移：非空库 + 无历史 -> 基线到 V1（不重跑），仅执行 V2/V3/V4。
+            // 2) 以应用真实配置迁移：非空库 + 无历史 -> 基线到 V1（不重跑），仅执行 V2/V3/V4/V5。
             MigrateResult result = Flyway.configure()
                     .dataSource(url, user, password)
                     .locations("classpath:db/migration")
@@ -61,16 +61,16 @@ class BaselineUpgradeFromLegacySchemaIntegrationTest {
                     .migrate();
 
             assertTrue(result.success, "存量库基线升级应成功");
-            assertEquals(3, result.migrationsExecuted, "仅应执行 V2/V3/V4 三条迁移，V1 不应重跑");
+            assertEquals(4, result.migrationsExecuted, "仅应执行 V2/V3/V4/V5 四条迁移，V1 不应重跑");
 
             try (Connection connection = DriverManager.getConnection(url, user, password)) {
-                // 历史表：V1 为 BASELINE，V2/V3/V4 为 SQL 且全部成功
+                // 历史表：V1 为 BASELINE，V2/V3/V4/V5 为 SQL 且全部成功
                 assertEquals(1, count(connection,
                         "select count(*) from flyway_schema_history where version = '1' and type = 'BASELINE' and success = true"),
                         "V1 应被记为 BASELINE");
-                assertEquals(3, count(connection,
-                        "select count(*) from flyway_schema_history where version in ('2','3','4') and type = 'SQL' and success = true"),
-                        "V2/V3/V4 应全部作为 SQL 迁移成功");
+                assertEquals(4, count(connection,
+                        "select count(*) from flyway_schema_history where version in ('2','3','4','5') and type = 'SQL' and success = true"),
+                        "V2/V3/V4/V5 应全部作为 SQL 迁移成功");
 
                 // V2 落地：补齐的唯一约束存在
                 assertEquals(1, count(connection,

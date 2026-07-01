@@ -11,6 +11,7 @@ import com.cooperativesolutionism.nmsci.block.SourceCodeArchiveStore;
 import com.cooperativesolutionism.nmsci.exception.NotFoundException;
 import com.cooperativesolutionism.nmsci.monitoring.NmsciMetrics;
 import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import com.cooperativesolutionism.nmsci.model.MsgAbstract;
 import com.cooperativesolutionism.nmsci.repository.BlockInfoRepository;
 import com.cooperativesolutionism.nmsci.repository.MsgAbstractRepository;
@@ -115,6 +116,13 @@ public class BlockChainService {
     }
     public BlockInfo getLastBlock() {
         return blockInfoRepository.findTopByOrderByHeightDesc();
+    }
+    /**
+     * 最新区块的摘要投影（性能审计 QW3）：供只读少量标量字段的运营/元数据端点使用，避免物化 raw_bytes。
+     * 对外序列化整块的 /blocks/* 仍走 {@link #getLastBlock()}，契约不变。
+     */
+    public BlockInfoSummary getLastBlockSummary() {
+        return blockInfoRepository.findFirstByOrderByHeightDesc();
     }
     public BlockInfo getBlockByHeight(long height) {
         BlockInfo blockInfo = blockInfoRepository.findByHeight(height);

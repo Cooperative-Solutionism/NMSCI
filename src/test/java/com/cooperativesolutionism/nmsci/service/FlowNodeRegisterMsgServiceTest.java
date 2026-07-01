@@ -22,7 +22,7 @@ class FlowNodeRegisterMsgServiceTest {
         when(blockInfoRepository.findTopByOrderByHeightDesc()).thenReturn(null);
 
         FlowNodeRegisterMsgRepository flowNodeRegisterMsgRepository = mock(FlowNodeRegisterMsgRepository.class);
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(blockInfoRepository, flowNodeRegisterMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class)), null, null, null, null);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(blockInfoRepository, flowNodeRegisterMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class), null), null, null, null, null, null);
 
         FlowNodeRegisterMsg msg = new FlowNodeRegisterMsg();
         msg.setMsgType(MsgTypeEnum.FlowNodeRegisterMsg.getValue());

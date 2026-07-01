@@ -18,6 +18,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Optional;
@@ -33,6 +34,7 @@ public class FlowNodeLockedMsgService {
     private final SignatureValidator signatureValidator;
     private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
     private final CentralSignatureService centralSignatureService;
+    private final TransactionTemplate transactionTemplate;
 
     public FlowNodeLockedMsgService(
             FlowNodeLockedMsgRepository flowNodeLockedMsgRepository,
@@ -41,7 +43,8 @@ public class FlowNodeLockedMsgService {
             CentralPubkeyValidator centralPubkeyValidator,
             SignatureValidator signatureValidator,
             ProtocolRawBytesBuilder protocolRawBytesBuilder,
-            CentralSignatureService centralSignatureService
+            CentralSignatureService centralSignatureService,
+            TransactionTemplate transactionTemplate
     ) {
         this.flowNodeLockedMsgRepository = flowNodeLockedMsgRepository;
         this.messageWritePipeline = messageWritePipeline;
@@ -50,9 +53,9 @@ public class FlowNodeLockedMsgService {
         this.signatureValidator = signatureValidator;
         this.protocolRawBytesBuilder = protocolRawBytesBuilder;
         this.centralSignatureService = centralSignatureService;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
     public FlowNodeLockedMsg saveFlowNodeLockedMsg(@Valid @Nonnull FlowNodeLockedMsg flowNodeLockedMsg) {
         messageWritePipeline.requireMsgType(flowNodeLockedMsg, MsgTypeEnum.FlowNodeLockedMsg);
         messageWritePipeline.rejectExistingId(
@@ -81,7 +84,22 @@ public class FlowNodeLockedMsgService {
                 flowNodeLockedMsg.getFlowNodeSignature()
         );
 
-        return messageWritePipeline.saveAbstractThenEntity(flowNodeLockedMsg, flowNodeLockedMsgRepository::save);
+        // 事务收窄（性能审计 H1）：验签/央签在事务外完成；仅将 id 存在性与「注册/授权/未冻结 + 中心公钥未冻结」
+        // 冲突复检 + 原子落库收进窄事务。not-locked 在无事务前置校验之后、提交之前仍可能被并发冻结改变，故事务内重做，
+        // 同时保证 msg_abstract 与实体两次写入的原子性。
+        return transactionTemplate.execute(status -> {
+            messageWritePipeline.rejectExistingId(
+                    flowNodeLockedMsg,
+                    flowNodeLockedMsgRepository::existsById,
+                    () -> "该流转节点公钥冻结信息id(" + flowNodeLockedMsg.getId() + ")已存在"
+            );
+            flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
+                    flowNodeLockedMsg.getFlowNodePubkey(),
+                    centralPubkeyValidator.currentCentralPubkey()
+            );
+            centralPubkeyValidator.validateNotLocked(flowNodeLockedMsg.getCentralPubkey());
+            return messageWritePipeline.saveAbstractThenEntity(flowNodeLockedMsg);
+        });
     }
     public FlowNodeLockedMsg getFlowNodeLockedMsgById(UUID id) {
         return EntityLookup.requireById(id, "流转节点公钥冻结信息", flowNodeLockedMsgRepository::findById);

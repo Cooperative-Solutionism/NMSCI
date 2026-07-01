@@ -10,6 +10,7 @@ import com.cooperativesolutionism.nmsci.protocol.SignatureValidator;
 import com.cooperativesolutionism.nmsci.repository.CentralPubkeyLockedMsgRepository;
 import com.cooperativesolutionism.nmsci.support.ProtocolMessageBuilder;
 import com.cooperativesolutionism.nmsci.support.TestKeyPairs;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
@@ -52,15 +53,16 @@ class CentralPubkeyLockedMsgServiceTest {
         when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
 
         MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
+        EntityManager entityManager = mock(EntityManager.class);
         BlockChainService blockChainService = mock(BlockChainService.class);
         CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
         List<String> phases = new ArrayList<>();
         AtomicBoolean inTransactionCallback = new AtomicBoolean(false);
         doAnswer(invocation -> {
-            assertTrue(inTransactionCallback.get(), "lock message must be saved inside TransactionTemplate callback");
-            phases.add("repository.save");
-            return msg;
-        }).when(repository).save(msg);
+            assertTrue(inTransactionCallback.get(), "lock message must be persisted inside TransactionTemplate callback");
+            phases.add("entityManager.persist");
+            return null;
+        }).when(entityManager).persist(msg);
         doAnswer(invocation -> {
             assertTrue(inTransactionCallback.get(), "msg_abstract must be saved inside TransactionTemplate callback");
             phases.add("msgAbstractService.saveMsgAbstract");
@@ -91,7 +93,7 @@ class CentralPubkeyLockedMsgServiceTest {
         CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
                 properties(),
                 repository,
-                new MessageWritePipeline(msgAbstractService),
+                new MessageWritePipeline(msgAbstractService, entityManager),
                 new SignatureValidator(),
                 rawBytesBuilder,
                 new CentralSignatureService(properties(), rawBytesBuilder),
@@ -106,14 +108,14 @@ class CentralPubkeyLockedMsgServiceTest {
         assertEquals(64, msg.getCentralSignature().length);
         assertEquals(187, msg.getRawBytes().length);
         assertEquals(32, msg.getTxid().length);
-        verify(repository).save(msg);
+        verify(entityManager).persist(msg);
         verify(msgAbstractService).saveMsgAbstract(msg);
         verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
         verify(shutdownService).requestShutdown();
         assertEquals(
                 List.of(
                         "transactionTemplate.callback.start",
-                        "repository.save",
+                        "entityManager.persist",
                         "msgAbstractService.saveMsgAbstract",
                         "transactionTemplate.callback.end",
                         "blockChainService.generateBlockUntilNoNotInBlockMsgs",
@@ -137,6 +139,7 @@ class CentralPubkeyLockedMsgServiceTest {
         when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
 
         MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
+        EntityManager entityManager = mock(EntityManager.class);
         BlockChainService blockChainService = mock(BlockChainService.class);
         CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
         RuntimeException drainFailure = new RuntimeException("drain failed");
@@ -155,7 +158,7 @@ class CentralPubkeyLockedMsgServiceTest {
         CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
                 properties(),
                 repository,
-                new MessageWritePipeline(msgAbstractService),
+                new MessageWritePipeline(msgAbstractService, entityManager),
                 new SignatureValidator(),
                 rawBytesBuilder,
                 new CentralSignatureService(properties(), rawBytesBuilder),
@@ -167,7 +170,7 @@ class CentralPubkeyLockedMsgServiceTest {
         RuntimeException thrown = assertThrows(RuntimeException.class, () -> service.saveCentralPubkeyLockedMsg(msg));
 
         assertSame(drainFailure, thrown);
-        verify(repository).save(msg);
+        verify(entityManager).persist(msg);
         verify(msgAbstractService).saveMsgAbstract(msg);
         verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
         verify(shutdownService).requestShutdown();
@@ -187,6 +190,7 @@ class CentralPubkeyLockedMsgServiceTest {
         when(repository.existsByCentralPubkey(msg.getCentralPubkey())).thenReturn(false);
 
         MsgAbstractService msgAbstractService = mock(MsgAbstractService.class);
+        EntityManager entityManager = mock(EntityManager.class);
         BlockChainService blockChainService = mock(BlockChainService.class);
         CentralPubkeyLockShutdownService shutdownService = mock(CentralPubkeyLockShutdownService.class);
         RuntimeException drainFailure = new RuntimeException("drain failed");
@@ -209,7 +213,7 @@ class CentralPubkeyLockedMsgServiceTest {
         CentralPubkeyLockedMsgService service = new CentralPubkeyLockedMsgService(
                 properties(),
                 repository,
-                new MessageWritePipeline(msgAbstractService),
+                new MessageWritePipeline(msgAbstractService, entityManager),
                 new SignatureValidator(),
                 rawBytesBuilder,
                 new CentralSignatureService(properties(), rawBytesBuilder),
@@ -222,7 +226,7 @@ class CentralPubkeyLockedMsgServiceTest {
 
         assertSame(drainFailure, thrown);
         assertTrue(List.of(thrown.getSuppressed()).contains(shutdownFailure));
-        verify(repository).save(msg);
+        verify(entityManager).persist(msg);
         verify(msgAbstractService).saveMsgAbstract(msg);
         verify(blockChainService).generateBlockUntilNoNotInBlockMsgs();
         verify(shutdownService).requestShutdown();

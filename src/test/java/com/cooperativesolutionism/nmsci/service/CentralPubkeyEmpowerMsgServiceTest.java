@@ -43,7 +43,8 @@ class CentralPubkeyEmpowerMsgServiceTest {
             centralPubkeyValidator,
             signatureValidator,
             protocolRawBytesBuilder,
-            centralSignatureService
+            centralSignatureService,
+            null
     );
 
     @Test

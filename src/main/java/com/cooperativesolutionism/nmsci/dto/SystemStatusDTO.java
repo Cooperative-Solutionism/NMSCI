@@ -1,6 +1,6 @@
 package com.cooperativesolutionism.nmsci.dto;
 
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import com.cooperativesolutionism.nmsci.util.ByteArrayUtil;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -28,7 +28,7 @@ public class SystemStatusDTO {
     private boolean currentCentralPubkeyLocked;
 
     public static SystemStatusDTO from(
-            BlockInfo latestBlock,
+            BlockInfoSummary latestBlock,
             long pendingMessageCount,
             Long oldestPendingConfirmTimestamp,
             long blockIntervalMs,

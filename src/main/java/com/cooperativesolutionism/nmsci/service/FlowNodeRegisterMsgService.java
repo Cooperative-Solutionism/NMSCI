@@ -23,6 +23,7 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.List;
@@ -39,6 +40,7 @@ public class FlowNodeRegisterMsgService {
     private final SignatureValidator signatureValidator;
     private final ProofOfWorkValidator proofOfWorkValidator;
     private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
+    private final TransactionTemplate transactionTemplate;
 
     public FlowNodeRegisterMsgService(
             BlockInfoRepository blockInfoRepository,
@@ -47,7 +49,8 @@ public class FlowNodeRegisterMsgService {
             CentralPubkeyValidator centralPubkeyValidator,
             SignatureValidator signatureValidator,
             ProofOfWorkValidator proofOfWorkValidator,
-            ProtocolRawBytesBuilder protocolRawBytesBuilder
+            ProtocolRawBytesBuilder protocolRawBytesBuilder,
+            TransactionTemplate transactionTemplate
     ) {
         this.blockInfoRepository = blockInfoRepository;
         this.flowNodeRegisterMsgRepository = flowNodeRegisterMsgRepository;
@@ -56,9 +59,9 @@ public class FlowNodeRegisterMsgService {
         this.signatureValidator = signatureValidator;
         this.proofOfWorkValidator = proofOfWorkValidator;
         this.protocolRawBytesBuilder = protocolRawBytesBuilder;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
     public FlowNodeRegisterMsg saveFlowNodeRegisterMsg(@Valid @Nonnull FlowNodeRegisterMsg flowNodeRegisterMsg) {
         messageWritePipeline.requireMsgType(flowNodeRegisterMsg, MsgTypeEnum.FlowNodeRegisterMsg);
         messageWritePipeline.rejectExistingId(
@@ -93,7 +96,20 @@ public class FlowNodeRegisterMsgService {
 
         messageWritePipeline.populateRawBytes(flowNodeRegisterMsg, verifyData, flowNodeRegisterMsg.getFlowNodeSignature());
 
-        return messageWritePipeline.saveAbstractThenEntity(flowNodeRegisterMsg, flowNodeRegisterMsgRepository::save);
+        // 事务收窄（性能审计 H1）：PoW/验签在事务外完成；仅将 id 与公钥唯一性复检 + 原子落库收进窄事务，
+        // 复检在无事务前置校验之后、提交之前仍可能被并发注册改变的唯一性（最终由唯一约束兜底），
+        // 并保证 msg_abstract 与实体两次写入的原子性。
+        return transactionTemplate.execute(status -> {
+            messageWritePipeline.rejectExistingId(
+                    flowNodeRegisterMsg,
+                    flowNodeRegisterMsgRepository::existsById,
+                    () -> "该流转节点注册信息id(" + flowNodeRegisterMsg.getId() + ")已存在"
+            );
+            if (flowNodeRegisterMsgRepository.existsByFlowNodePubkey(flowNodeRegisterMsg.getFlowNodePubkey())) {
+                throw new ConflictException("该流转节点公钥(" + ByteArrayUtil.bytesToBase64(flowNodeRegisterMsg.getFlowNodePubkey()) + ")已被注册");
+            }
+            return messageWritePipeline.saveAbstractThenEntity(flowNodeRegisterMsg);
+        });
     }
     public FlowNodeRegisterMsg getFlowNodeRegisterMsgById(UUID id) {
         return EntityLookup.requireById(id, "流转节点注册信息", flowNodeRegisterMsgRepository::findById);

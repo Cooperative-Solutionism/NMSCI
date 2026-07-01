@@ -33,16 +33,26 @@ import java.util.UUID;
  */
 public final class ChainStateReplayer {
 
-    private static final Comparator<ParsedMessage> INGESTION_ORDER =
-            Comparator.comparingLong(ParsedMessage::confirmTimestamp)
-                    .thenComparing(ChainStateReplayer::idBytes, Arrays::compareUnsigned);
+    private static final Comparator<OrderedMessage> INGESTION_ORDER =
+            Comparator.comparingLong(OrderedMessage::confirmTimestamp)
+                    .thenComparing(OrderedMessage::idKey, Arrays::compareUnsigned);
 
     public List<CheckResult> replay(List<ParsedBlock> blocks) {
-        List<ParsedMessage> messages = new ArrayList<>();
+        // 性能审计 QW5/finding #13：入账排序键（confirmTimestamp + 18字节 id）原在比较器内重算，
+        // 造成 O(M log M) 次 ByteBuffer 分配。改为每条消息预算一次键（O(M)）再按预算键排序，消除排序期的重复分配，
+        // 排序结果与原 (confirmTimestamp 升序, 18字节 id 无符号序) 完全一致。
+        List<OrderedMessage> ordered = new ArrayList<>();
         for (ParsedBlock block : blocks) {
-            messages.addAll(block.messages());
+            for (ParsedMessage message : block.messages()) {
+                ordered.add(new OrderedMessage(message, message.confirmTimestamp(), idBytes(message)));
+            }
         }
-        messages.sort(INGESTION_ORDER);
+        ordered.sort(INGESTION_ORDER);
+
+        List<ParsedMessage> messages = new ArrayList<>(ordered.size());
+        for (OrderedMessage orderedMessage : ordered) {
+            messages.add(orderedMessage.message());
+        }
 
         Set<String> seenIds = new HashSet<>();
         Set<String> registered = new HashSet<>();
@@ -182,6 +192,10 @@ public final class ChainStateReplayer {
         if (frozenCentrals.contains(central)) {
             centralNotFrozen.fail("消息发生时其中心公钥已冻结 id=" + message.id());
         }
+    }
+
+    /** 预算入账排序键的消息包装，避免在比较器内重复计算 18 字节 id（性能审计 QW5/finding #13）。 */
+    private record OrderedMessage(ParsedMessage message, long confirmTimestamp, byte[] idKey) {
     }
 
     /** 18 字节 id：2字节 msgType（大端）‖ 16字节 uuid（大端），与 msg_abstracts 主键一致。 */

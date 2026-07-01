@@ -7,7 +7,7 @@ import com.cooperativesolutionism.nmsci.dto.DifficultyMetadataDTO;
 import com.cooperativesolutionism.nmsci.dto.MsgTypeMetadataDTO;
 import com.cooperativesolutionism.nmsci.enumeration.CurrencyTypeEnum;
 import com.cooperativesolutionism.nmsci.enumeration.MsgTypeEnum;
-import com.cooperativesolutionism.nmsci.model.BlockInfo;
+import com.cooperativesolutionism.nmsci.model.BlockInfoSummary;
 import com.cooperativesolutionism.nmsci.response.ResponseResult;
 import com.cooperativesolutionism.nmsci.service.BlockChainService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,7 +53,7 @@ public class MetadataController {
 
     @GetMapping("/difficulty")
     public ResponseResult<DifficultyMetadataDTO> getDifficulty() {
-        BlockInfo latestBlock = blockChainService.getLastBlock();
+        BlockInfoSummary latestBlock = blockChainService.getLastBlockSummary();
         int registerNbits = latestBlock != null
                 ? latestBlock.getRegisterDifficultyTarget()
                 : nmsciProperties.getRegisterDifficultyTargetNbits();

@@ -18,7 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.UUID;
@@ -36,6 +36,7 @@ public class TransactionRecordMsgService {
     private final ProofOfWorkValidator proofOfWorkValidator;
     private final ProtocolRawBytesBuilder protocolRawBytesBuilder;
     private final CentralSignatureService centralSignatureService;
+    private final TransactionTemplate transactionTemplate;
 
     public TransactionRecordMsgService(
             BlockDifficultyService blockDifficultyService,
@@ -46,7 +47,8 @@ public class TransactionRecordMsgService {
             SignatureValidator signatureValidator,
             ProofOfWorkValidator proofOfWorkValidator,
             ProtocolRawBytesBuilder protocolRawBytesBuilder,
-            CentralSignatureService centralSignatureService
+            CentralSignatureService centralSignatureService,
+            TransactionTemplate transactionTemplate
     ) {
         this.blockDifficultyService = blockDifficultyService;
         this.transactionRecordMsgRepository = transactionRecordMsgRepository;
@@ -57,9 +59,9 @@ public class TransactionRecordMsgService {
         this.proofOfWorkValidator = proofOfWorkValidator;
         this.protocolRawBytesBuilder = protocolRawBytesBuilder;
         this.centralSignatureService = centralSignatureService;
+        this.transactionTemplate = transactionTemplate;
     }
 
-    @Transactional
     public TransactionRecordMsg saveTransactionRecordMsg(@Valid @Nonnull TransactionRecordMsg transactionRecordMsg) {
         messageWritePipeline.requireMsgType(transactionRecordMsg, MsgTypeEnum.TransactionRecordMsg);
 
@@ -101,7 +103,23 @@ public class TransactionRecordMsgService {
                 transactionRecordMsg.getFlowNodeSignature()
         );
 
-        return messageWritePipeline.saveAbstractThenEntity(transactionRecordMsg, transactionRecordMsgRepository::save);
+        // 事务收窄（性能审计 H1）：以上无状态校验/PoW/验签/央签均在事务外完成，避免 ECDSA 期间占用连接池连接。
+        // 仅将「冲突不变式复检 + 原子落库」收进窄事务：existsById 与 not-locked 在无事务前置校验之后、本事务
+        // 提交之前仍可能被并发消息改变，这里在事务内重做（对齐 TransactionMountWriteService 的 TOCTOU 收口），
+        // 同时保证 msg_abstract 与实体两次写入落在同一事务内维持原子性。
+        return transactionTemplate.execute(status -> {
+            messageWritePipeline.rejectExistingId(
+                    transactionRecordMsg,
+                    transactionRecordMsgRepository::existsById,
+                    () -> "该交易记录信息id(" + transactionRecordMsg.getId() + ")已存在"
+            );
+            flowNodeStateValidator.validateRegisteredAuthorizedAndNotLocked(
+                    transactionRecordMsg.getFlowNodePubkey(),
+                    centralPubkeyValidator.currentCentralPubkey()
+            );
+            centralPubkeyValidator.validateNotLocked(transactionRecordMsg.getCentralPubkey());
+            return messageWritePipeline.saveAbstractThenEntity(transactionRecordMsg);
+        });
     }
     public TransactionRecordMsg getTransactionRecordMsgById(UUID id) {
         return EntityLookup.requireById(id, "交易记录信息", transactionRecordMsgRepository::findById);

@@ -68,10 +68,7 @@ public class TransactionMountWriteService {
             throw new IllegalArgumentException("挂载的交易记录信息中的消费节点公钥(" + consumeNodePubkeyBase64 + ")与当前交易挂载信息中的消费节点公钥不一致");
         }
 
-        TransactionMountMsg transactionMountMsgInDb = messageWritePipeline.saveEntityThenAbstract(
-                transactionMountMsg,
-                transactionMountMsgRepository::save
-        );
+        TransactionMountMsg transactionMountMsgInDb = messageWritePipeline.saveEntityThenAbstract(transactionMountMsg);
         consumeChainAllocationService.saveConsumeChain(transactionMountMsgInDb, transactionRecordMsg);
         return transactionMountMsgInDb;
     }

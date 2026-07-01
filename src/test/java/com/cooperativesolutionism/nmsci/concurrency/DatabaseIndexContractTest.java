@@ -27,6 +27,13 @@ class DatabaseIndexContractTest {
             "idx_transaction_mount_consume_pubkey",
             "idx_transaction_mount_flow_pubkey",
             "idx_transaction_mount_consume_flow_pubkey",
+            // 性能审计 QW1（V5）：交易查询按 confirm_timestamp 范围过滤 + (confirm_timestamp desc, id desc) 排序的支撑索引
+            "idx_transaction_record_consume_confirm_ts",
+            "idx_transaction_record_flow_confirm_ts",
+            "idx_transaction_record_confirm_ts",
+            "idx_transaction_mount_consume_confirm_ts",
+            "idx_transaction_mount_flow_confirm_ts",
+            "idx_transaction_mount_confirm_ts",
             "idx_msg_abstracts_unblocked_timestamp",
             "idx_msg_abstracts_unblocked_timestamp_id",
             "idx_block_infos_height_desc",

@@ -121,7 +121,7 @@ class FlowNodeListEndpointTest {
         );
         CentralPubkeyValidator centralPubkeyValidator = mock(CentralPubkeyValidator.class);
         when(centralPubkeyValidator.currentCentralPubkey()).thenReturn(currentCentralPubkey);
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, centralPubkeyValidator, null, null, null, null);
 
         Slice<?> result = service.listFlowNodes(true, true, false, pageable);
 
@@ -142,7 +142,7 @@ class FlowNodeListEndpointTest {
                 new AtomicReference<>(),
                 new AtomicReference<>()
         );
-        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, null, null, null, null);
+        FlowNodeRegisterMsgService service = new FlowNodeRegisterMsgService(null, repository, null, null, null, null, null, null);
 
         Slice<?> result = service.listFlowNodes(false, null, null, pageable);
 

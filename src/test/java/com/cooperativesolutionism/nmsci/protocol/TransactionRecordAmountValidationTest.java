@@ -33,7 +33,7 @@ class TransactionRecordAmountValidationTest {
     void setUp() {
         transactionRecordMsgRepository = mock(TransactionRecordMsgRepository.class);
         blockDifficultyService = mock(BlockDifficultyService.class);
-        service = new TransactionRecordMsgService(blockDifficultyService, transactionRecordMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class)), null, null, null, null, null, null);
+        service = new TransactionRecordMsgService(blockDifficultyService, transactionRecordMsgRepository, new MessageWritePipeline(mock(MsgAbstractService.class), null), null, null, null, null, null, null, null);
     }
 
     @Test
