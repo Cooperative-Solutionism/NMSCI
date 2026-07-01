@@ -14,12 +14,19 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class SourceCodeArchiveStore {
 
     private final NmsciProperties nmsciProperties;
     private final Path applicationRoot;
+
+    // 性能审计 QW4/finding #8：本进程内已通过完整性校验的 block-version 集合。源码包对某版本不可变，
+    // 校验通过后不再对同版本反复读取+SHA-256（首启回填连续出多块时尤为可观）。出块虽已被 advisory lock 串行化，
+    // 仍用并发安全集合以稳妥。
+    private final Set<Integer> verifiedVersions = ConcurrentHashMap.newKeySet();
 
     @Autowired
     public SourceCodeArchiveStore(NmsciProperties nmsciProperties) {
@@ -49,7 +56,12 @@ public class SourceCodeArchiveStore {
             if (!Files.exists(sourceCodePath)) {
                 publishFromClasspath(sourceCodeZipFilename, sourceCodePath);
             }
-            verifyArchiveHash(sourceCodePath, sourceCodeZipFilename);
+            // 仅在尚未验证过该版本时校验；校验成功后才记入集合——若校验抛出（完整性失败）则不记入，
+            // 下个区块仍会重新校验，绝不掩盖坏文件。
+            if (!verifiedVersions.contains(blockVersion)) {
+                verifyArchiveHash(sourceCodePath, sourceCodeZipFilename);
+                verifiedVersions.add(blockVersion);
+            }
         } catch (IOException e) {
             throw new RuntimeException("Failed to copy source code zip file", e);
         }
